@@ -22,14 +22,30 @@ export async function GET() {
       ok: true,
       message: "Database connected",
       setting,
+      env: {
+        databaseUrlPresent: Boolean(process.env.DATABASE_URL),
+        databaseUrlStartsWithMysql: process.env.DATABASE_URL?.startsWith("mysql://") ?? false,
+      },
     });
   } catch (error) {
-    console.error(error);
+    const err = error as Error & { code?: string; meta?: unknown };
+
+    console.error("DATABASE_HEALTH_ERROR", error);
 
     return NextResponse.json(
       {
         ok: false,
         message: "Database connection failed",
+        env: {
+          databaseUrlPresent: Boolean(process.env.DATABASE_URL),
+          databaseUrlStartsWithMysql: process.env.DATABASE_URL?.startsWith("mysql://") ?? false,
+        },
+        error: {
+          name: err.name,
+          code: err.code ?? null,
+          message: err.message,
+          meta: err.meta ?? null,
+        },
       },
       { status: 500 }
     );
