@@ -8,18 +8,20 @@ datasource db {
 }
 
 model User {
-  id               Int          @id @default(autoincrement())
-  email            String       @unique
-  passwordHash     String
-  name             String?
-  role             String       @default("user")
-  onboardingStatus String       @default("not_started")
-  createdAt        DateTime     @default(now())
-  updatedAt        DateTime     @updatedAt
+  id                Int               @id @default(autoincrement())
+  email             String            @unique
+  passwordHash      String
+  name              String?
+  role              String            @default("user")
+  onboardingStatus  String            @default("not_started")
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
 
-  profile          UserProfile?
-  sessions         UserSession[]
+  profile           UserProfile?
+  sessions          UserSession[]
   onboardingAnswers OnboardingAnswer[]
+  trainingPrograms  TrainingProgram[]
+  workoutLogs       WorkoutLog[]
 
   @@map("users")
 }
@@ -82,4 +84,137 @@ model AppSetting {
   updatedAt DateTime @updatedAt
 
   @@map("app_settings")
+}
+
+model Exercise {
+  id                 Int               @id @default(autoincrement())
+  name               String
+  slug               String            @unique
+  category           String
+  primaryMuscle      String
+  secondaryMuscles   Json?
+  equipment          String?
+  difficulty         String?
+  instructions       String?           @db.Text
+  contraindications  Json?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+
+  programExercises   ProgramExercise[]
+
+  @@map("exercises")
+}
+
+model TrainingProgram {
+  id          Int              @id @default(autoincrement())
+  userId      Int
+  title       String
+  goal        String?
+  status      String           @default("active")
+  source      String           @default("manual")
+  startDate   DateTime?
+  endDate     DateTime?
+  notes       String?          @db.Text
+  safetyNotes Json?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workouts    ProgramWorkout[]
+  workoutLogs WorkoutLog[]
+
+  @@index([userId])
+  @@index([status])
+  @@map("training_programs")
+}
+
+model ProgramWorkout {
+  id               Int               @id @default(autoincrement())
+  programId        Int
+  title            String
+  dayLabel         String?
+  focus            String?
+  sortOrder        Int               @default(0)
+  estimatedMinutes Int?
+  notes            String?           @db.Text
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  program          TrainingProgram   @relation(fields: [programId], references: [id], onDelete: Cascade)
+  exercises        ProgramExercise[]
+  workoutLogs      WorkoutLog[]
+
+  @@index([programId])
+  @@map("program_workouts")
+}
+
+model ProgramExercise {
+  id           Int             @id @default(autoincrement())
+  workoutId    Int
+  exerciseId   Int?
+  name         String
+  sortOrder    Int             @default(0)
+  sets         Int?
+  reps         String?
+  restSeconds  Int?
+  tempo        String?
+  intensity    String?
+  notes        String?         @db.Text
+  alternatives Json?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  workout      ProgramWorkout  @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+  exercise     Exercise?       @relation(fields: [exerciseId], references: [id], onDelete: SetNull)
+  setLogs      WorkoutSetLog[]
+
+  @@index([workoutId])
+  @@index([exerciseId])
+  @@map("program_exercises")
+}
+
+model WorkoutLog {
+  id               Int              @id @default(autoincrement())
+  userId           Int
+  programId        Int?
+  workoutId        Int?
+  performedAt      DateTime         @default(now())
+  status           String           @default("completed")
+  durationMinutes  Int?
+  perceivedEffort  Int?
+  notes            String?          @db.Text
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  program          TrainingProgram? @relation(fields: [programId], references: [id], onDelete: SetNull)
+  workout          ProgramWorkout?  @relation(fields: [workoutId], references: [id], onDelete: SetNull)
+  setLogs          WorkoutSetLog[]
+
+  @@index([userId])
+  @@index([programId])
+  @@index([workoutId])
+  @@map("workout_logs")
+}
+
+model WorkoutSetLog {
+  id                Int              @id @default(autoincrement())
+  workoutLogId      Int
+  programExerciseId Int?
+  setNumber         Int
+  plannedReps       String?
+  actualReps        Int?
+  weightKg          Float?
+  rir               Int?
+  rpe               Int?
+  completed         Boolean          @default(true)
+  notes             String?          @db.Text
+  createdAt         DateTime         @default(now())
+
+  workoutLog        WorkoutLog       @relation(fields: [workoutLogId], references: [id], onDelete: Cascade)
+  programExercise   ProgramExercise? @relation(fields: [programExerciseId], references: [id], onDelete: SetNull)
+
+  @@index([workoutLogId])
+  @@index([programExerciseId])
+  @@map("workout_set_logs")
 }
