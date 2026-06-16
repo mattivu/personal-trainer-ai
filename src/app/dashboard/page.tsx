@@ -56,14 +56,27 @@ export default async function DashboardPage() {
               <p className="mt-3 text-neutral-400">
                 Prossimo step: generazione programma
               </p>
+              <p className="mt-2 text-sm text-neutral-500">
+                Dopo aver modificato il questionario, rigenera il programma per
+                allinearlo ai nuovi dati.
+              </p>
             </div>
 
-            <Link
-              href="/onboarding"
-              className="inline-flex shrink-0 justify-center rounded-xl bg-white px-5 py-3 font-semibold text-neutral-950"
-            >
-              Modifica questionario
-            </Link>
+            <div className="flex shrink-0 flex-col gap-3 sm:flex-row">
+              <Link
+                href="/program"
+                className="inline-flex justify-center rounded-xl bg-white px-5 py-3 font-semibold text-neutral-950"
+              >
+                Vedi programma
+              </Link>
+
+              <Link
+                href="/onboarding"
+                className="inline-flex justify-center rounded-xl border border-neutral-700 px-5 py-3 font-semibold text-neutral-100"
+              >
+                Modifica questionario
+              </Link>
+            </div>
           </div>
         </div>
       </section>
