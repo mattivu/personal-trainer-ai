@@ -95,6 +95,10 @@ model Exercise {
   secondaryMuscles   Json?
   equipment          String?
   difficulty         String?
+  movementPattern    String?
+  environments       Json?
+  tags               Json?
+  alternatives       Json?
   instructions       String?           @db.Text
   contraindications  Json?
   createdAt          DateTime          @default(now())
