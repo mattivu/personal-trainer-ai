@@ -18,8 +18,21 @@ model User {
   updatedAt        DateTime     @updatedAt
 
   profile          UserProfile?
+  sessions         UserSession[]
 
   @@map("users")
+}
+
+model UserSession {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_sessions")
 }
 
 model UserProfile {

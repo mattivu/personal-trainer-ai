@@ -2,8 +2,9 @@
 
 import { FormEvent, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
-type RegisterResponse = {
+type LoginResponse = {
   ok: boolean;
   message: string;
   user?: {
@@ -14,13 +15,12 @@ type RegisterResponse = {
   };
 };
 
-export default function RegisterPage() {
-  const [name, setName] = useState("");
+export default function LoginPage() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<RegisterResponse | null>(null);
+  const [result, setResult] = useState<LoginResponse | null>(null);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -28,25 +28,23 @@ export default function RegisterPage() {
     setResult(null);
 
     try {
-      const response = await fetch("/api/auth/register", {
+      const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          name,
           email,
           password,
         }),
       });
 
-      const data = (await response.json()) as RegisterResponse;
+      const data = (await response.json()) as LoginResponse;
       setResult(data);
 
       if (data.ok) {
-        setName("");
-        setEmail("");
-        setPassword("");
+        router.push("/dashboard");
+        router.refresh();
       }
     } catch {
       setResult({
@@ -65,28 +63,13 @@ export default function RegisterPage() {
           Personal Trainer AI
         </p>
 
-        <h1 className="text-3xl font-bold mb-3">
-          Crea il tuo account
-        </h1>
+        <h1 className="text-3xl font-bold mb-3">Accedi</h1>
 
         <p className="text-neutral-400 mb-8">
-          Primo test tecnico: registrazione utente con salvataggio sicuro nel database.
+          Entra nel tuo account per continuare il percorso di allenamento.
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm text-neutral-300 mb-2">
-              Nome
-            </label>
-            <input
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              className="w-full rounded-xl border border-neutral-800 bg-neutral-900 px-4 py-3 text-white outline-none focus:border-white"
-              placeholder="Mario Rossi"
-              autoComplete="name"
-            />
-          </div>
-
           <div>
             <label className="block text-sm text-neutral-300 mb-2">
               Email
@@ -109,9 +92,9 @@ export default function RegisterPage() {
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               className="w-full rounded-xl border border-neutral-800 bg-neutral-900 px-4 py-3 text-white outline-none focus:border-white"
-              placeholder="Minimo 8 caratteri"
+              placeholder="La tua password"
               type="password"
-              autoComplete="new-password"
+              autoComplete="current-password"
             />
           </div>
 
@@ -119,32 +102,20 @@ export default function RegisterPage() {
             disabled={loading}
             className="w-full rounded-xl bg-white text-neutral-950 font-semibold px-4 py-3 disabled:opacity-50"
           >
-            {loading ? "Creazione account..." : "Crea account"}
+            {loading ? "Accesso in corso..." : "Accedi"}
           </button>
         </form>
 
         <p className="mt-6 text-center text-sm text-neutral-400">
-          Hai già un account?{" "}
-          <Link href="/login" className="font-medium text-white hover:underline">
-            Accedi
+          Non hai ancora un account?{" "}
+          <Link href="/register" className="font-medium text-white hover:underline">
+            Registrati
           </Link>
         </p>
 
-        {result && (
-          <div
-            className={`mt-6 rounded-xl border px-4 py-3 text-sm ${
-              result.ok
-                ? "border-green-800 bg-green-950 text-green-200"
-                : "border-red-800 bg-red-950 text-red-200"
-            }`}
-          >
+        {result && !result.ok && (
+          <div className="mt-6 rounded-xl border border-red-800 bg-red-950 px-4 py-3 text-sm text-red-200">
             <p>{result.message}</p>
-
-            {result.ok && result.user && (
-              <p className="mt-2 text-xs opacity-80">
-                Utente creato: #{result.user.id} — {result.user.email}
-              </p>
-            )}
           </div>
         )}
       </section>
