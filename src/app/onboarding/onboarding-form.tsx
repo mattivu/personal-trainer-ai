@@ -40,6 +40,7 @@ type AnswersByStep = Record<string, Answers>;
 type ApiResponse = {
   ok: boolean;
   message?: string;
+  error?: string;
   safety?: SafetyResult;
 };
 type OnboardingFormProps = {
@@ -820,6 +821,28 @@ function filterSafetyResultByCodes(
   } satisfies SafetyResult;
 }
 
+async function parseApiResponse(response: Response) {
+  const contentType = response.headers.get("content-type") ?? "";
+
+  if (contentType.includes("application/json")) {
+    const data = (await response.json()) as ApiResponse;
+
+    return {
+      data,
+      message: data.message ?? data.error,
+    };
+  }
+
+  const text = (await response.text()).trim();
+
+  return {
+    data: null,
+    message: text
+      ? `Il server ha restituito una risposta non valida: ${text}`
+      : "Il server ha restituito una risposta non valida.",
+  };
+}
+
 export function OnboardingForm({
   initialAnswersByStep = {},
   onboardingStatus,
@@ -907,10 +930,14 @@ export function OnboardingForm({
       }),
     });
 
-    const data = (await response.json()) as ApiResponse;
+    const { data, message } = await parseApiResponse(response);
 
-    if (!response.ok || !data.ok) {
-      throw new Error(data.message ?? "Errore durante il salvataggio.");
+    if (data?.safety) {
+      setSafetyResult(data.safety);
+    }
+
+    if (!response.ok || !data?.ok) {
+      throw new Error(message ?? "Errore durante il salvataggio.");
     }
   }
 
@@ -919,17 +946,17 @@ export function OnboardingForm({
       method: "POST",
     });
 
-    const data = (await response.json()) as ApiResponse;
+    const { data, message } = await parseApiResponse(response);
 
-    if (!response.ok || !data.ok) {
-      if (data.safety) {
+    if (!response.ok || !data?.ok) {
+      if (data?.safety) {
         setSafetyResult(data.safety);
       }
 
-      throw new Error(data.message ?? "Errore durante il completamento.");
+      throw new Error(message ?? "Errore durante il completamento.");
     }
 
-    if (data.safety) {
+    if (data?.safety) {
       setSafetyResult(data.safety);
     }
 
@@ -1106,6 +1133,7 @@ export function OnboardingForm({
                     type="button"
                     onClick={() => {
                       setMessage(null);
+                      setSafetyResult(null);
                       setCurrentStepIndex((index) => Math.max(index - 1, 0));
                     }}
                     className="mt-4 rounded-xl border border-red-700 px-4 py-2 font-semibold text-red-50"
@@ -1122,6 +1150,7 @@ export function OnboardingForm({
                 disabled={loading || currentStepIndex === 0}
                 onClick={() => {
                   setMessage(null);
+                  setSafetyResult(null);
                   setCurrentStepIndex((index) => index - 1);
                 }}
                 className="rounded-xl border border-neutral-700 px-5 py-3 font-semibold text-neutral-100 disabled:cursor-not-allowed disabled:opacity-40"

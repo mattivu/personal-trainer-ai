@@ -24,7 +24,11 @@ export async function POST() {
 
     if (!user) {
       return NextResponse.json(
-        { ok: false, message: "Utente non autenticato." },
+        {
+          ok: false,
+          error: "Utente non autenticato.",
+          message: "Utente non autenticato.",
+        },
         { status: 401 }
       );
     }
@@ -46,6 +50,8 @@ export async function POST() {
       return NextResponse.json(
         {
           ok: false,
+          error:
+            "Il completamento onboarding e stato bloccato dal controllo di sicurezza.",
           message: "Il completamento onboarding e stato bloccato dal controllo di sicurezza.",
           safety,
         },
@@ -79,7 +85,11 @@ export async function POST() {
     console.error("ONBOARDING_COMPLETE_ERROR", error);
 
     return NextResponse.json(
-      { ok: false, message: "Errore durante il completamento onboarding." },
+      {
+        ok: false,
+        error: "Errore durante il completamento dell’onboarding.",
+        message: "Errore durante il completamento dell’onboarding.",
+      },
       { status: 500 }
     );
   }
