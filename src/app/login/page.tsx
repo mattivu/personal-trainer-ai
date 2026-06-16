@@ -42,8 +42,12 @@ export default function LoginPage() {
       const data = (await response.json()) as LoginResponse;
       setResult(data);
 
-      if (data.ok) {
-        router.push("/dashboard");
+      if (data.ok && data.user) {
+        router.push(
+          data.user.onboardingStatus === "completed"
+            ? "/dashboard"
+            : "/onboarding"
+        );
         router.refresh();
       }
     } catch {

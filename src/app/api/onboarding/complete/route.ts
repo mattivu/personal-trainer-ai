@@ -29,7 +29,6 @@ export async function POST() {
       prisma.onboardingAnswer.updateMany({
         where: {
           userId: user.id,
-          completedAt: null,
         },
         data: {
           completedAt,

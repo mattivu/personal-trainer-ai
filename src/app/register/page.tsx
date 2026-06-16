@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 type RegisterResponse = {
   ok: boolean;
@@ -15,6 +16,7 @@ type RegisterResponse = {
 };
 
 export default function RegisterPage() {
+  const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -44,9 +46,8 @@ export default function RegisterPage() {
       setResult(data);
 
       if (data.ok) {
-        setName("");
-        setEmail("");
-        setPassword("");
+        router.push("/onboarding");
+        router.refresh();
       }
     } catch {
       setResult({
@@ -70,7 +71,8 @@ export default function RegisterPage() {
         </h1>
 
         <p className="text-neutral-400 mb-8">
-          Primo test tecnico: registrazione utente con salvataggio sicuro nel database.
+          Crea l'account e completa subito il questionario obbligatorio per
+          preparare il tuo programma.
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -130,21 +132,11 @@ export default function RegisterPage() {
           </Link>
         </p>
 
-        {result && (
+        {result && !result.ok && (
           <div
-            className={`mt-6 rounded-xl border px-4 py-3 text-sm ${
-              result.ok
-                ? "border-green-800 bg-green-950 text-green-200"
-                : "border-red-800 bg-red-950 text-red-200"
-            }`}
+            className="mt-6 rounded-xl border border-red-800 bg-red-950 px-4 py-3 text-sm text-red-200"
           >
             <p>{result.message}</p>
-
-            {result.ok && result.user && (
-              <p className="mt-2 text-xs opacity-80">
-                Utente creato: #{result.user.id} — {result.user.email}
-              </p>
-            )}
           </div>
         )}
       </section>

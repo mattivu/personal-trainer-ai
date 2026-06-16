@@ -30,6 +30,11 @@ type ApiResponse = {
   ok: boolean;
   message?: string;
 };
+type OnboardingFormProps = {
+  initialAnswersByStep?: Partial<AnswersByStep>;
+  onboardingStatus: string;
+  userName: string | null;
+};
 
 const steps: Step[] = [
   {
@@ -197,10 +202,12 @@ const steps: Step[] = [
   },
 ];
 
-function getInitialAnswers() {
+function getInitialAnswers(initialAnswersByStep: Partial<AnswersByStep> = {}) {
   return steps.reduce<AnswersByStep>((accumulator, step) => {
+    const savedAnswers = initialAnswersByStep[step.id] ?? {};
+
     accumulator[step.id] = step.fields.reduce<Answers>((fields, field) => {
-      fields[field.name] = "";
+      fields[field.name] = savedAnswers[field.name] ?? "";
       return fields;
     }, {});
 
@@ -208,11 +215,32 @@ function getInitialAnswers() {
   }, {});
 }
 
-export function OnboardingForm() {
+function getInitialStepIndex(
+  onboardingStatus: string,
+  initialAnswersByStep: Partial<AnswersByStep>
+) {
+  if (onboardingStatus === "completed") {
+    return 0;
+  }
+
+  const firstMissingStepIndex = steps.findIndex(
+    (step) => !initialAnswersByStep[step.id]
+  );
+
+  return firstMissingStepIndex === -1 ? steps.length - 1 : firstMissingStepIndex;
+}
+
+export function OnboardingForm({
+  initialAnswersByStep = {},
+  onboardingStatus,
+  userName,
+}: OnboardingFormProps) {
   const router = useRouter();
-  const [currentStepIndex, setCurrentStepIndex] = useState(0);
+  const [currentStepIndex, setCurrentStepIndex] = useState(() =>
+    getInitialStepIndex(onboardingStatus, initialAnswersByStep)
+  );
   const [answersByStep, setAnswersByStep] = useState<AnswersByStep>(() =>
-    getInitialAnswers()
+    getInitialAnswers(initialAnswersByStep)
   );
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -220,6 +248,7 @@ export function OnboardingForm() {
   const currentStep = steps[currentStepIndex];
   const currentAnswers = answersByStep[currentStep.id];
   const isLastStep = currentStepIndex === steps.length - 1;
+  const isCompleted = onboardingStatus === "completed";
   const progress = useMemo(
     () => Math.round(((currentStepIndex + 1) / steps.length) * 100),
     [currentStepIndex]
@@ -301,7 +330,16 @@ export function OnboardingForm() {
             <p className="mb-3 text-sm uppercase tracking-[0.3em] text-neutral-500">
               Personal Trainer AI
             </p>
-            <h1 className="text-3xl font-bold">Questionario onboarding</h1>
+            <h1 className="text-3xl font-bold">
+              {isCompleted
+                ? "Aggiorna il questionario"
+                : "Completa il questionario obbligatorio"}
+            </h1>
+            <p className="mt-3 max-w-2xl text-neutral-400">
+              {isCompleted
+                ? "Hai gia completato il questionario. Puoi aggiornare le risposte e salvare di nuovo il percorso."
+                : `${userName ? `${userName}, ` : ""}questo e il primo passaggio richiesto prima di accedere alla dashboard.`}
+            </p>
           </div>
 
           <div className="text-sm text-neutral-400">
