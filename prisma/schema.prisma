@@ -19,8 +19,25 @@ model User {
 
   profile          UserProfile?
   sessions         UserSession[]
+  onboardingAnswers OnboardingAnswer[]
 
   @@map("users")
+}
+
+model OnboardingAnswer {
+  id          Int       @id @default(autoincrement())
+  userId      Int
+  step        String
+  answersJson Json
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@unique([userId, step])
+  @@map("onboarding_answers")
 }
 
 model UserSession {
