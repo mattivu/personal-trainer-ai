@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AppBottomNav } from "@/components/app-bottom-nav";
+import { AiCoachCard } from "@/components/ai-coach-card";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
 import {
@@ -508,6 +509,20 @@ export default async function ProgramPage(props: ProgramPageProps) {
                   {formatItalianDateTime(activeProgram.updatedAt)}
                 </p>
               </div>
+            </section>
+
+            <section className="space-y-3">
+              <div className="px-1">
+                <h3 className="text-xl font-semibold">Coach AI</h3>
+                <p className="mt-1 text-sm text-neutral-400">
+                  Analisi testuale del blocco attivo, senza modificare il programma.
+                </p>
+              </div>
+
+              <AiCoachCard
+                mode="program_overview"
+                buttonLabel="Analizza il programma"
+              />
             </section>
 
             <section className="space-y-4">

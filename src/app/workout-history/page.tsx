@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { AiCoachCard } from "@/components/ai-coach-card";
 import { AppBottomNav } from "@/components/app-bottom-nav";
 import {
   getWorkoutHistoryForUser,
@@ -163,6 +164,14 @@ export default async function WorkoutHistoryPage() {
                       ))}
                     </div>
                   )}
+
+                  <div className="mt-6">
+                    <AiCoachCard
+                      mode="post_workout_review"
+                      workoutLogId={entry.id}
+                      buttonLabel="Analizza questa seduta"
+                    />
+                  </div>
                 </div>
               </details>
             ))}

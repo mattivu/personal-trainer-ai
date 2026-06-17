@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AppBottomNav } from "@/components/app-bottom-nav";
+import { AiCoachCard } from "@/components/ai-coach-card";
 import { getCurrentUser } from "@/lib/session";
 import { getWorkoutPageDataForUser } from "@/lib/workout-execution";
 import type { FlexibleWorkoutState } from "@/lib/workout-schedule";
@@ -122,6 +123,14 @@ export default async function WorkoutPage(props: WorkoutPageProps) {
               </p>
             </div>
           </div>
+        </section>
+
+        <section className="mt-6">
+          <AiCoachCard
+            mode="workout_guidance"
+            workoutId={workoutData.workout.id}
+            buttonLabel="Analizza questa seduta"
+          />
         </section>
 
         <WorkoutLogForm
