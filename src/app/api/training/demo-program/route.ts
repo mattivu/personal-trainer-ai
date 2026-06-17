@@ -3,27 +3,14 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
 import { generateRuleBasedProgram } from "@/lib/training-engine/generate-program";
-import { normalizeOnboardingAnswers } from "@/lib/training-engine/normalize-onboarding";
+import { buildNormalizedOnboardingProfile } from "@/lib/training-engine/onboarding-profile";
+import {
+  getTrainingBlockDates,
+  getTrainingBlockDurationWeeks,
+} from "@/lib/training-engine/program-block";
 import type { EngineExercise } from "@/lib/training-engine/types";
 
 export const runtime = "nodejs";
-
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
-}
-
-function mergeOnboardingAnswers(answers: unknown[]) {
-  return answers.reduce<Record<string, unknown>>((merged, item) => {
-    if (!isPlainObject(item)) {
-      return merged;
-    }
-
-    return {
-      ...merged,
-      ...item,
-    };
-  }, {});
-}
 
 function resolveDemoExercise(
   exerciseMap: Map<string, { id: number; name: string }>,
@@ -84,11 +71,9 @@ export async function POST() {
       },
     });
 
-    const mergedAnswers = mergeOnboardingAnswers(
+    const { profile, snapshotHash } = buildNormalizedOnboardingProfile(
       onboardingAnswers.map((answer) => answer.answersJson)
     );
-    const profile = normalizeOnboardingAnswers(mergedAnswers);
-
     const exercises = await prisma.exercise.findMany({
       select: {
         id: true,
@@ -115,17 +100,52 @@ export async function POST() {
       ])
     );
 
+    const currentActiveProgram = await prisma.trainingProgram.findFirst({
+      where: {
+        userId: user.id,
+        status: "active",
+      },
+      select: {
+        id: true,
+        onboardingSnapshotHash: true,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    if (
+      currentActiveProgram &&
+      currentActiveProgram.onboardingSnapshotHash === snapshotHash
+    ) {
+      return NextResponse.json(
+        {
+          ok: false,
+          code: "ACTIVE_PROGRAM_ALREADY_CURRENT",
+          message:
+            "Il programma attivo è già allineato al questionario attuale.",
+        },
+        { status: 409 }
+      );
+    }
+
     const program = await prisma.$transaction(async (tx) => {
-      await tx.trainingProgram.updateMany({
-        where: {
-          userId: user.id,
-          status: "active",
-        },
-        data: {
-          status: "archived",
-          endDate: new Date(),
-        },
-      });
+      const now = new Date();
+      const durationWeeks = getTrainingBlockDurationWeeks(profile.goal);
+      const blockDates = getTrainingBlockDates(now, durationWeeks);
+
+      if (currentActiveProgram) {
+        await tx.trainingProgram.updateMany({
+          where: {
+            userId: user.id,
+            status: "active",
+          },
+          data: {
+            status: "archived",
+            endDate: now,
+          },
+        });
+      }
 
       return tx.trainingProgram.create({
         data: {
@@ -134,7 +154,14 @@ export async function POST() {
           goal: programBlueprint.goal,
           status: "active",
           source: "rules_v1",
-          startDate: new Date(),
+          startDate: now,
+          durationWeeks,
+          startedAt: blockDates.startedAt,
+          plannedReviewAt: blockDates.plannedReviewAt,
+          onboardingSnapshotHash: snapshotHash,
+          revisionReason: currentActiveProgram
+            ? "onboarding_changed"
+            : "initial",
           notes: programBlueprint.notes,
           workouts: {
             create: programBlueprint.workouts.map((workout, workoutIndex) => ({
@@ -171,7 +198,7 @@ export async function POST() {
 
     return NextResponse.json({
       ok: true,
-      message: "Programma rule-based creato",
+      message: "Blocco di allenamento creato",
       programId: program.id,
     });
   } catch (error) {
@@ -180,7 +207,7 @@ export async function POST() {
     const message =
       error instanceof Error
         ? error.message
-        : "Errore durante la creazione del programma demo.";
+        : "Errore durante la creazione del blocco di allenamento.";
 
     return NextResponse.json(
       {

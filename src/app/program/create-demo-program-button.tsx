@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 
 type DemoProgramResponse = {
   ok?: boolean;
+  code?: string;
   message?: string;
   error?: string;
   programId?: number;
@@ -59,7 +60,7 @@ async function parseApiResponse(response: Response) {
 }
 
 export function CreateDemoProgramButton({
-  label = "Crea programma demo",
+  label = "Crea il tuo primo blocco di allenamento",
 }: CreateDemoProgramButtonProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -77,13 +78,22 @@ export function CreateDemoProgramButton({
       const { data, message } = await parseApiResponse(response);
 
       if (!response.ok || !data?.ok) {
+        if (
+          response.status === 409 ||
+          data?.code === "ACTIVE_PROGRAM_ALREADY_CURRENT"
+        ) {
+          throw new Error(
+            "Il programma attivo è già allineato al questionario attuale."
+          );
+        }
+
         throw new Error(
-          message ?? "Errore durante la generazione del programma demo."
+          message ?? "Errore durante la creazione del blocco di allenamento."
         );
       }
 
       const params = new URLSearchParams({
-        regenerated: "1",
+        created: "1",
         t: Date.now().toString(),
       });
 
@@ -112,7 +122,7 @@ export function CreateDemoProgramButton({
         disabled={loading}
         className="inline-flex justify-center rounded-xl bg-white px-5 py-3 font-semibold text-neutral-950 disabled:opacity-50"
       >
-        {loading ? "Sto generando..." : label}
+        {loading ? "Creazione blocco..." : label}
       </button>
 
       {error ? (

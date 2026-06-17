@@ -118,6 +118,11 @@ model TrainingProgram {
   source      String           @default("manual")
   startDate   DateTime?
   endDate     DateTime?
+  durationWeeks Int?
+  startedAt   DateTime?
+  plannedReviewAt DateTime?
+  onboardingSnapshotHash String?
+  revisionReason String?
   notes       String?          @db.Text
   safetyNotes Json?
   createdAt   DateTime         @default(now())

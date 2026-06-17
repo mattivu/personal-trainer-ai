@@ -54,11 +54,11 @@ export default async function DashboardPage() {
             <div>
               <h2 className="text-xl font-semibold">Questionario completato</h2>
               <p className="mt-3 text-neutral-400">
-                Prossimo step: generazione programma
+                Il tuo programma resta stabile per un blocco di settimane.
               </p>
               <p className="mt-2 text-sm text-neutral-500">
-                Dopo aver modificato il questionario, rigenera il programma per
-                allinearlo ai nuovi dati.
+                Se cambi obiettivo, aggiorna il questionario e crea un nuovo
+                blocco coerente con i dati aggiornati.
               </p>
             </div>
 
@@ -74,7 +74,7 @@ export default async function DashboardPage() {
                 href="/onboarding"
                 className="inline-flex justify-center rounded-xl border border-neutral-700 px-5 py-3 font-semibold text-neutral-100"
               >
-                Modifica questionario
+                Modifica obiettivo
               </Link>
             </div>
           </div>
