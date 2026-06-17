@@ -230,6 +230,28 @@ export async function generateCoachActions({
     /\bcambia(re)? esercizi?/,
     /\bswap\b/,
   ]);
+  const asksForNutrition = matchesAny(normalizedMessage, [
+    /\bcalori(e|a)\b/,
+    /\bpast(i|o)\b/,
+    /\balimentaz/,
+    /\bproteine\b/,
+    /\bdieta\b/,
+    /\bmacro\b/,
+    /\bnutrizion/,
+  ]);
+
+  if (asksForNutrition) {
+    addAction(
+      actions,
+      createAction(
+        "open-nutrition",
+        "Apri nutrizione",
+        "/nutrition",
+        "navigation",
+        "Apri il riepilogo con target indicativo, diario pasti e calorie registrate."
+      )
+    );
+  }
 
   const workoutForAction =
     (currentWorkoutId

@@ -7,6 +7,21 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum NutritionGoal {
+  deficit
+  maintenance
+  surplus
+  recomposition
+}
+
+enum MealType {
+  breakfast
+  lunch
+  dinner
+  snack
+  other
+}
+
 model User {
   id                Int               @id @default(autoincrement())
   email             String            @unique
@@ -22,8 +37,48 @@ model User {
   onboardingAnswers OnboardingAnswer[]
   trainingPrograms  TrainingProgram[]
   workoutLogs       WorkoutLog[]
+  nutritionProfile  NutritionProfile?
+  mealEntries       MealEntry[]
 
   @@map("users")
+}
+
+model NutritionProfile {
+  id                Int             @id @default(autoincrement())
+  userId            Int             @unique
+  goal              NutritionGoal
+  estimatedTdee     Int
+  calorieTarget     Int
+  proteinTarget     Int
+  carbsTarget       Int
+  fatTarget         Int
+  calculationMethod String
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("nutrition_profiles")
+}
+
+model MealEntry {
+  id        Int       @id @default(autoincrement())
+  userId    Int
+  date      DateTime
+  mealType  MealType
+  name      String
+  calories  Int
+  protein   Int
+  carbs     Int
+  fat       Int
+  notes     String?   @db.Text
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, date])
+  @@map("meal_entries")
 }
 
 model OnboardingAnswer {

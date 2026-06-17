@@ -163,6 +163,30 @@ export default async function DashboardPage() {
         <div className="mt-6 rounded-2xl border border-neutral-800 bg-neutral-900 p-6">
           <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
             <div>
+              <h2 className="text-xl font-semibold">Nutrizione</h2>
+              <p className="mt-3 text-neutral-400">
+                Vedi un target indicativo e registra manualmente calorie e macro
+                della giornata.
+              </p>
+              <p className="mt-2 text-sm text-neutral-500">
+                Le stime sono orientative e non sostituiscono un professionista.
+              </p>
+            </div>
+
+            <div className="flex shrink-0 flex-col gap-3 sm:flex-row">
+              <Link
+                href="/nutrition"
+                className="inline-flex justify-center rounded-xl bg-white px-5 py-3 font-semibold text-neutral-950"
+              >
+                Apri nutrizione
+              </Link>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-6 rounded-2xl border border-neutral-800 bg-neutral-900 p-6">
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+            <div>
               <h2 className="text-xl font-semibold">Coach AI</h2>
               <p className="mt-3 text-neutral-400">
                 Fai domande sul programma, sui progressi e sulla seduta del giorno
