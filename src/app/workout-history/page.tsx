@@ -128,7 +128,8 @@ export default async function WorkoutHistoryPage() {
                   ) : null}
 
                   <span className="mt-5 inline-flex rounded-xl border border-neutral-700 px-4 py-2 text-sm font-semibold text-neutral-100">
-                    Vedi dettagli
+                    <span className="group-open:hidden">Vedi dettagli ↓</span>
+                    <span className="hidden group-open:inline">Nascondi dettagli ↑</span>
                   </span>
                 </summary>
 
