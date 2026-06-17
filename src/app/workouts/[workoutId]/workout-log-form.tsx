@@ -6,6 +6,7 @@ import type {
   WorkoutFormExercise,
   WorkoutFormLog,
   WorkoutFormSetLog,
+  WorkoutTodaySummarySet,
 } from "@/lib/workout-execution";
 
 type WorkoutLogFormProps = {
@@ -18,6 +19,10 @@ type WorkoutLogFormProps = {
   };
   exercises: WorkoutFormExercise[];
   existingLog: WorkoutFormLog | null;
+  todayLogStatus: "not_started" | "in_progress" | "completed_today";
+  canStartWorkout: boolean;
+  canEditTodayWorkout: boolean;
+  completedTodayAt: string | null;
 };
 
 type ExerciseState = {
@@ -32,6 +37,8 @@ type ExerciseState = {
   notes: string | null;
   setLogs: WorkoutFormSetLog[];
   previousPerformance: WorkoutFormExercise["previousPerformance"];
+  todaySummary: WorkoutTodaySummarySet[];
+  progressionSuggestion: WorkoutFormExercise["progressionSuggestion"];
 };
 
 type WorkoutLogApiResponse = {
@@ -55,17 +62,29 @@ function hasExerciseData(setLogs: WorkoutFormSetLog[]) {
       setLog.actualWeight !== null ||
       setLog.actualReps !== null ||
       setLog.actualRir !== null ||
+      setLog.actualRpe !== null ||
       Boolean(setLog.notes.trim()) ||
       setLog.completed
   );
 }
 
-function formatSetSummary(setLog: WorkoutFormSetLog) {
-  const weight = setLog.actualWeight !== null ? `${setLog.actualWeight} kg` : "carico n/d";
+function formatSetSummary(setLog: {
+  setNumber: number;
+  actualWeight?: number | null;
+  weightKg?: number | null;
+  actualReps: number | null;
+  actualRir?: number | null;
+  rir?: number | null;
+  completed: boolean;
+}) {
+  const weightValue = setLog.actualWeight ?? setLog.weightKg ?? null;
+  const rirValue = setLog.actualRir ?? setLog.rir ?? null;
+  const weight = weightValue !== null ? `${weightValue} kg` : "carico n/d";
   const reps = setLog.actualReps !== null ? `${setLog.actualReps}` : "reps n/d";
-  const rir = setLog.actualRir !== null ? `RIR ${setLog.actualRir}` : "RIR n/d";
+  const rir = rirValue !== null ? `RIR ${rirValue}` : "RIR n/d";
+  const status = setLog.completed ? "completata" : "non completata";
 
-  return `Serie ${setLog.setNumber}: ${weight} x ${reps} - ${rir}`;
+  return `Serie ${setLog.setNumber}: ${weight} x ${reps} - ${rir} - ${status}`;
 }
 
 function buildInitialSetLogs(exercise: WorkoutFormExercise) {
@@ -89,6 +108,14 @@ function buildInitialSetLogs(exercise: WorkoutFormExercise) {
       notes: existingSetLog?.notes ?? "",
     };
   });
+}
+
+function formatDateLabel(value: string) {
+  return new Intl.DateTimeFormat("it-IT", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "Europe/Rome",
+  }).format(new Date(value));
 }
 
 function formatPreviousPerformanceDate(value: string) {
@@ -136,12 +163,12 @@ export function WorkoutLogForm({
   workout,
   exercises,
   existingLog,
+  todayLogStatus,
+  canStartWorkout,
+  canEditTodayWorkout,
+  completedTodayAt,
 }: WorkoutLogFormProps) {
   const router = useRouter();
-  const hasSavedData =
-    existingLog !== null ||
-    exercises.some((exercise) => exercise.initialSetLogs.length > 0);
-  const initialHasStartedWorkout = hasSavedData;
   const [exerciseStates, setExerciseStates] = useState<ExerciseState[]>(
     exercises.map((exercise) => ({
       id: exercise.id,
@@ -155,6 +182,8 @@ export function WorkoutLogForm({
       notes: exercise.notes,
       setLogs: buildInitialSetLogs(exercise),
       previousPerformance: exercise.previousPerformance,
+      todaySummary: exercise.todaySummary,
+      progressionSuggestion: exercise.progressionSuggestion,
     }))
   );
   const [collapsedExerciseIds, setCollapsedExerciseIds] = useState<Set<number>>(
@@ -178,10 +207,21 @@ export function WorkoutLogForm({
   );
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
-  const [lastSavedStatus, setLastSavedStatus] = useState(
-    existingLog?.status ?? "not_started"
+  const [lastSavedStatus, setLastSavedStatus] = useState<
+    "not_started" | "in_progress" | "completed"
+  >(
+    todayLogStatus === "completed_today"
+      ? "completed"
+      : existingLog?.status === "in_progress"
+        ? "in_progress"
+        : "not_started"
   );
-  const [hasStartedWorkout, setHasStartedWorkout] = useState(initialHasStartedWorkout);
+  const [isEditingWorkout, setIsEditingWorkout] = useState(false);
+
+  const hasTodaySummary = exerciseStates.some((exercise) => exercise.todaySummary.length > 0);
+  const isCompletedToday = todayLogStatus === "completed_today";
+  const isInProgressToday = todayLogStatus === "in_progress";
+  const isNotStartedToday = todayLogStatus === "not_started";
 
   function formatRest(restSeconds: number | null) {
     if (restSeconds === null) {
@@ -193,6 +233,25 @@ export function WorkoutLogForm({
     }
 
     return `${restSeconds} sec`;
+  }
+
+  function getSuggestionAccent(status: ExerciseState["progressionSuggestion"]["status"]) {
+    switch (status) {
+      case "increase_load":
+        return "border-sky-800/70 bg-sky-950/40 text-sky-100";
+      case "increase_reps":
+        return "border-emerald-800/70 bg-emerald-950/40 text-emerald-100";
+      case "reduce_load":
+        return "border-amber-800/70 bg-amber-950/40 text-amber-100";
+      case "repeat_load":
+      case "time_based":
+        return "border-neutral-700 bg-neutral-950 text-neutral-100";
+      case "no_previous_data":
+      case "incomplete_data":
+        return "border-neutral-800 bg-neutral-950/80 text-neutral-100";
+      default:
+        return "border-neutral-800 bg-neutral-950 text-neutral-100";
+    }
   }
 
   function updateSetLog(
@@ -250,8 +309,13 @@ export function WorkoutLogForm({
     });
   }
 
-  async function submitWorkout(status: "in_progress" | "completed") {
-    setLoadingAction(status === "completed" ? "complete" : "save");
+  async function submitWorkout(action: "save" | "complete") {
+    const status =
+      action === "complete" || lastSavedStatus === "completed"
+        ? "completed"
+        : "in_progress";
+
+    setLoadingAction(action);
     setError(null);
     setMessage(null);
 
@@ -273,6 +337,7 @@ export function WorkoutLogForm({
               actualWeight: setLog.actualWeight,
               actualReps: setLog.actualReps,
               actualRir: setLog.actualRir,
+              actualRpe: setLog.actualRpe,
               completed: setLog.completed,
               notes: setLog.notes.trim() || null,
             }))
@@ -290,7 +355,7 @@ export function WorkoutLogForm({
       setMessage(
         responseMessage ||
           (status === "completed"
-            ? "Allenamento completato."
+            ? "Allenamento completato oggi."
             : "Progressi salvati.")
       );
       router.refresh();
@@ -305,44 +370,126 @@ export function WorkoutLogForm({
     }
   }
 
+  const editorStatusLabel =
+    lastSavedStatus === "completed"
+      ? "Allenamento completato oggi"
+      : lastSavedStatus === "in_progress"
+        ? "Allenamento in corso"
+        : "Seduta da completare";
+  const editorIntro =
+    lastSavedStatus === "completed"
+      ? "Stai correggendo una seduta gia completata. I salvataggi aggiornano la stessa seduta senza crearne una nuova."
+      : "Compila i dati della serie sotto ogni esercizio e salva quando vuoi.";
+  const saveButtonLabel =
+    lastSavedStatus === "completed" ? "Salva correzioni" : "Salva progressi";
+  const completeButtonLabel =
+    lastSavedStatus === "completed"
+      ? "Aggiorna allenamento completato"
+      : "Completa allenamento";
+
   return (
     <section className="mt-6 space-y-6">
-      {!hasStartedWorkout ? (
+      {!isEditingWorkout ? (
         <div className="rounded-2xl border border-neutral-800 bg-neutral-900 p-6">
           <p className="text-sm uppercase tracking-[0.2em] text-neutral-500">
-            Allenamento del giorno
+            {isCompletedToday
+              ? "Allenamento completato oggi"
+              : isInProgressToday
+                ? "Allenamento in corso"
+                : "Allenamento del giorno"}
           </p>
-          <h2 className="mt-3 text-2xl font-semibold">{workout.title}</h2>
+          <h2 className="mt-3 text-2xl font-semibold">
+            {isCompletedToday
+              ? "Allenamento completato oggi"
+              : isInProgressToday
+                ? "Allenamento in corso"
+                : workout.title}
+          </h2>
           <p className="mt-4 max-w-2xl text-sm text-neutral-300">
-            Compila i dati reali delle serie mentre ti alleni: carico usato,
-            ripetizioni fatte e ripetizioni in riserva.
+            {isCompletedToday
+              ? "Hai gia completato questa seduta. Puoi correggere i dati se hai commesso un errore."
+              : isInProgressToday
+                ? "Abbiamo mantenuto i dati gia salvati di oggi. Puoi continuare la compilazione da dove avevi lasciato."
+                : "Compila i dati reali delle serie mentre ti alleni: carico usato, ripetizioni fatte e ripetizioni in riserva."}
           </p>
+          {isCompletedToday && completedTodayAt ? (
+            <p className="mt-3 text-sm text-neutral-400">
+              Completato il {formatDateLabel(completedTodayAt)}.
+            </p>
+          ) : null}
           <button
             type="button"
-            onClick={() => setHasStartedWorkout(true)}
-            className="mt-6 inline-flex justify-center rounded-xl bg-white px-5 py-3 font-semibold text-neutral-950"
+            onClick={() => setIsEditingWorkout(true)}
+            disabled={isNotStartedToday ? !canStartWorkout : !canEditTodayWorkout}
+            className="mt-6 inline-flex justify-center rounded-xl bg-white px-5 py-3 font-semibold text-neutral-950 disabled:opacity-50"
           >
-            Inizia allenamento
+            {isCompletedToday
+              ? "Modifica dati allenamento"
+              : isInProgressToday
+                ? "Continua allenamento"
+                : "Inizia allenamento"}
           </button>
         </div>
       ) : null}
 
-      {hasStartedWorkout ? (
+      {isCompletedToday && !isEditingWorkout ? (
+        <div className="space-y-5">
+          <div className="rounded-2xl border border-neutral-800 bg-neutral-900 p-6">
+            <h3 className="text-xl font-semibold">Dati registrati oggi</h3>
+            <p className="mt-2 text-sm text-neutral-400">
+              Qui sotto trovi il riepilogo della seduta gia completata per ogni esercizio.
+            </p>
+          </div>
+
+          {exerciseStates.map((exercise) => (
+            <section
+              key={exercise.id}
+              className="rounded-2xl border border-neutral-800 bg-neutral-900 p-5"
+            >
+              <h4 className="text-lg font-semibold text-white">{exercise.name}</h4>
+              {exercise.primaryMuscle ? (
+                <p className="mt-2 text-sm text-neutral-400">
+                  Muscolo principale: {exercise.primaryMuscle}
+                </p>
+              ) : null}
+              <div className="mt-4 rounded-xl border border-neutral-800 bg-neutral-950 p-4">
+                <p className="text-sm font-semibold text-white">Dati registrati oggi</p>
+                {exercise.todaySummary.length > 0 ? (
+                  <div className="mt-3 space-y-2 text-sm text-neutral-300">
+                    {exercise.todaySummary.map((setLog) => (
+                      <p key={`${exercise.id}-summary-${setLog.setNumber}`}>
+                        {formatSetSummary(setLog)}
+                      </p>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="mt-2 text-sm text-neutral-400">
+                    Nessun dato registrato per questo esercizio.
+                  </p>
+                )}
+              </div>
+            </section>
+          ))}
+
+          {!hasTodaySummary ? (
+            <p className="rounded-xl border border-neutral-800 bg-neutral-900 px-4 py-3 text-sm text-neutral-300">
+              Nessun dato registrato oggi da mostrare nel riepilogo.
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+
+      {isEditingWorkout ? (
         <div className="space-y-6">
           <div className="flex flex-col gap-2 rounded-2xl border border-neutral-800 bg-neutral-900 p-6 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <h2 className="text-xl font-semibold">Progressi allenamento</h2>
-              <p className="mt-2 text-sm text-neutral-400">
-                Stato:{" "}
-                {lastSavedStatus === "completed"
-                  ? "Completato"
-                  : lastSavedStatus === "in_progress"
-                    ? "In corso"
-                    : "Da completare"}
-              </p>
+              <h2 className="text-xl font-semibold">{editorStatusLabel}</h2>
+              <p className="mt-2 text-sm text-neutral-400">{editorIntro}</p>
             </div>
             <p className="max-w-md text-sm text-neutral-400">
-              Compila i dati della serie sotto ogni esercizio e salva quando vuoi.
+              {lastSavedStatus === "completed"
+                ? "Puoi correggere kg, reps, RIR, stato di completamento, fatica e note senza aprire una nuova seduta."
+                : "I dati salvati resteranno associati alla seduta di oggi."}
             </p>
           </div>
 
@@ -463,6 +610,22 @@ export function WorkoutLogForm({
                         )}
                       </div>
 
+                      <div
+                        className={`mt-4 rounded-xl border p-4 ${getSuggestionAccent(
+                          exercise.progressionSuggestion.status
+                        )}`}
+                      >
+                        <p className="text-sm font-semibold text-white">
+                          {exercise.progressionSuggestion.title}
+                        </p>
+                        <p className="mt-2 text-sm leading-6 text-current">
+                          {exercise.progressionSuggestion.message}
+                        </p>
+                        <p className="mt-3 text-sm text-current/80">
+                          {exercise.progressionSuggestion.suggestedAction}
+                        </p>
+                      </div>
+
                       <div className="mt-5 border-t border-neutral-800 pt-5">
                         <div className="flex items-center justify-between gap-3">
                           <p className="text-sm font-semibold text-white">Dati della serie</p>
@@ -571,6 +734,45 @@ export function WorkoutLogForm({
                                     ancora 2, 3+ = potevi continuare.
                                   </span>
                                 </label>
+
+                                <label className="text-sm">
+                                  <span className="block text-neutral-400">Fatica serie</span>
+                                  <input
+                                    type="number"
+                                    min={0}
+                                    max={10}
+                                    step={1}
+                                    value={setLog.actualRpe ?? ""}
+                                    onChange={(event) =>
+                                      updateSetLog(
+                                        exercise.id,
+                                        setLog.setNumber,
+                                        "actualRpe",
+                                        parseNumberInput(event.target.value)
+                                      )
+                                    }
+                                    className="mt-2 w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-white outline-none"
+                                    placeholder="0-10"
+                                  />
+                                </label>
+
+                                <label className="text-sm md:col-span-2">
+                                  <span className="block text-neutral-400">Note serie</span>
+                                  <textarea
+                                    value={setLog.notes}
+                                    onChange={(event) =>
+                                      updateSetLog(
+                                        exercise.id,
+                                        setLog.setNumber,
+                                        "notes",
+                                        event.target.value
+                                      )
+                                    }
+                                    rows={3}
+                                    className="mt-2 w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-white outline-none"
+                                    placeholder="Note su esecuzione, adattamenti o sensazioni..."
+                                  />
+                                </label>
                               </div>
                             </div>
                           ))}
@@ -610,26 +812,38 @@ export function WorkoutLogForm({
           <div className="rounded-2xl border border-neutral-800 bg-neutral-900 p-6">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h3 className="text-lg font-semibold">Salva progressi</h3>
+                <h3 className="text-lg font-semibold">
+                  {lastSavedStatus === "completed"
+                    ? "Salva correzioni"
+                    : "Salva progressi"}
+                </h3>
                 <p className="mt-2 text-sm text-neutral-400">
-                  Puoi salvare anche se non hai ancora completato tutta la seduta.
+                  {lastSavedStatus === "completed"
+                    ? "Salva le modifiche senza far sembrare che stai iniziando una nuova seduta."
+                    : "Puoi salvare anche se non hai ancora completato tutta la seduta."}
                 </p>
               </div>
               <button
                 type="button"
-                onClick={() => submitWorkout("in_progress")}
+                onClick={() => submitWorkout("save")}
                 disabled={loadingAction !== null}
                 className="inline-flex justify-center rounded-xl border border-neutral-700 px-5 py-3 font-semibold text-neutral-100 disabled:opacity-50"
               >
-                {loadingAction === "save" ? "Salvataggio..." : "Salva progressi"}
+                {loadingAction === "save" ? "Salvataggio..." : saveButtonLabel}
               </button>
             </div>
           </div>
 
           <div className="rounded-2xl border border-neutral-800 bg-neutral-900 p-6">
-            <h3 className="text-xl font-semibold">Feedback finale</h3>
+            <h3 className="text-xl font-semibold">
+              {lastSavedStatus === "completed"
+                ? "Aggiorna allenamento completato"
+                : "Feedback finale"}
+            </h3>
             <p className="mt-2 text-sm text-neutral-400">
-              Completa il feedback finale alla fine della seduta.
+              {lastSavedStatus === "completed"
+                ? "Aggiorna i dati finali mantenendo la seduta nello stato completato."
+                : "Completa il feedback finale alla fine della seduta."}
             </p>
 
             <div className="mt-5 grid gap-4 sm:grid-cols-2">
@@ -666,13 +880,13 @@ export function WorkoutLogForm({
             <div className="mt-6">
               <button
                 type="button"
-                onClick={() => submitWorkout("completed")}
+                onClick={() => submitWorkout("complete")}
                 disabled={loadingAction !== null}
                 className="inline-flex justify-center rounded-xl bg-white px-5 py-3 font-semibold text-neutral-950 disabled:opacity-50"
               >
                 {loadingAction === "complete"
-                  ? "Completamento..."
-                  : "Completa allenamento"}
+                  ? "Salvataggio..."
+                  : completeButtonLabel}
               </button>
             </div>
           </div>

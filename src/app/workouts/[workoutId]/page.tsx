@@ -37,6 +37,19 @@ export default async function WorkoutPage(props: WorkoutPageProps) {
     redirect("/program");
   }
 
+  const statusLabel =
+    workoutData.todayLogStatus === "completed_today"
+      ? "Allenamento completato oggi"
+      : workoutData.todayLogStatus === "in_progress"
+        ? "Allenamento in corso"
+        : "Seduta da completare";
+  const statusDescription =
+    workoutData.todayLogStatus === "completed_today"
+      ? "Hai gia completato questa seduta. Puoi rivedere i dati registrati oggi oppure correggerli senza far sembrare che stai iniziando una nuova seduta."
+      : workoutData.todayLogStatus === "in_progress"
+        ? "I dati gia salvati di oggi restano disponibili e puoi continuare la compilazione da dove avevi lasciato."
+        : "Inizia quando sei pronto: vedrai ultima volta, consiglio per oggi e i campi per inserire i dati della seduta.";
+
   return (
     <main className="min-h-screen bg-neutral-950 px-6 py-12 pb-28 text-white">
       <section className="mx-auto w-full max-w-5xl">
@@ -70,16 +83,10 @@ export default async function WorkoutPage(props: WorkoutPageProps) {
             <div className="min-w-52 rounded-xl border border-neutral-800 bg-neutral-950 p-4">
               <p className="text-sm text-neutral-500">Stato</p>
               <p className="mt-2 text-base font-semibold text-white">
-                {workoutData.existingLog?.status === "completed"
-                  ? "Completato"
-                  : workoutData.existingLog?.status === "in_progress"
-                    ? "In corso"
-                    : "Da completare"}
+                {statusLabel}
               </p>
               <p className="mt-2 text-sm text-neutral-400">
-                {workoutData.existingLog
-                  ? "I progressi salvati verranno ripristinati automaticamente."
-                  : "Inizia quando sei pronto e salva i progressi durante la seduta."}
+                {statusDescription}
               </p>
             </div>
           </div>
@@ -89,6 +96,10 @@ export default async function WorkoutPage(props: WorkoutPageProps) {
           workout={workoutData.workout}
           exercises={workoutData.exercises}
           existingLog={workoutData.existingLog}
+          todayLogStatus={workoutData.todayLogStatus}
+          canStartWorkout={workoutData.canStartWorkout}
+          canEditTodayWorkout={workoutData.canEditTodayWorkout}
+          completedTodayAt={workoutData.completedTodayAt}
         />
       </section>
 

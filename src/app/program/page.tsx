@@ -8,6 +8,7 @@ import {
   getCurrentBlockWeek,
   getTrainingBlockDurationWeeks,
 } from "@/lib/training-engine/program-block";
+import { getProgramWorkoutAvailabilityState } from "@/lib/workout-execution";
 import { CreateDemoProgramButton } from "./create-demo-program-button";
 
 export const dynamic = "force-dynamic";
@@ -192,6 +193,7 @@ export default async function ProgramPage(props: ProgramPageProps) {
                 id: true,
                 status: true,
                 performedAt: true,
+                completedAt: true,
               },
             },
             exercises: {
@@ -384,81 +386,120 @@ export default async function ProgramPage(props: ProgramPageProps) {
               </div>
 
               <div className="space-y-6">
-                {activeProgram.workouts.map((workout) => (
-                  <section
-                    key={workout.id}
-                    className="rounded-xl border border-neutral-800 bg-neutral-950 p-5"
-                  >
-                    <div className="mb-5">
-                      <p className="text-sm uppercase tracking-[0.2em] text-neutral-500">
-                        {workout.dayLabel ?? "Workout"}
-                      </p>
-                      <h4 className="mt-2 text-xl font-semibold">{workout.title}</h4>
-                      <p className="mt-2 text-sm text-neutral-400">
-                        Focus: {workout.focus ?? "Non indicato"} · Durata stimata:{" "}
-                        {workout.estimatedMinutes
-                          ? `${workout.estimatedMinutes} min`
-                          : "Non indicata"}
-                      </p>
-                      {workout.notes ? (
-                        <p className="mt-3 text-sm text-neutral-300">
-                          {workout.notes}
+                {activeProgram.workouts.map((workout) => {
+                  const latestWorkoutLog = workout.workoutLogs[0] ?? null;
+                  const workoutAvailability =
+                    getProgramWorkoutAvailabilityState(latestWorkoutLog);
+
+                  return (
+                    <section
+                      key={workout.id}
+                      className="rounded-xl border border-neutral-800 bg-neutral-950 p-5"
+                    >
+                      <div className="mb-5">
+                        <p className="text-sm uppercase tracking-[0.2em] text-neutral-500">
+                          {workout.dayLabel ?? "Workout"}
                         </p>
-                      ) : null}
-
-                      <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                        <Link
-                          href={`/workouts/${workout.id}`}
-                          className="inline-flex justify-center rounded-xl bg-white px-4 py-2 font-semibold text-neutral-950"
-                        >
-                          Inizia seduta
-                        </Link>
-
-                        {workout.workoutLogs[0] ? (
-                          <p className="text-sm text-neutral-400">
-                            {workout.workoutLogs[0].status === "completed"
-                              ? "Completato"
-                              : "Da completare"}{" "}
-                            · Ultimo log {formatItalianDate(workout.workoutLogs[0].performedAt)}
+                        <h4 className="mt-2 text-xl font-semibold">{workout.title}</h4>
+                        <p className="mt-2 text-sm text-neutral-400">
+                          Focus: {workout.focus ?? "Non indicato"} · Durata stimata:{" "}
+                          {workout.estimatedMinutes
+                            ? `${workout.estimatedMinutes} min`
+                            : "Non indicata"}
+                        </p>
+                        {workout.notes ? (
+                          <p className="mt-3 text-sm text-neutral-300">
+                            {workout.notes}
                           </p>
                         ) : null}
-                      </div>
-                    </div>
 
-                    <div className="space-y-4">
-                      {workout.exercises.map((exercise) => (
-                        <article
-                          key={exercise.id}
-                          className="rounded-xl border border-neutral-800 bg-neutral-900 p-4"
-                        >
-                          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                            <div>
-                              <h5 className="text-lg font-semibold">{exercise.name}</h5>
-                              <p className="mt-1 text-sm text-neutral-400">
-                                Muscolo primario:{" "}
-                                {exercise.exercise?.primaryMuscle ?? "Non indicato"}
-                              </p>
-                            </div>
-
-                            <div className="grid gap-1 text-sm text-neutral-300 sm:text-right">
-                              <p>Serie: {exercise.sets ?? "Non indicate"}</p>
-                              <p>Reps: {exercise.reps ?? "Non indicate"}</p>
-                              <p>Recupero: {formatRest(exercise.restSeconds)}</p>
-                            </div>
+                        <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                          <div className="space-y-2">
+                            {workoutAvailability.state === "in_progress" ? (
+                              <>
+                                <p className="text-sm font-semibold text-amber-200">
+                                  Allenamento in corso
+                                </p>
+                                <Link
+                                  href={`/workouts/${workout.id}`}
+                                  className="inline-flex justify-center rounded-xl bg-white px-4 py-2 font-semibold text-neutral-950"
+                                >
+                                  Continua seduta
+                                </Link>
+                              </>
+                            ) : workoutAvailability.state === "completed_locked" ? (
+                              <>
+                                <p className="text-sm font-semibold text-emerald-200">
+                                  Seduta completata
+                                </p>
+                                <p className="text-sm text-neutral-300">
+                                  Hai già completato questa seduta.
+                                </p>
+                                <Link
+                                  href={`/workouts/${workout.id}`}
+                                  className="inline-flex justify-center rounded-xl border border-neutral-700 px-4 py-2 font-semibold text-neutral-100"
+                                >
+                                  Modifica dati
+                                </Link>
+                                <p className="text-sm text-neutral-400">
+                                  Disponibile di nuovo da:{" "}
+                                  {formatItalianDateTime(
+                                    workoutAvailability.nextAvailableAt
+                                  )}
+                                </p>
+                              </>
+                            ) : (
+                              <Link
+                                href={`/workouts/${workout.id}`}
+                                className="inline-flex justify-center rounded-xl bg-white px-4 py-2 font-semibold text-neutral-950"
+                              >
+                                Inizia seduta
+                              </Link>
+                            )}
                           </div>
 
-                          <div className="mt-3 space-y-2 text-sm text-neutral-300">
-                            <p>
-                              Intensita target:{" "}
-                              {exercise.intensity ?? "Non indicata"}
+                          {latestWorkoutLog ? (
+                            <p className="text-sm text-neutral-400">
+                              Ultima seduta {formatItalianDate(latestWorkoutLog.performedAt)}
                             </p>
-                            <p>Note: {exercise.notes ?? "Nessuna nota"}</p>
-                          </div>
-                        </article>
-                      ))}
-                    </div>
-                  </section>
-                ))}
+                          ) : null}
+                        </div>
+                      </div>
+
+                      <div className="space-y-4">
+                        {workout.exercises.map((exercise) => (
+                          <article
+                            key={exercise.id}
+                            className="rounded-xl border border-neutral-800 bg-neutral-900 p-4"
+                          >
+                            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                              <div>
+                                <h5 className="text-lg font-semibold">{exercise.name}</h5>
+                                <p className="mt-1 text-sm text-neutral-400">
+                                  Muscolo primario:{" "}
+                                  {exercise.exercise?.primaryMuscle ?? "Non indicato"}
+                                </p>
+                              </div>
+
+                              <div className="grid gap-1 text-sm text-neutral-300 sm:text-right">
+                                <p>Serie: {exercise.sets ?? "Non indicate"}</p>
+                                <p>Reps: {exercise.reps ?? "Non indicate"}</p>
+                                <p>Recupero: {formatRest(exercise.restSeconds)}</p>
+                              </div>
+                            </div>
+
+                            <div className="mt-3 space-y-2 text-sm text-neutral-300">
+                              <p>
+                                Intensita target: {exercise.intensity ?? "Non indicata"}
+                              </p>
+                              <p>Note: {exercise.notes ?? "Nessuna nota"}</p>
+                            </div>
+                          </article>
+                        ))}
+                      </div>
+                    </section>
+                  );
+                })}
               </div>
             </section>
           </div>

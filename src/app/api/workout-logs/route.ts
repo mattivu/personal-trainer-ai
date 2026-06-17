@@ -316,22 +316,33 @@ export async function POST(request: Request) {
       }
     }
 
-    const { start, end } = getCurrentDayBounds();
     const now = new Date();
+    const { start, end } = getCurrentDayBounds(now);
+    const completedWorkoutWindowStart = new Date(
+      now.getTime() - 24 * 60 * 60 * 1000
+    );
 
     const workoutLog = await prisma.$transaction(async (tx) => {
       const existingWorkoutLog = await tx.workoutLog.findFirst({
         where: {
           userId: user.id,
           workoutId,
-          performedAt: {
-            gte: start,
-            lt: end,
-          },
+          OR: [
+            {
+              performedAt: {
+                gte: start,
+                lt: end,
+              },
+            },
+            {
+              status: "completed",
+              completedAt: {
+                gte: completedWorkoutWindowStart,
+              },
+            },
+          ],
         },
-        orderBy: {
-          updatedAt: "desc",
-        },
+        orderBy: [{ performedAt: "desc" }, { completedAt: "desc" }, { updatedAt: "desc" }],
         include: {
           setLogs: true,
         },
@@ -416,7 +427,10 @@ export async function POST(request: Request) {
     return NextResponse.json({
       ok: true,
       workoutLogId: workoutLog.id,
-      message: status === "completed" ? "Allenamento completato." : "Progressi salvati.",
+      message:
+        status === "completed"
+          ? "Allenamento completato oggi."
+          : "Progressi salvati.",
     });
   } catch (error) {
     console.error("WORKOUT_LOGS_ROUTE_ERROR", error);
