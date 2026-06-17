@@ -4,6 +4,8 @@ import { getCurrentUser } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { CreateDemoProgramButton } from "./create-demo-program-button";
 
+export const dynamic = "force-dynamic";
+
 function formatRest(restSeconds: number | null) {
   if (restSeconds === null) {
     return "Non indicato";
@@ -14,6 +16,24 @@ function formatRest(restSeconds: number | null) {
   }
 
   return `${restSeconds} sec`;
+}
+
+function getSingleSearchParam(
+  value: string | string[] | undefined
+): string | undefined {
+  if (Array.isArray(value)) {
+    return value[0];
+  }
+
+  return value;
+}
+
+function formatItalianDateTime(date: Date) {
+  return new Intl.DateTimeFormat("it-IT", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "Europe/Rome",
+  }).format(date);
 }
 
 function ProgramActions({
@@ -46,7 +66,15 @@ function ProgramActions({
   );
 }
 
-export default async function ProgramPage() {
+type ProgramPageProps = {
+  searchParams?: Promise<{
+    regenerated?: string | string[];
+    programId?: string | string[];
+    t?: string | string[];
+  }>;
+};
+
+export default async function ProgramPage(props: ProgramPageProps) {
   const user = await getCurrentUser();
 
   if (!user) {
@@ -56,6 +84,10 @@ export default async function ProgramPage() {
   if (user.onboardingStatus !== "completed") {
     redirect("/onboarding");
   }
+
+  const searchParams = (await props.searchParams) ?? {};
+  const regenerated = getSingleSearchParam(searchParams.regenerated) === "1";
+  const regeneratedProgramId = getSingleSearchParam(searchParams.programId);
 
   const activeProgram = await prisma.trainingProgram.findFirst({
     where: {
@@ -94,6 +126,19 @@ export default async function ProgramPage() {
           <h1 className="text-3xl font-bold">Il tuo programma</h1>
         </div>
 
+        {regenerated ? (
+          <div className="mb-6 rounded-2xl border border-emerald-700 bg-emerald-950/60 p-5">
+            <p className="text-sm font-semibold text-emerald-200">
+              Programma rigenerato correttamente.
+            </p>
+            {regeneratedProgramId ? (
+              <p className="mt-1 text-sm text-emerald-300">
+                Versione programma: #{regeneratedProgramId}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
+
         {!activeProgram ? (
           <div className="rounded-2xl border border-neutral-800 bg-neutral-900 p-6">
             <p className="mb-6 text-neutral-300">
@@ -109,6 +154,13 @@ export default async function ProgramPage() {
                   <h2 className="text-2xl font-semibold">{activeProgram.title}</h2>
                   <p className="mt-2 text-sm text-neutral-400">
                     Obiettivo: {activeProgram.goal ?? "Non indicato"}
+                  </p>
+                  <p className="mt-2 text-sm text-neutral-400">
+                    Ultimo aggiornamento:{" "}
+                    {formatItalianDateTime(activeProgram.updatedAt)}
+                  </p>
+                  <p className="mt-1 text-xs text-neutral-500">
+                    Versione programma: #{activeProgram.id}
                   </p>
                 </div>
 

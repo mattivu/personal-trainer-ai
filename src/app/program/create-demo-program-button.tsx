@@ -16,22 +16,44 @@ type CreateDemoProgramButtonProps = {
 
 async function parseApiResponse(response: Response) {
   const contentType = response.headers.get("content-type") ?? "";
+  const rawBody = await response.text();
+  const trimmedBody = rawBody.trim();
 
   if (contentType.includes("application/json")) {
-    const data = (await response.json()) as DemoProgramResponse;
+    try {
+      const data = JSON.parse(rawBody) as DemoProgramResponse;
 
-    return {
-      data,
-      message: data.message ?? data.error,
-    };
+      return {
+        data,
+        message: data.message ?? data.error,
+      };
+    } catch {
+      return {
+        data: null,
+        message: trimmedBody
+          ? `Il server ha restituito JSON non valido: ${trimmedBody}`
+          : "Il server ha restituito JSON non valido.",
+      };
+    }
   }
 
-  const text = (await response.text()).trim();
+  if (trimmedBody.startsWith("{") || trimmedBody.startsWith("[")) {
+    try {
+      const data = JSON.parse(trimmedBody) as DemoProgramResponse;
+
+      return {
+        data,
+        message: data.message ?? data.error,
+      };
+    } catch {
+      // Continue with the non-JSON fallback below.
+    }
+  }
 
   return {
     data: null,
-    message: text
-      ? `Il server ha restituito una risposta non valida: ${text}`
+    message: trimmedBody
+      ? `Il server ha restituito una risposta non valida: ${trimmedBody}`
       : "Il server ha restituito una risposta non valida.",
   };
 }
@@ -60,6 +82,16 @@ export function CreateDemoProgramButton({
         );
       }
 
+      const params = new URLSearchParams({
+        regenerated: "1",
+        t: Date.now().toString(),
+      });
+
+      if (typeof data.programId === "number") {
+        params.set("programId", data.programId.toString());
+      }
+
+      router.replace(`/program?${params.toString()}`);
       router.refresh();
     } catch (caughtError) {
       setError(
@@ -80,7 +112,7 @@ export function CreateDemoProgramButton({
         disabled={loading}
         className="inline-flex justify-center rounded-xl bg-white px-5 py-3 font-semibold text-neutral-950 disabled:opacity-50"
       >
-        {loading ? "Generazione programma..." : label}
+        {loading ? "Sto generando..." : label}
       </button>
 
       {error ? (
