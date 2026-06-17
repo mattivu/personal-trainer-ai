@@ -3,12 +3,17 @@ import { redirect } from "next/navigation";
 import { AppBottomNav } from "@/components/app-bottom-nav";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
+import {
+  getFlexibleWorkoutState,
+  getWeekEnd,
+  getWeekStart,
+  getWorkoutScheduleForProgram,
+} from "@/lib/workout-schedule";
 import { buildNormalizedOnboardingProfile } from "@/lib/training-engine/onboarding-profile";
 import {
   getCurrentBlockWeek,
   getTrainingBlockDurationWeeks,
 } from "@/lib/training-engine/program-block";
-import { getProgramWorkoutAvailabilityState } from "@/lib/workout-execution";
 import { CreateDemoProgramButton } from "./create-demo-program-button";
 import { ProgramNotesToggle } from "./program-notes-toggle";
 import { ProgramWorkoutCard } from "./program-workout-card";
@@ -62,6 +67,68 @@ function formatItalianDateTime(date: Date) {
     timeStyle: "short",
     timeZone: "Europe/Rome",
   }).format(date);
+}
+
+function getFlexibleStatusCopy(
+  state: ReturnType<typeof getFlexibleWorkoutState>["state"],
+  plannedDateLabel: string
+) {
+  switch (state) {
+    case "recommended_today":
+      return {
+        statusLabel: "Consigliata oggi",
+        statusDescription: null,
+        ctaLabel: "Inizia seduta",
+        ctaVariant: "primary" as const,
+        showSkipAction: true,
+        showKeepSkippedAction: false,
+      };
+    case "overdue":
+      return {
+        statusLabel: "Da recuperare",
+        statusDescription: `Questa seduta era prevista per ${plannedDateLabel}.`,
+        ctaLabel: "Recupera seduta",
+        ctaVariant: "primary" as const,
+        showSkipAction: true,
+        showKeepSkippedAction: false,
+      };
+    case "future_available":
+      return {
+        statusLabel: "Prevista più avanti",
+        statusDescription: `Questa seduta è prevista per ${plannedDateLabel}. Puoi anticiparla se hai cambiato programma.`,
+        ctaLabel: "Inizia comunque",
+        ctaVariant: "secondary" as const,
+        showSkipAction: true,
+        showKeepSkippedAction: false,
+      };
+    case "in_progress":
+      return {
+        statusLabel: "Allenamento in corso",
+        statusDescription: null,
+        ctaLabel: "Continua seduta",
+        ctaVariant: "primary" as const,
+        showSkipAction: false,
+        showKeepSkippedAction: false,
+      };
+    case "completed":
+      return {
+        statusLabel: "Seduta completata",
+        statusDescription: "Hai già completato questa seduta questa settimana.",
+        ctaLabel: "Modifica dati",
+        ctaVariant: "secondary" as const,
+        showSkipAction: false,
+        showKeepSkippedAction: false,
+      };
+    case "skipped":
+      return {
+        statusLabel: "Seduta saltata",
+        statusDescription: "Hai segnato questa seduta come saltata.",
+        ctaLabel: "Recupera seduta",
+        ctaVariant: "primary" as const,
+        showSkipAction: false,
+        showKeepSkippedAction: true,
+      };
+  }
 }
 
 function getProgramFocusSummary(
@@ -191,6 +258,9 @@ export default async function ProgramPage(props: ProgramPageProps) {
   const searchParams = (await props.searchParams) ?? {};
   const created = getSingleSearchParam(searchParams.created) === "1";
   const createdProgramId = getSingleSearchParam(searchParams.programId);
+  const now = new Date();
+  const currentWeekStart = getWeekStart(now);
+  const currentWeekEnd = getWeekEnd(now);
 
   const [onboardingAnswers, activeProgram] = await Promise.all([
     prisma.onboardingAnswer.findMany({
@@ -221,14 +291,15 @@ export default async function ProgramPage(props: ProgramPageProps) {
                 userId: user.id,
               },
               orderBy: {
-                performedAt: "desc",
+                updatedAt: "desc",
               },
-              take: 1,
               select: {
                 id: true,
                 status: true,
                 performedAt: true,
+                startedAt: true,
                 completedAt: true,
+                updatedAt: true,
               },
             },
             exercises: {
@@ -451,69 +522,66 @@ export default async function ProgramPage(props: ProgramPageProps) {
               </div>
 
               <div className="space-y-4">
-                {activeProgram.workouts.map((workout) => {
-                  const latestWorkoutLog = workout.workoutLogs[0] ?? null;
-                  const workoutAvailability =
-                    getProgramWorkoutAvailabilityState(latestWorkoutLog);
-                  const statusLabel =
-                    workoutAvailability.state === "in_progress"
-                      ? "Allenamento in corso"
-                      : workoutAvailability.state === "completed_locked"
-                        ? "Seduta completata"
-                        : "Da completare";
-                  const ctaLabel =
-                    workoutAvailability.state === "in_progress"
-                      ? "Continua seduta"
-                      : workoutAvailability.state === "completed_locked"
-                        ? "Modifica dati"
-                        : "Inizia seduta";
-                  const availabilityLabel =
-                    workoutAvailability.state === "completed_locked"
-                      ? `Disponibile di nuovo da: ${formatItalianDateTime(
-                          workoutAvailability.nextAvailableAt
-                        )}`
-                      : null;
+                {getWorkoutScheduleForProgram(activeProgram.workouts, now).map(
+                  ({ workout, plannedDateLabel, plannedDateThisWeek }) => {
+                    const currentWeekLog =
+                      workout.workoutLogs.find(
+                        (workoutLog) =>
+                          workoutLog.performedAt >= currentWeekStart &&
+                          workoutLog.performedAt <= currentWeekEnd
+                      ) ?? null;
+                    const latestWorkoutLog = workout.workoutLogs[0] ?? null;
+                    const workoutState = getFlexibleWorkoutState({
+                      plannedDateThisWeek,
+                      plannedDateLabel,
+                      weekLog: currentWeekLog,
+                      referenceDate: now,
+                    });
+                    const copy = getFlexibleStatusCopy(
+                      workoutState.state,
+                      plannedDateLabel
+                    );
 
-                  return (
-                    <ProgramWorkoutCard
-                      key={workout.id}
-                      dayLabel={workout.dayLabel ?? "Workout"}
-                      title={workout.title}
-                      focus={
-                        workout.focus ??
-                        workout.notes ??
-                        "Focus non indicato"
-                      }
-                      statusLabel={statusLabel}
-                      ctaLabel={ctaLabel}
-                      ctaHref={`/workouts/${workout.id}`}
-                      ctaVariant={
-                        workoutAvailability.state === "completed_locked"
-                          ? "secondary"
-                          : "primary"
-                      }
-                      availabilityLabel={availabilityLabel}
-                      lastSessionLabel={
-                        latestWorkoutLog
-                          ? `Ultima seduta ${formatItalianDate(
-                              latestWorkoutLog.performedAt
-                            )}`
-                          : null
-                      }
-                      exercises={workout.exercises.map((exercise) => ({
-                        id: exercise.id,
-                        name: exercise.name,
-                        prescription: formatExercisePrescription(
-                          exercise.sets,
-                          exercise.reps
-                        ),
-                        rest: formatRest(exercise.restSeconds),
-                        intensity: exercise.intensity ?? "Non indicata",
-                        notes: exercise.notes,
-                      }))}
-                    />
-                  );
-                })}
+                    return (
+                      <ProgramWorkoutCard
+                        key={workout.id}
+                        workoutId={workout.id}
+                        plannedDateLabel={plannedDateLabel}
+                        title={workout.title}
+                        focus={
+                          workout.focus ??
+                          workout.notes ??
+                          "Focus non indicato"
+                        }
+                        statusLabel={copy.statusLabel}
+                        statusDescription={copy.statusDescription}
+                        ctaLabel={copy.ctaLabel}
+                        ctaHref={`/workouts/${workout.id}`}
+                        ctaVariant={copy.ctaVariant}
+                        lastSessionLabel={
+                          latestWorkoutLog
+                            ? `Ultima seduta ${formatItalianDate(
+                                latestWorkoutLog.performedAt
+                              )}`
+                            : null
+                        }
+                        showSkipAction={copy.showSkipAction}
+                        showKeepSkippedAction={copy.showKeepSkippedAction}
+                        exercises={workout.exercises.map((exercise) => ({
+                          id: exercise.id,
+                          name: exercise.name,
+                          prescription: formatExercisePrescription(
+                            exercise.sets,
+                            exercise.reps
+                          ),
+                          rest: formatRest(exercise.restSeconds),
+                          intensity: exercise.intensity ?? "Non indicata",
+                          notes: exercise.notes,
+                        }))}
+                      />
+                    );
+                  }
+                )}
               </div>
             </section>
           </div>

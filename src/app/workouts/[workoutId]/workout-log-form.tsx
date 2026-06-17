@@ -8,6 +8,7 @@ import type {
   WorkoutFormSetLog,
   WorkoutTodaySummarySet,
 } from "@/lib/workout-execution";
+import type { FlexibleWorkoutState } from "@/lib/workout-schedule";
 
 type WorkoutLogFormProps = {
   workout: {
@@ -19,10 +20,8 @@ type WorkoutLogFormProps = {
   };
   exercises: WorkoutFormExercise[];
   existingLog: WorkoutFormLog | null;
-  todayLogStatus: "not_started" | "in_progress" | "completed_today";
-  canStartWorkout: boolean;
-  canEditTodayWorkout: boolean;
-  completedTodayAt: string | null;
+  workoutState: FlexibleWorkoutState;
+  plannedDateLabel: string;
 };
 
 type ExerciseState = {
@@ -163,10 +162,8 @@ export function WorkoutLogForm({
   workout,
   exercises,
   existingLog,
-  todayLogStatus,
-  canStartWorkout,
-  canEditTodayWorkout,
-  completedTodayAt,
+  workoutState,
+  plannedDateLabel,
 }: WorkoutLogFormProps) {
   const router = useRouter();
   const [exerciseStates, setExerciseStates] = useState<ExerciseState[]>(
@@ -210,18 +207,17 @@ export function WorkoutLogForm({
   const [lastSavedStatus, setLastSavedStatus] = useState<
     "not_started" | "in_progress" | "completed"
   >(
-    todayLogStatus === "completed_today"
+    existingLog?.status === "completed"
       ? "completed"
-      : existingLog?.status === "in_progress"
+      : existingLog?.status === "in_progress" || existingLog?.status === "saved"
         ? "in_progress"
         : "not_started"
   );
   const [isEditingWorkout, setIsEditingWorkout] = useState(false);
 
   const hasTodaySummary = exerciseStates.some((exercise) => exercise.todaySummary.length > 0);
-  const isCompletedToday = todayLogStatus === "completed_today";
-  const isInProgressToday = todayLogStatus === "in_progress";
-  const isNotStartedToday = todayLogStatus === "not_started";
+  const isCompletedWorkout = workoutState === "completed";
+  const completedAtLabel = existingLog?.completedAt ?? null;
 
   function formatRest(restSeconds: number | null) {
     if (restSeconds === null) {
@@ -355,7 +351,7 @@ export function WorkoutLogForm({
       setMessage(
         responseMessage ||
           (status === "completed"
-            ? "Allenamento completato oggi."
+            ? "Seduta completata."
             : "Progressi salvati.")
       );
       router.refresh();
@@ -372,72 +368,113 @@ export function WorkoutLogForm({
 
   const editorStatusLabel =
     lastSavedStatus === "completed"
-      ? "Allenamento completato oggi"
+      ? "Seduta completata"
       : lastSavedStatus === "in_progress"
         ? "Allenamento in corso"
-        : "Seduta da completare";
+        : workoutState === "skipped"
+          ? "Recupera seduta"
+          : workoutState === "future_available"
+            ? "Inizia comunque"
+            : workoutState === "overdue"
+              ? "Da recuperare"
+              : "Consigliata oggi";
   const editorIntro =
     lastSavedStatus === "completed"
-      ? "Stai correggendo una seduta gia completata. I salvataggi aggiornano la stessa seduta senza crearne una nuova."
+      ? "Stai correggendo una seduta già completata. I salvataggi aggiornano la stessa seduta senza crearne una nuova."
       : "Compila i dati della serie sotto ogni esercizio e salva quando vuoi.";
   const saveButtonLabel =
     lastSavedStatus === "completed" ? "Salva correzioni" : "Salva progressi";
   const completeButtonLabel =
     lastSavedStatus === "completed"
-      ? "Aggiorna allenamento completato"
+      ? "Aggiorna dati allenamento"
       : "Completa allenamento";
+
+  function getEntryCardCopy(state: FlexibleWorkoutState) {
+    switch (state) {
+      case "recommended_today":
+        return {
+          eyebrow: "Consigliata oggi",
+          title: workout.title,
+          description:
+            "Compila i dati reali delle serie mentre ti alleni: carico usato, ripetizioni fatte e ripetizioni in riserva.",
+          buttonLabel: "Inizia allenamento",
+        };
+      case "overdue":
+        return {
+          eyebrow: "Da recuperare",
+          title: "Seduta da recuperare",
+          description: `Questa seduta era prevista per ${plannedDateLabel}.`,
+          buttonLabel: "Recupera seduta",
+        };
+      case "future_available":
+        return {
+          eyebrow: "Prevista più avanti",
+          title: "Questa seduta è prevista più avanti",
+          description:
+            "Puoi iniziarla comunque se hai modificato la tua settimana.",
+          buttonLabel: "Inizia comunque",
+        };
+      case "in_progress":
+        return {
+          eyebrow: "Allenamento in corso",
+          title: "Allenamento in corso",
+          description:
+            "Abbiamo mantenuto i dati già salvati. Puoi continuare la compilazione da dove avevi lasciato.",
+          buttonLabel: "Continua seduta",
+        };
+      case "completed":
+        return {
+          eyebrow: "Seduta completata",
+          title: "Allenamento completato",
+          description:
+            "Hai già completato questa seduta questa settimana. Puoi correggere i dati se hai commesso un errore.",
+          buttonLabel: "Modifica dati allenamento",
+        };
+      case "skipped":
+        return {
+          eyebrow: "Seduta saltata",
+          title: "Seduta segnata come saltata",
+          description:
+            "Hai segnato questa seduta come saltata. Puoi recuperarla quando vuoi.",
+          buttonLabel: "Recupera seduta",
+        };
+    }
+  }
+
+  const entryCardCopy = getEntryCardCopy(workoutState);
 
   return (
     <section className="mt-6 space-y-6">
       {!isEditingWorkout ? (
         <div className="rounded-2xl border border-neutral-800 bg-neutral-900 p-6">
           <p className="text-sm uppercase tracking-[0.2em] text-neutral-500">
-            {isCompletedToday
-              ? "Allenamento completato oggi"
-              : isInProgressToday
-                ? "Allenamento in corso"
-                : "Allenamento del giorno"}
+            {entryCardCopy.eyebrow}
           </p>
-          <h2 className="mt-3 text-2xl font-semibold">
-            {isCompletedToday
-              ? "Allenamento completato oggi"
-              : isInProgressToday
-                ? "Allenamento in corso"
-                : workout.title}
-          </h2>
+          <h2 className="mt-3 text-2xl font-semibold">{entryCardCopy.title}</h2>
           <p className="mt-4 max-w-2xl text-sm text-neutral-300">
-            {isCompletedToday
-              ? "Hai gia completato questa seduta. Puoi correggere i dati se hai commesso un errore."
-              : isInProgressToday
-                ? "Abbiamo mantenuto i dati gia salvati di oggi. Puoi continuare la compilazione da dove avevi lasciato."
-                : "Compila i dati reali delle serie mentre ti alleni: carico usato, ripetizioni fatte e ripetizioni in riserva."}
+            {entryCardCopy.description}
           </p>
-          {isCompletedToday && completedTodayAt ? (
+          {isCompletedWorkout && completedAtLabel ? (
             <p className="mt-3 text-sm text-neutral-400">
-              Completato il {formatDateLabel(completedTodayAt)}.
+              Completato il {formatDateLabel(completedAtLabel)}.
             </p>
           ) : null}
           <button
             type="button"
             onClick={() => setIsEditingWorkout(true)}
-            disabled={isNotStartedToday ? !canStartWorkout : !canEditTodayWorkout}
             className="mt-6 inline-flex justify-center rounded-xl bg-white px-5 py-3 font-semibold text-neutral-950 disabled:opacity-50"
           >
-            {isCompletedToday
-              ? "Modifica dati allenamento"
-              : isInProgressToday
-                ? "Continua allenamento"
-                : "Inizia allenamento"}
+            {entryCardCopy.buttonLabel}
           </button>
         </div>
       ) : null}
 
-      {isCompletedToday && !isEditingWorkout ? (
+      {isCompletedWorkout && !isEditingWorkout ? (
         <div className="space-y-5">
           <div className="rounded-2xl border border-neutral-800 bg-neutral-900 p-6">
-            <h3 className="text-xl font-semibold">Dati registrati oggi</h3>
+            <h3 className="text-xl font-semibold">Dati registrati</h3>
             <p className="mt-2 text-sm text-neutral-400">
-              Qui sotto trovi il riepilogo della seduta gia completata per ogni esercizio.
+              Qui sotto trovi il riepilogo della seduta già completata per ogni esercizio.
             </p>
           </div>
 
@@ -453,7 +490,7 @@ export function WorkoutLogForm({
                 </p>
               ) : null}
               <div className="mt-4 rounded-xl border border-neutral-800 bg-neutral-950 p-4">
-                <p className="text-sm font-semibold text-white">Dati registrati oggi</p>
+                <p className="text-sm font-semibold text-white">Dati registrati</p>
                 {exercise.todaySummary.length > 0 ? (
                   <div className="mt-3 space-y-2 text-sm text-neutral-300">
                     {exercise.todaySummary.map((setLog) => (
@@ -473,7 +510,7 @@ export function WorkoutLogForm({
 
           {!hasTodaySummary ? (
             <p className="rounded-xl border border-neutral-800 bg-neutral-900 px-4 py-3 text-sm text-neutral-300">
-              Nessun dato registrato oggi da mostrare nel riepilogo.
+              Nessun dato registrato da mostrare nel riepilogo.
             </p>
           ) : null}
         </div>
@@ -489,7 +526,7 @@ export function WorkoutLogForm({
             <p className="max-w-md text-sm text-neutral-400">
               {lastSavedStatus === "completed"
                 ? "Puoi correggere kg, reps, RIR, stato di completamento, fatica e note senza aprire una nuova seduta."
-                : "I dati salvati resteranno associati alla seduta di oggi."}
+                : "I dati salvati resteranno associati alla seduta della settimana corrente."}
             </p>
           </div>
 
@@ -593,6 +630,8 @@ export function WorkoutLogForm({
                                 ? "Completato"
                                 : exercise.previousPerformance.status === "in_progress"
                                   ? "In corso"
+                                  : exercise.previousPerformance.status === "skipped"
+                                    ? "Seduta saltata"
                                   : "Salvato"}
                             </p>
                             <div className="mt-3 space-y-2 text-sm text-neutral-300">
@@ -837,7 +876,7 @@ export function WorkoutLogForm({
           <div className="rounded-2xl border border-neutral-800 bg-neutral-900 p-6">
             <h3 className="text-xl font-semibold">
               {lastSavedStatus === "completed"
-                ? "Aggiorna allenamento completato"
+                ? "Aggiorna dati allenamento"
                 : "Feedback finale"}
             </h3>
             <p className="mt-2 text-sm text-neutral-400">

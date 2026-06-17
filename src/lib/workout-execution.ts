@@ -3,6 +3,13 @@ import {
   generateExerciseProgressionSuggestion,
   type ProgressionSuggestion,
 } from "@/lib/progression-engine";
+import {
+  getFlexibleWorkoutState,
+  getWeekEnd,
+  getWeekStart,
+  getWorkoutScheduleForProgram,
+  type FlexibleWorkoutState,
+} from "@/lib/workout-schedule";
 
 export type WorkoutFormSetLog = {
   setNumber: number;
@@ -54,10 +61,12 @@ export type WorkoutFormLog = {
 
 export type WorkoutPageData = {
   programId: number;
-  todayLogStatus: "not_started" | "in_progress" | "completed_today";
-  canStartWorkout: boolean;
-  canEditTodayWorkout: boolean;
-  completedTodayAt: string | null;
+  workoutState: FlexibleWorkoutState;
+  plannedDateLabel: string;
+  plannedDateThisWeek: string;
+  isPlannedToday: boolean;
+  isPastPlannedDate: boolean;
+  isFuturePlannedDate: boolean;
   workout: {
     id: number;
     title: string;
@@ -69,80 +78,10 @@ export type WorkoutPageData = {
   existingLog: WorkoutFormLog | null;
 };
 
-export type ProgramWorkoutAvailabilityState =
-  | {
-      state: "available";
-      nextAvailableAt: null;
-    }
-  | {
-      state: "in_progress";
-      nextAvailableAt: null;
-    }
-  | {
-      state: "completed_locked";
-      nextAvailableAt: Date;
-    };
-
-export function getCurrentDayBounds(referenceDate = new Date()) {
-  const start = new Date(referenceDate);
-  start.setHours(0, 0, 0, 0);
-
-  const end = new Date(start);
-  end.setDate(end.getDate() + 1);
-
-  return { start, end };
-}
-
-function getCompletedWorkoutWindowStart(referenceDate = new Date()) {
-  return new Date(referenceDate.getTime() - 24 * 60 * 60 * 1000);
-}
-
-export function getProgramWorkoutAvailabilityState(
-  latestLog:
-    | {
-        status: string;
-        performedAt: Date;
-        completedAt: Date | null;
-      }
-    | null
-    | undefined,
-  referenceDate = new Date()
-): ProgramWorkoutAvailabilityState {
-  if (!latestLog) {
-    return {
-      state: "available",
-      nextAvailableAt: null,
-    };
-  }
-
-  const { start, end } = getCurrentDayBounds(referenceDate);
-
-  if (
-    latestLog.status !== "completed" &&
-    latestLog.performedAt >= start &&
-    latestLog.performedAt < end
-  ) {
-    return {
-      state: "in_progress",
-      nextAvailableAt: null,
-    };
-  }
-
-  if (latestLog.status === "completed") {
-    const completedAt = latestLog.completedAt ?? latestLog.performedAt;
-    const nextAvailableAt = new Date(completedAt.getTime() + 24 * 60 * 60 * 1000);
-
-    if (nextAvailableAt > referenceDate) {
-      return {
-        state: "completed_locked",
-        nextAvailableAt,
-      };
-    }
-  }
-
+export function getCurrentWeekBounds(referenceDate = new Date()) {
   return {
-    state: "available",
-    nextAvailableAt: null,
+    start: getWeekStart(referenceDate),
+    end: getWeekEnd(referenceDate),
   };
 }
 
@@ -204,37 +143,35 @@ async function getPreviousPerformanceByExercise(
       : []),
   ];
 
-  async function findCandidates(statusWhere: { status: string } | { status: { not: string } }) {
-    return prisma.workoutLog.findMany({
-      where: {
-        userId,
-        ...statusWhere,
-        ...buildPreviousLogCutoff(currentLog),
-        setLogs: {
-          some: {
-            OR: setLogFilters,
-          },
+  const candidateLogs = await prisma.workoutLog.findMany({
+    where: {
+      userId,
+      status: "completed",
+      ...buildPreviousLogCutoff(currentLog),
+      setLogs: {
+        some: {
+          OR: setLogFilters,
         },
       },
-      orderBy: [{ performedAt: "desc" }, { id: "desc" }],
-      take: 40,
-      include: {
-        setLogs: {
-          where: {
-            OR: setLogFilters,
-          },
-          include: {
-            programExercise: {
-              select: {
-                exerciseId: true,
-              },
+    },
+    orderBy: [{ performedAt: "desc" }, { id: "desc" }],
+    take: 40,
+    include: {
+      setLogs: {
+        where: {
+          OR: setLogFilters,
+        },
+        include: {
+          programExercise: {
+            select: {
+              exerciseId: true,
             },
           },
-          orderBy: [{ setNumber: "asc" }, { id: "asc" }],
         },
+        orderBy: [{ setNumber: "asc" }, { id: "asc" }],
       },
-    });
-  }
+    },
+  });
 
   const previousPerformanceByExerciseId = new Map<
     number,
@@ -245,55 +182,45 @@ async function getPreviousPerformanceByExercise(
     }
   >();
 
-  function hydrateFromCandidates(
-    candidateLogs: Awaited<ReturnType<typeof findCandidates>>
-  ) {
-    for (const workoutLog of candidateLogs) {
-      for (const exercise of exercises) {
-        if (previousPerformanceByExerciseId.has(exercise.id)) {
-          continue;
-        }
-
-        const matchingSetLogs = workoutLog.setLogs.filter((setLog) => {
-          if (setLog.programExerciseId === exercise.id) {
-            return true;
-          }
-
-          return (
-            exercise.exerciseId !== null &&
-            setLog.programExercise?.exerciseId === exercise.exerciseId
-          );
-        });
-
-        if (matchingSetLogs.length === 0) {
-          continue;
-        }
-
-        previousPerformanceByExerciseId.set(exercise.id, {
-          performedAt: workoutLog.performedAt.toISOString(),
-          status: workoutLog.status,
-          sets: matchingSetLogs.map((setLog) => ({
-            setNumber: setLog.setNumber,
-            actualWeight: setLog.weightKg,
-            actualReps: setLog.actualReps,
-            actualRir: setLog.rir,
-            actualRpe: setLog.rpe,
-            completed: setLog.completed,
-            notes: setLog.notes ?? "",
-          })),
-        });
+  for (const workoutLog of candidateLogs) {
+    for (const exercise of exercises) {
+      if (previousPerformanceByExerciseId.has(exercise.id)) {
+        continue;
       }
 
-      if (previousPerformanceByExerciseId.size === exercises.length) {
-        return;
+      const matchingSetLogs = workoutLog.setLogs.filter((setLog) => {
+        if (setLog.programExerciseId === exercise.id) {
+          return true;
+        }
+
+        return (
+          exercise.exerciseId !== null &&
+          setLog.programExercise?.exerciseId === exercise.exerciseId
+        );
+      });
+
+      if (matchingSetLogs.length === 0) {
+        continue;
       }
+
+      previousPerformanceByExerciseId.set(exercise.id, {
+        performedAt: workoutLog.performedAt.toISOString(),
+        status: workoutLog.status,
+        sets: matchingSetLogs.map((setLog) => ({
+          setNumber: setLog.setNumber,
+          actualWeight: setLog.weightKg,
+          actualReps: setLog.actualReps,
+          actualRir: setLog.rir,
+          actualRpe: setLog.rpe,
+          completed: setLog.completed,
+          notes: setLog.notes ?? "",
+        })),
+      });
     }
-  }
 
-  hydrateFromCandidates(await findCandidates({ status: "completed" }));
-
-  if (previousPerformanceByExerciseId.size < exercises.length) {
-    hydrateFromCandidates(await findCandidates({ status: { not: "completed" } }));
+    if (previousPerformanceByExerciseId.size === exercises.length) {
+      break;
+    }
   }
 
   return previousPerformanceByExerciseId;
@@ -315,6 +242,14 @@ export async function getWorkoutPageDataForUser(
       program: {
         select: {
           id: true,
+          workouts: {
+            select: {
+              id: true,
+            },
+            orderBy: {
+              sortOrder: "asc",
+            },
+          },
         },
       },
       exercises: {
@@ -336,16 +271,14 @@ export async function getWorkoutPageDataForUser(
     return null;
   }
 
-  const { start, end } = getCurrentDayBounds();
-  const completedWorkoutWindowStart = getCompletedWorkoutWindowStart();
-
-  const todayLog = await prisma.workoutLog.findFirst({
+  const { start, end } = getCurrentWeekBounds();
+  const currentWeekLog = await prisma.workoutLog.findFirst({
     where: {
       userId,
       workoutId,
       performedAt: {
         gte: start,
-        lt: end,
+        lte: end,
       },
     },
     include: {
@@ -355,63 +288,55 @@ export async function getWorkoutPageDataForUser(
         },
       },
     },
-    orderBy: {
-      updatedAt: "desc",
-    },
+    orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
   });
 
-  const recentCompletedLog =
-    todayLog === null
-      ? await prisma.workoutLog.findFirst({
-          where: {
-            userId,
-            workoutId,
-            status: "completed",
-            completedAt: {
-              gte: completedWorkoutWindowStart,
-            },
-          },
-          include: {
-            setLogs: {
-              orderBy: {
-                setNumber: "asc",
-              },
-            },
-          },
-          orderBy: [{ completedAt: "desc" }, { updatedAt: "desc" }],
-        })
-      : null;
+  const workoutSchedule = getWorkoutScheduleForProgram(workout.program.workouts);
+  const scheduledWorkout = workoutSchedule.find(
+    (scheduledEntry) => scheduledEntry.workout.id === workout.id
+  );
 
-  const currentLog = todayLog ?? recentCompletedLog;
-  const todayLogStatus =
-    currentLog?.status === "completed" && currentLog.completedAt !== null
-      ? "completed_today"
-      : currentLog?.status === "in_progress"
-        ? "in_progress"
-        : "not_started";
+  if (!scheduledWorkout) {
+    return null;
+  }
+
+  const workoutState = getFlexibleWorkoutState({
+    plannedDateThisWeek: scheduledWorkout.plannedDateThisWeek,
+    plannedDateLabel: scheduledWorkout.plannedDateLabel,
+    weekLog: currentWeekLog
+      ? {
+          id: currentWeekLog.id,
+          status: currentWeekLog.status,
+          performedAt: currentWeekLog.performedAt,
+          startedAt: currentWeekLog.startedAt,
+          completedAt: currentWeekLog.completedAt,
+          updatedAt: currentWeekLog.updatedAt,
+        }
+      : null,
+  });
+
   const previousPerformanceByExerciseId = await getPreviousPerformanceByExercise(
     userId,
     workout.exercises.map((exercise) => ({
       id: exercise.id,
       exerciseId: exercise.exerciseId ?? null,
     })),
-    currentLog
+    currentWeekLog
       ? {
-          id: currentLog.id,
-          performedAt: currentLog.performedAt,
+          id: currentWeekLog.id,
+          performedAt: currentWeekLog.performedAt,
         }
       : null
   );
 
   return {
     programId: workout.program.id,
-    todayLogStatus,
-    canStartWorkout: todayLogStatus === "not_started",
-    canEditTodayWorkout: currentLog !== null,
-    completedTodayAt:
-      todayLogStatus === "completed_today"
-        ? currentLog?.completedAt?.toISOString() ?? null
-        : null,
+    workoutState: workoutState.state,
+    plannedDateLabel: workoutState.plannedDateLabel,
+    plannedDateThisWeek: workoutState.plannedDateThisWeek.toISOString(),
+    isPlannedToday: workoutState.isPlannedToday,
+    isPastPlannedDate: workoutState.isPastPlannedDate,
+    isFuturePlannedDate: workoutState.isFuturePlannedDate,
     workout: {
       id: workout.id,
       title: workout.title,
@@ -420,7 +345,7 @@ export async function getWorkoutPageDataForUser(
       notes: workout.notes,
     },
     exercises: workout.exercises.map((exercise) => {
-      const matchingSetLogs = currentLog?.setLogs.filter(
+      const matchingSetLogs = currentWeekLog?.setLogs.filter(
         (setLog) => setLog.programExerciseId === exercise.id
       );
       const previousPerformance = previousPerformanceByExerciseId.get(exercise.id) ?? null;
@@ -472,15 +397,15 @@ export async function getWorkoutPageDataForUser(
         }),
       };
     }),
-    existingLog: currentLog
+    existingLog: currentWeekLog
       ? {
-          id: currentLog.id,
-          status: currentLog.status,
-          perceivedEffort: currentLog.perceivedEffort,
-          notes: currentLog.notes,
-          startedAt: currentLog.startedAt?.toISOString() ?? null,
-          completedAt: currentLog.completedAt?.toISOString() ?? null,
-          performedAt: currentLog.performedAt.toISOString(),
+          id: currentWeekLog.id,
+          status: currentWeekLog.status,
+          perceivedEffort: currentWeekLog.perceivedEffort,
+          notes: currentWeekLog.notes,
+          startedAt: currentWeekLog.startedAt?.toISOString() ?? null,
+          completedAt: currentWeekLog.completedAt?.toISOString() ?? null,
+          performedAt: currentWeekLog.performedAt.toISOString(),
         }
       : null,
   };

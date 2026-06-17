@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
 import {
-  getCurrentDayBounds,
+  getCurrentWeekBounds,
   getWorkoutPageDataForUser,
 } from "@/lib/workout-execution";
 
@@ -317,32 +317,19 @@ export async function POST(request: Request) {
     }
 
     const now = new Date();
-    const { start, end } = getCurrentDayBounds(now);
-    const completedWorkoutWindowStart = new Date(
-      now.getTime() - 24 * 60 * 60 * 1000
-    );
+    const { start, end } = getCurrentWeekBounds(now);
 
     const workoutLog = await prisma.$transaction(async (tx) => {
       const existingWorkoutLog = await tx.workoutLog.findFirst({
         where: {
           userId: user.id,
           workoutId,
-          OR: [
-            {
-              performedAt: {
-                gte: start,
-                lt: end,
-              },
-            },
-            {
-              status: "completed",
-              completedAt: {
-                gte: completedWorkoutWindowStart,
-              },
-            },
-          ],
+          performedAt: {
+            gte: start,
+            lte: end,
+          },
         },
-        orderBy: [{ performedAt: "desc" }, { completedAt: "desc" }, { updatedAt: "desc" }],
+        orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
         include: {
           setLogs: true,
         },
@@ -375,17 +362,29 @@ export async function POST(request: Request) {
       }));
 
       if (existingWorkoutLog) {
+        const nextStatus =
+          existingWorkoutLog.status === "completed" ? "completed" : status;
+        const isRecoveringSkipped = existingWorkoutLog.status === "skipped";
+
         return tx.workoutLog.update({
           where: {
             id: existingWorkoutLog.id,
           },
           data: {
             programId: workoutData.programId,
-            status,
+            status: nextStatus,
+            performedAt: isRecoveringSkipped ? now : existingWorkoutLog.performedAt,
+            startedAt:
+              nextStatus === "in_progress"
+                ? (existingWorkoutLog.startedAt ?? now)
+                : (existingWorkoutLog.startedAt ?? now),
+            completedAt:
+              nextStatus === "completed"
+                ? (existingWorkoutLog.completedAt ?? now)
+                : null,
             perceivedEffort:
               perceivedEffort === null ? null : Math.max(1, Math.trunc(perceivedEffort)),
             notes,
-            completedAt: status === "completed" ? now : null,
             setLogs: {
               deleteMany: {},
               create: setLogsData,
@@ -393,6 +392,7 @@ export async function POST(request: Request) {
           },
           select: {
             id: true,
+            status: true,
           },
         });
       }
@@ -415,6 +415,7 @@ export async function POST(request: Request) {
         },
         select: {
           id: true,
+          status: true,
         },
       });
     });
@@ -428,8 +429,8 @@ export async function POST(request: Request) {
       ok: true,
       workoutLogId: workoutLog.id,
       message:
-        status === "completed"
-          ? "Allenamento completato oggi."
+        workoutLog.status === "completed"
+          ? "Seduta completata."
           : "Progressi salvati.",
     });
   } catch (error) {

@@ -44,7 +44,7 @@ export default async function WorkoutHistoryPage() {
             </p>
             <h1 className="mt-3 text-3xl font-bold">Storico allenamenti</h1>
             <p className="mt-3 max-w-2xl text-sm text-neutral-400">
-              Sedute completate o salvate in ordine dalla piu recente alla piu vecchia.
+              Sedute completate, in corso o saltate in ordine dalla piu recente alla piu vecchia.
             </p>
           </div>
 
@@ -135,28 +135,34 @@ export default async function WorkoutHistoryPage() {
 
                 <div className="mt-6 border-t border-neutral-800 pt-6">
                   <h3 className="text-lg font-semibold">Dati della serie</h3>
-                  <div className="mt-4 space-y-4">
-                    {entry.exercises.map((exercise) => (
-                      <section
-                        key={`${entry.id}-${exercise.programExerciseId ?? exercise.exerciseName}`}
-                        className="rounded-xl border border-neutral-800 bg-neutral-950 p-4"
-                      >
-                        <h4 className="text-base font-semibold text-white">
-                          {exercise.exerciseName}
-                        </h4>
-                        <div className="mt-3 space-y-2 text-sm text-neutral-300">
-                          {exercise.sets.map((set) => (
-                            <p key={set.id}>
-                              Serie {set.setNumber}: {formatSetValue(set.weightKg, "kg")} x{" "}
-                              {set.actualReps ?? "reps n/d"} -{" "}
-                              {set.rir === null ? "RIR n/d" : `RIR ${set.rir}`} -{" "}
-                              {set.completed ? "Completata: si" : "Completata: no"}
-                            </p>
-                          ))}
-                        </div>
-                      </section>
-                    ))}
-                  </div>
+                  {entry.exercises.length === 0 ? (
+                    <p className="mt-4 rounded-xl border border-neutral-800 bg-neutral-950 px-4 py-3 text-sm text-neutral-300">
+                      Nessun dato serie registrato.
+                    </p>
+                  ) : (
+                    <div className="mt-4 space-y-4">
+                      {entry.exercises.map((exercise) => (
+                        <section
+                          key={`${entry.id}-${exercise.programExerciseId ?? exercise.exerciseName}`}
+                          className="rounded-xl border border-neutral-800 bg-neutral-950 p-4"
+                        >
+                          <h4 className="text-base font-semibold text-white">
+                            {exercise.exerciseName}
+                          </h4>
+                          <div className="mt-3 space-y-2 text-sm text-neutral-300">
+                            {exercise.sets.map((set) => (
+                              <p key={set.id}>
+                                Serie {set.setNumber}: {formatSetValue(set.weightKg, "kg")} x{" "}
+                                {set.actualReps ?? "reps n/d"} -{" "}
+                                {set.rir === null ? "RIR n/d" : `RIR ${set.rir}`} -{" "}
+                                {set.completed ? "Completata: si" : "Completata: no"}
+                              </p>
+                            ))}
+                          </div>
+                        </section>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </details>
             ))}

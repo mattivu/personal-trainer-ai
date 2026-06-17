@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { SkipWorkoutButton } from "./skip-workout-button";
 
 type WorkoutExerciseItem = {
   id: number;
@@ -13,28 +14,34 @@ type WorkoutExerciseItem = {
 };
 
 type ProgramWorkoutCardProps = {
-  dayLabel: string;
+  workoutId: number;
+  plannedDateLabel: string;
   title: string;
   focus: string;
   statusLabel: string;
+  statusDescription: string | null;
   ctaLabel: string;
   ctaHref: string;
   ctaVariant: "primary" | "secondary";
-  availabilityLabel: string | null;
   lastSessionLabel: string | null;
+  showSkipAction: boolean;
+  showKeepSkippedAction?: boolean;
   exercises: WorkoutExerciseItem[];
 };
 
 export function ProgramWorkoutCard({
-  dayLabel,
+  workoutId,
+  plannedDateLabel,
   title,
   focus,
   statusLabel,
+  statusDescription,
   ctaLabel,
   ctaHref,
   ctaVariant,
-  availabilityLabel,
   lastSessionLabel,
+  showSkipAction,
+  showKeepSkippedAction = false,
   exercises,
 }: ProgramWorkoutCardProps) {
   const [isOpen, setIsOpen] = useState(false);
@@ -44,20 +51,20 @@ export function ProgramWorkoutCard({
       <div className="flex flex-col gap-4">
         <div className="space-y-2">
           <p className="text-xs uppercase tracking-[0.18em] text-neutral-500">
-            {dayLabel}
+            Giorno consigliato: {plannedDateLabel}
           </p>
           <h3 className="text-lg font-semibold text-white">{title}</h3>
           <p className="text-sm text-neutral-300">Focus: {focus}</p>
           <p className="text-sm font-medium text-neutral-100">{statusLabel}</p>
-          {availabilityLabel ? (
-            <p className="text-sm text-neutral-400">{availabilityLabel}</p>
+          {statusDescription ? (
+            <p className="text-sm text-neutral-400">{statusDescription}</p>
           ) : null}
           {lastSessionLabel ? (
             <p className="text-sm text-neutral-500">{lastSessionLabel}</p>
           ) : null}
         </div>
 
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
           <Link
             href={ctaHref}
             className={`inline-flex min-h-11 items-center justify-center rounded-xl px-4 py-2.5 text-sm font-semibold ${
@@ -68,6 +75,18 @@ export function ProgramWorkoutCard({
           >
             {ctaLabel}
           </Link>
+
+          {showSkipAction ? <SkipWorkoutButton workoutId={workoutId} /> : null}
+
+          {showKeepSkippedAction ? (
+            <button
+              type="button"
+              disabled
+              className="inline-flex min-h-11 cursor-default items-center justify-center rounded-xl border border-neutral-800 px-4 py-2.5 text-sm font-semibold text-neutral-500"
+            >
+              Mantieni saltata
+            </button>
+          ) : null}
 
           <button
             type="button"

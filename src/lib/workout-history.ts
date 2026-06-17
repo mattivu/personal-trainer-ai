@@ -34,6 +34,10 @@ export function getWorkoutStatusLabel(status: string) {
     return "In corso";
   }
 
+  if (status === "skipped") {
+    return "Seduta saltata";
+  }
+
   return "Salvato";
 }
 
