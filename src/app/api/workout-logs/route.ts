@@ -411,6 +411,7 @@ export async function POST(request: Request) {
     revalidatePath("/program");
     revalidatePath(`/workouts/${workoutId}`);
     revalidatePath("/dashboard");
+    revalidatePath("/workout-history");
 
     return NextResponse.json({
       ok: true,

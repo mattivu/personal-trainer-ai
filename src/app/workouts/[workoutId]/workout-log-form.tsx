@@ -22,6 +22,7 @@ type WorkoutLogFormProps = {
 
 type ExerciseState = {
   id: number;
+  exerciseId: number | null;
   name: string;
   primaryMuscle: string | null;
   sets: number | null;
@@ -30,6 +31,7 @@ type ExerciseState = {
   intensity: string | null;
   notes: string | null;
   setLogs: WorkoutFormSetLog[];
+  previousPerformance: WorkoutFormExercise["previousPerformance"];
 };
 
 type WorkoutLogApiResponse = {
@@ -89,6 +91,13 @@ function buildInitialSetLogs(exercise: WorkoutFormExercise) {
   });
 }
 
+function formatPreviousPerformanceDate(value: string) {
+  return new Intl.DateTimeFormat("it-IT", {
+    dateStyle: "medium",
+    timeZone: "Europe/Rome",
+  }).format(new Date(value));
+}
+
 function parseNumberInput(value: string) {
   if (!value.trim()) {
     return null;
@@ -136,6 +145,7 @@ export function WorkoutLogForm({
   const [exerciseStates, setExerciseStates] = useState<ExerciseState[]>(
     exercises.map((exercise) => ({
       id: exercise.id,
+      exerciseId: exercise.exerciseId,
       name: exercise.name,
       primaryMuscle: exercise.primaryMuscle,
       sets: exercise.sets,
@@ -144,6 +154,7 @@ export function WorkoutLogForm({
       intensity: exercise.intensity,
       notes: exercise.notes,
       setLogs: buildInitialSetLogs(exercise),
+      previousPerformance: exercise.previousPerformance,
     }))
   );
   const [collapsedExerciseIds, setCollapsedExerciseIds] = useState<Set<number>>(
@@ -420,6 +431,36 @@ export function WorkoutLogForm({
                             </p>
                           </div>
                         </div>
+                      </div>
+
+                      <div className="mt-5 rounded-xl border border-neutral-800 bg-neutral-950 p-4">
+                        <p className="text-sm font-semibold text-white">Ultima volta</p>
+                        {exercise.previousPerformance ? (
+                          <>
+                            <p className="mt-2 text-sm text-neutral-400">
+                              {formatPreviousPerformanceDate(
+                                exercise.previousPerformance.performedAt
+                              )}{" "}
+                              ·{" "}
+                              {exercise.previousPerformance.status === "completed"
+                                ? "Completato"
+                                : exercise.previousPerformance.status === "in_progress"
+                                  ? "In corso"
+                                  : "Salvato"}
+                            </p>
+                            <div className="mt-3 space-y-2 text-sm text-neutral-300">
+                              {exercise.previousPerformance.sets.map((setLog) => (
+                                <p key={`${exercise.id}-previous-${setLog.setNumber}`}>
+                                  {formatSetSummary(setLog)}
+                                </p>
+                              ))}
+                            </div>
+                          </>
+                        ) : (
+                          <p className="mt-2 text-sm text-neutral-400">
+                            Prima volta con questo esercizio.
+                          </p>
+                        )}
                       </div>
 
                       <div className="mt-5 border-t border-neutral-800 pt-5">
