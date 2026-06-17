@@ -2,6 +2,7 @@
 
 import { FormEvent, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { AppBottomNav } from "@/components/app-bottom-nav";
 import {
   type SafetyResult,
   type SafetyStatus,
@@ -1015,7 +1016,7 @@ export function OnboardingForm({
   }
 
   return (
-    <main className="min-h-screen bg-neutral-950 px-6 py-10 text-white">
+    <main className="min-h-screen bg-neutral-950 px-6 py-10 pb-28 text-white">
       <section className="mx-auto w-full max-w-4xl">
         <div className="mb-8 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
           <div>
@@ -1178,6 +1179,8 @@ export function OnboardingForm({
           )}
         </div>
       </section>
+
+      <AppBottomNav />
     </main>
   );
 }

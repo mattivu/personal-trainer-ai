@@ -188,6 +188,8 @@ model WorkoutLog {
   programId        Int?
   workoutId        Int?
   performedAt      DateTime         @default(now())
+  startedAt        DateTime?
+  completedAt      DateTime?
   status           String           @default("completed")
   durationMinutes  Int?
   perceivedEffort  Int?

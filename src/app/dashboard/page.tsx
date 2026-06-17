@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/session";
+import { AppBottomNav } from "@/components/app-bottom-nav";
 import { LogoutButton } from "./logout-button";
 
 export default async function DashboardPage() {
@@ -15,7 +16,7 @@ export default async function DashboardPage() {
   }
 
   return (
-    <main className="min-h-screen bg-neutral-950 px-6 py-12 text-white">
+    <main className="min-h-screen bg-neutral-950 px-6 py-12 pb-28 text-white">
       <section className="mx-auto w-full max-w-3xl">
         <div className="mb-8 flex items-center justify-between gap-4">
           <div>
@@ -80,6 +81,8 @@ export default async function DashboardPage() {
           </div>
         </div>
       </section>
+
+      <AppBottomNav />
     </main>
   );
 }

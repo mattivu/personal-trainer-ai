@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { AppBottomNav } from "@/components/app-bottom-nav";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
 import { buildNormalizedOnboardingProfile } from "@/lib/training-engine/onboarding-profile";
@@ -179,6 +180,20 @@ export default async function ProgramPage(props: ProgramPageProps) {
             sortOrder: "asc",
           },
           include: {
+            workoutLogs: {
+              where: {
+                userId: user.id,
+              },
+              orderBy: {
+                performedAt: "desc",
+              },
+              take: 1,
+              select: {
+                id: true,
+                status: true,
+                performedAt: true,
+              },
+            },
             exercises: {
               orderBy: {
                 sortOrder: "asc",
@@ -209,7 +224,7 @@ export default async function ProgramPage(props: ProgramPageProps) {
     : false;
 
   return (
-    <main className="min-h-screen bg-neutral-950 px-6 py-12 text-white">
+    <main className="min-h-screen bg-neutral-950 px-6 py-12 pb-28 text-white">
       <section className="mx-auto w-full max-w-4xl">
         <div className="mb-8">
           <p className="mb-3 text-sm uppercase tracking-[0.3em] text-neutral-500">
@@ -390,6 +405,24 @@ export default async function ProgramPage(props: ProgramPageProps) {
                           {workout.notes}
                         </p>
                       ) : null}
+
+                      <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <Link
+                          href={`/workouts/${workout.id}`}
+                          className="inline-flex justify-center rounded-xl bg-white px-4 py-2 font-semibold text-neutral-950"
+                        >
+                          Inizia seduta
+                        </Link>
+
+                        {workout.workoutLogs[0] ? (
+                          <p className="text-sm text-neutral-400">
+                            {workout.workoutLogs[0].status === "completed"
+                              ? "Completato"
+                              : "Da completare"}{" "}
+                            · Ultimo log {formatItalianDate(workout.workoutLogs[0].performedAt)}
+                          </p>
+                        ) : null}
+                      </div>
                     </div>
 
                     <div className="space-y-4">
@@ -431,6 +464,8 @@ export default async function ProgramPage(props: ProgramPageProps) {
           </div>
         )}
       </section>
+
+      <AppBottomNav />
     </main>
   );
 }
