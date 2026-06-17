@@ -14,6 +14,7 @@ import { ProgramNotesToggle } from "./program-notes-toggle";
 import { ProgramWorkoutCard } from "./program-workout-card";
 
 export const dynamic = "force-dynamic";
+const CURRENT_TRAINING_ENGINE_SOURCE = "rules_v2";
 
 function formatRest(restSeconds: number | null) {
   if (restSeconds === null) {
@@ -117,6 +118,17 @@ function getNotePreview(note: string, maxLength = 160) {
   }
 
   return `${normalizedNote.slice(0, maxLength).trimEnd()}...`;
+}
+
+function getTrainingEngineLabel(source: string | null) {
+  switch (source) {
+    case "rules_v2":
+      return "Generato da Training Engine v2";
+    case "rules_v1":
+      return "Generato da Training Engine v1";
+    default:
+      return "Generato da Training Engine";
+  }
 }
 
 function ProgramActions({
@@ -247,6 +259,9 @@ export default async function ProgramPage(props: ProgramPageProps) {
       : latestOnboardingUpdate !== null &&
         latestOnboardingUpdate > activeProgram.updatedAt
     : false;
+  const engineUpdateAvailable = activeProgram
+    ? activeProgram.source !== CURRENT_TRAINING_ENGINE_SOURCE
+    : false;
 
   return (
     <main className="min-h-screen bg-neutral-950 px-6 py-12 pb-28 text-white">
@@ -299,6 +314,26 @@ export default async function ProgramPage(props: ProgramPageProps) {
               </section>
             ) : null}
 
+            {engineUpdateAvailable ? (
+              <section className="rounded-2xl border border-sky-700 bg-sky-950/40 p-6">
+                <p className="text-sm font-semibold text-sky-200">
+                  Nuova versione del motore disponibile
+                </p>
+                <p className="mt-2 text-sm text-sky-100">
+                  È disponibile una nuova versione del motore di allenamento.
+                  Puoi creare un nuovo blocco usando la selezione esercizi
+                  aggiornata.
+                </p>
+                <p className="mt-2 text-sm text-sky-100">
+                  Il programma attuale verrà archiviato, ma resterà nello
+                  storico.
+                </p>
+                <div className="mt-5">
+                  <CreateDemoProgramButton label="Crea nuovo blocco aggiornato" />
+                </div>
+              </section>
+            ) : null}
+
             <section className="rounded-2xl border border-neutral-800 bg-neutral-900 p-6">
               <div className="flex flex-col gap-5">
                 <div>
@@ -309,7 +344,7 @@ export default async function ProgramPage(props: ProgramPageProps) {
                     {activeProgram.title}
                   </h2>
                   <p className="mt-2 text-sm text-neutral-400">
-                    Generato da Training Engine v1
+                    {getTrainingEngineLabel(activeProgram.source)}
                   </p>
                 </div>
 

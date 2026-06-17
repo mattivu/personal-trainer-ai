@@ -11,6 +11,7 @@ import {
 import type { EngineExercise } from "@/lib/training-engine/types";
 
 export const runtime = "nodejs";
+const CURRENT_TRAINING_ENGINE_SOURCE = "rules_v2";
 
 function resolveDemoExercise(
   exerciseMap: Map<string, { id: number; name: string }>,
@@ -79,10 +80,16 @@ export async function POST() {
         id: true,
         slug: true,
         name: true,
+        category: true,
         primaryMuscle: true,
+        secondaryMuscles: true,
         equipment: true,
         difficulty: true,
         movementPattern: true,
+        environments: true,
+        tags: true,
+        alternatives: true,
+        contraindications: true,
       },
     });
     const programBlueprint = generateRuleBasedProgram(
@@ -108,16 +115,20 @@ export async function POST() {
       select: {
         id: true,
         onboardingSnapshotHash: true,
+        source: true,
       },
       orderBy: {
         createdAt: "desc",
       },
     });
 
-    if (
-      currentActiveProgram &&
-      currentActiveProgram.onboardingSnapshotHash === snapshotHash
-    ) {
+    const hasCurrentActiveProgram = Boolean(currentActiveProgram);
+    const snapshotMatches =
+      currentActiveProgram?.onboardingSnapshotHash === snapshotHash;
+    const engineAlreadyCurrent =
+      currentActiveProgram?.source === CURRENT_TRAINING_ENGINE_SOURCE;
+
+    if (hasCurrentActiveProgram && snapshotMatches && engineAlreadyCurrent) {
       return NextResponse.json(
         {
           ok: false,
@@ -153,15 +164,17 @@ export async function POST() {
           title: programBlueprint.title,
           goal: programBlueprint.goal,
           status: "active",
-          source: "rules_v1",
+          source: CURRENT_TRAINING_ENGINE_SOURCE,
           startDate: now,
           durationWeeks,
           startedAt: blockDates.startedAt,
           plannedReviewAt: blockDates.plannedReviewAt,
           onboardingSnapshotHash: snapshotHash,
-          revisionReason: currentActiveProgram
-            ? "onboarding_changed"
-            : "initial",
+          revisionReason: !currentActiveProgram
+            ? "initial"
+            : snapshotMatches
+              ? "engine_updated"
+              : "onboarding_changed",
           notes: programBlueprint.notes,
           workouts: {
             create: programBlueprint.workouts.map((workout, workoutIndex) => ({

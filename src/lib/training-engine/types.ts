@@ -31,9 +31,15 @@ export type EngineExercise = {
   slug: string;
   name: string;
   primaryMuscle?: string | null;
+  secondaryMuscles?: unknown;
+  category?: string | null;
   equipment?: string | null;
   difficulty?: string | null;
   movementPattern?: string | null;
+  environments?: unknown;
+  tags?: unknown;
+  alternatives?: unknown;
+  contraindications?: unknown;
 };
 
 export type GeneratedExercise = {

@@ -1,14 +1,15 @@
 import {
   getEnvironmentLabel,
   getGoalLabel,
-  getPrescription,
   getProgramDisclaimer,
   getSplitDefinition,
 } from "./training-rules";
+import {
+  selectExerciseForSlot,
+  type ExerciseSlot,
+} from "./exercise-selector";
 import type {
   EngineExercise,
-  ExerciseRole,
-  GeneratedExercise,
   GeneratedProgram,
   GeneratedWorkout,
   NormalizedTrainingProfile,
@@ -18,559 +19,512 @@ function clampWorkoutCount(daysPerWeek: number) {
   return Math.max(2, Math.min(daysPerWeek || 3, 6));
 }
 
-function hasAny(
-  source: string[],
-  values: string[]
+function slot(
+  input: ExerciseSlot
 ) {
-  return values.some((value) => source.includes(value));
+  return input;
 }
 
-function withAvailableFirst(candidates: string[], available: Set<string>) {
-  const unique = [...new Set(candidates)];
-  const availableFirst = unique.filter((candidate) => available.has(candidate));
-  const unavailable = unique.filter((candidate) => !available.has(candidate));
-  return [...availableFirst, ...unavailable];
-}
-
-function makeExercise(
-  available: Set<string>,
-  profile: NormalizedTrainingProfile,
-  role: ExerciseRole,
-  slugCandidates: string[],
-  nameFallback: string,
-  notes: string
-): GeneratedExercise {
-  const prescription = getPrescription(profile, role);
-
-  return {
-    slugCandidates: withAvailableFirst(slugCandidates, available),
-    nameFallback,
-    sets: prescription.sets,
-    reps: prescription.reps,
-    restSeconds: prescription.restSeconds,
-    intensity: prescription.intensity,
-    notes,
-  };
-}
-
-function getEnvironmentFlags(profile: NormalizedTrainingProfile) {
-  return {
-    home: profile.environment === "home",
-    gym: profile.environment === "gym",
-    outdoor: profile.environment === "outdoor",
-    mixed: profile.environment === "mixed",
-    hasDumbbells: hasAny(profile.equipmentPreference, ["dumbbells"]),
-    hasBands: hasAny(profile.equipmentPreference, ["bands"]),
-    hasMachines: hasAny(profile.equipmentPreference, ["machines", "cables"]),
-    hasBarbell: hasAny(profile.equipmentPreference, ["barbell"]),
-  };
-}
-
-function hasLimitation(profile: NormalizedTrainingProfile, limitation: string) {
-  return profile.limitations.includes(limitation);
-}
-
-function selectHorizontalPush(profile: NormalizedTrainingProfile, available: Set<string>) {
-  const flags = getEnvironmentFlags(profile);
-
-  if (flags.home && flags.hasDumbbells) {
-    return makeExercise(
-      available,
-      profile,
-      "compound",
-      ["push-up", "incline-dumbbell-press"],
-      "Push-up",
-      "Spinta orizzontale principale con esecuzione controllata."
-    );
-  }
-
-  return makeExercise(
-    available,
-    profile,
-    profile.goal === "strength" && flags.hasBarbell ? "heavy_compound" : "compound",
-    flags.gym
-      ? ["chest-press-macchina", "bench-press", "incline-dumbbell-press"]
-      : ["push-up", "incline-dumbbell-press", "chest-press-macchina"],
-    flags.gym ? "Chest press macchina" : "Push-up",
-    "Spinta orizzontale principale della seduta."
-  );
-}
-
-function selectInclinePush(profile: NormalizedTrainingProfile, available: Set<string>) {
-  const flags = getEnvironmentFlags(profile);
-
-  if (flags.home) {
-    return makeExercise(
-      available,
-      profile,
-      "compound",
-      ["push-up", "incline-dumbbell-press"],
-      "Push-up",
-      "Secondo pattern di spinta, senza lavoro overhead."
-    );
-  }
-
-  return makeExercise(
-    available,
-    profile,
-    "compound",
-    ["incline-dumbbell-press", "chest-press-macchina", "bench-press"],
-    "Incline dumbbell press",
-    "Spinta complementare con enfasi su petto alto e controllo."
-  );
-}
-
-function selectVerticalOrWidePull(
-  profile: NormalizedTrainingProfile,
-  available: Set<string>
-) {
-  const flags = getEnvironmentFlags(profile);
-
-  if (flags.home && flags.hasDumbbells) {
-    return makeExercise(
-      available,
-      profile,
-      "compound",
-      ["rematore-con-manubrio", "bird-dog"],
-      "Rematore con manubrio",
-      "Trazione principale scelta in base all'attrezzatura disponibile."
-    );
-  }
-
-  return makeExercise(
-    available,
-    profile,
-    "compound",
-    flags.gym
-      ? ["lat-machine-avanti", "assisted-pull-up", "pulldown-a-braccia-tese"]
-      : ["rematore-con-manubrio", "lat-machine-avanti"],
-    flags.gym ? "Lat machine avanti" : "Rematore con manubrio",
-    "Trazione dominante verticale o ampia per dorsali e parte alta della schiena."
-  );
-}
-
-function selectHorizontalPull(
-  profile: NormalizedTrainingProfile,
-  available: Set<string>
-) {
-  const flags = getEnvironmentFlags(profile);
-  const backSensitive = hasLimitation(profile, "back");
-
-  if (flags.gym && !backSensitive) {
-    return makeExercise(
-      available,
-      profile,
-      "compound",
-      ["seated-cable-row", "rematore-con-manubrio", "lat-machine-avanti"],
-      "Seated cable row",
-      "Trazione orizzontale per spessore dorsale e controllo scapolare."
-    );
-  }
-
-  if (flags.home && flags.hasDumbbells && !backSensitive) {
-    return makeExercise(
-      available,
-      profile,
-      "compound",
-      ["rematore-con-manubrio", "bird-dog"],
-      "Rematore con manubrio",
-      "Trazione orizzontale stabile, evita compensi lombari."
-    );
-  }
-
-  return makeExercise(
-    available,
-    profile,
-    "accessory",
-    ["bird-dog", "face-pull", "seated-cable-row"],
-    "Bird dog",
-    "Fallback prudente quando la schiena richiede piu controllo."
-  );
-}
-
-function selectShoulderWork(profile: NormalizedTrainingProfile, available: Set<string>) {
-  if (hasLimitation(profile, "shoulder")) {
-    return makeExercise(
-      available,
-      profile,
-      "accessory",
-      ["face-pull", "mobility-spalle"],
-      "Face pull",
-      "Lavoro spalle conservativo: evita shoulder press e alzate laterali come scelta principale."
-    );
-  }
-
-  const flags = getEnvironmentFlags(profile);
-
-  return makeExercise(
-    available,
-    profile,
-    "accessory",
-    flags.gym
-      ? ["alzate-laterali", "face-pull", "shoulder-press-macchina"]
-      : ["alzate-laterali", "face-pull"],
-    "Alzate laterali",
-    "Complementare deltoidi con controllo e ROM gestibile."
-  );
-}
-
-function selectBiceps(profile: NormalizedTrainingProfile, available: Set<string>) {
-  return makeExercise(
-    available,
-    profile,
-    "isolation",
-    ["curl-manubri"],
-    "Curl manubri",
-    "Isolamento bicipiti, cedimento non sistematico."
-  );
-}
-
-function selectTriceps(profile: NormalizedTrainingProfile, available: Set<string>) {
-  const flags = getEnvironmentFlags(profile);
-
-  return makeExercise(
-    available,
-    profile,
-    "isolation",
-    flags.gym ? ["triceps-pushdown", "push-up"] : ["push-up"],
-    flags.gym ? "Triceps pushdown" : "Push-up stretto",
-    "Isolamento o finisher tricipiti, senza inseguire il cedimento in ogni seduta."
-  );
-}
-
-function selectQuad(profile: NormalizedTrainingProfile, available: Set<string>) {
-  const flags = getEnvironmentFlags(profile);
-
-  if (hasLimitation(profile, "knee")) {
-    return makeExercise(
-      available,
-      profile,
-      "compound",
-      flags.gym
-        ? ["leg-press", "wall-sit", "glute-bridge"]
-        : ["wall-sit", "glute-bridge", "squat-corpo-libero"],
-      flags.gym ? "Leg press" : "Wall sit",
-      "Scelta prudente per ginocchia: niente affondi o jumping jack come esercizio principale."
-    );
-  }
-
-  if (flags.home && flags.hasDumbbells) {
-    return makeExercise(
-      available,
-      profile,
-      profile.goal === "strength" ? "heavy_compound" : "compound",
-      ["goblet-squat", "squat-corpo-libero"],
-      "Goblet squat",
-      "Pattern dominante di squat per quadricipiti e glutei."
-    );
-  }
-
-  return makeExercise(
-    available,
-    profile,
-    flags.gym && profile.goal === "strength" ? "heavy_compound" : "compound",
-    flags.gym
-      ? ["leg-press", "goblet-squat", "squat-corpo-libero"]
-      : ["squat-corpo-libero", "goblet-squat"],
-    flags.gym ? "Leg press" : "Squat corpo libero",
-    "Pattern dominante di squat per quadricipiti e glutei."
-  );
-}
-
-function selectPosteriorChain(
-  profile: NormalizedTrainingProfile,
-  available: Set<string>,
-  primary = false
-) {
-  const flags = getEnvironmentFlags(profile);
-  const backSensitive = hasLimitation(profile, "back");
-
-  if (backSensitive) {
-    return makeExercise(
-      available,
-      profile,
-      primary ? "compound" : "accessory",
-      flags.gym
-        ? ["leg-curl-macchina", "glute-bridge", "hip-thrust"]
-        : ["glute-bridge", "dead-bug"],
-      flags.gym ? "Leg curl macchina" : "Glute bridge",
-      "Scelta prudente per schiena: evita Romanian deadlift come scelta principale."
-    );
-  }
-
-  if (flags.gym) {
-    return makeExercise(
-      available,
-      profile,
-      primary ? "heavy_compound" : "compound",
-      ["hip-thrust", "romanian-deadlift-con-manubri", "leg-curl-macchina"],
-      "Hip thrust",
-      "Focus su glutei e femorali con catena posteriore stabile."
-    );
-  }
-
-  return makeExercise(
-    available,
-    profile,
-    primary ? "compound" : "accessory",
-    flags.hasDumbbells
-      ? ["romanian-deadlift-con-manubri", "glute-bridge"]
-      : ["glute-bridge", "dead-bug"],
-    flags.hasDumbbells ? "Romanian deadlift con manubri" : "Glute bridge",
-    "Lavoro catena posteriore con attenzione al controllo lombare."
-  );
-}
-
-function selectSingleLeg(profile: NormalizedTrainingProfile, available: Set<string>) {
-  if (hasLimitation(profile, "knee")) {
-    return makeExercise(
-      available,
-      profile,
-      "accessory",
-      ["glute-bridge", "wall-sit"],
-      "Glute bridge",
-      "Fallback prudente: evita lavoro unilaterale aggressivo sulle ginocchia."
-    );
-  }
-
-  return makeExercise(
-    available,
-    profile,
-    "accessory",
-    ["split-squat-statico", "step-up", "affondi"],
-    "Split squat statico",
-    "Pattern unilaterale per stabilita e volume locale."
-  );
-}
-
-function selectCalves(profile: NormalizedTrainingProfile, available: Set<string>) {
-  return makeExercise(
-    available,
-    profile,
-    "isolation",
-    ["calf-raise"],
-    "Calf raise",
-    "Volume semplice per polpacci e caviglie."
-  );
-}
-
-function selectCore(profile: NormalizedTrainingProfile, available: Set<string>) {
-  if (hasLimitation(profile, "back")) {
-    return makeExercise(
-      available,
-      profile,
-      "core",
-      ["bird-dog", "dead-bug", "pallof-press"],
-      "Bird dog",
-      "Core anti-estensione/anti-rotazione con focus sul controllo."
-    );
-  }
-
-  return makeExercise(
-    available,
-    profile,
-    "core",
-    ["dead-bug", "pallof-press", "plank", "side-plank"],
-    "Dead bug",
-    "Core stabile per supportare la tecnica dei multiarticolari."
-  );
-}
-
-function selectCardio(profile: NormalizedTrainingProfile, available: Set<string>) {
-  const flags = getEnvironmentFlags(profile);
-
-  if (flags.gym) {
-    return makeExercise(
-      available,
-      profile,
-      "cardio",
-      ["bike-cyclette", "ellittica", "camminata-inclinata"],
-      "Bike cyclette",
-      "Cardio moderato a basso impatto per supportare il dispendio senza trasformare tutto in cardio."
-    );
-  }
-
-  if (flags.outdoor) {
-    return makeExercise(
-      available,
-      profile,
-      "cardio",
-      ["farmer-walk", "bike-cyclette"],
-      "Farmer walk",
-      "Cardio o carry leggero/moderato compatibile con ambiente outdoor."
-    );
-  }
-
-  return makeExercise(
-    available,
-    profile,
-    "cardio",
-    ["bike-cyclette", "farmer-walk"],
-    "Bike cyclette",
-    "Cardio moderato a basso impatto come complemento, non come asse principale del piano."
-  );
-}
-
-function buildUpperA(profile: NormalizedTrainingProfile, available: Set<string>) {
+function buildUpperA() {
   return {
     title: "Upper A",
     focus: "Petto, tirata orizzontale, deltoidi e braccia",
-    estimatedMinutes: profile.sessionMinutes ?? 60,
     notes:
       "Seduta upper con priorita a spinta orizzontale, tirata e complementari gestibili.",
-    exercises: [
-      selectHorizontalPush(profile, available),
-      selectHorizontalPull(profile, available),
-      selectVerticalOrWidePull(profile, available),
-      selectShoulderWork(profile, available),
-      selectBiceps(profile, available),
-      selectTriceps(profile, available),
+    slots: [
+      slot({
+        slotId: "upper_a_primary_push",
+        label: "Spinta principale petto",
+        role: "heavy_compound",
+        category: "strength",
+        targetMuscles: ["petto"],
+        secondaryMuscles: ["tricipiti", "spalle"],
+        movementPatterns: ["horizontal_push"],
+        preferredTags: ["compound", "machine", "dumbbell", "barbell"],
+        avoidTags: ["shoulder_caution"],
+        difficultyMax: "intermediate",
+        notes: "Spinta orizzontale principale con tecnica pulita e scapole stabili.",
+        fallbackSlugs: ["chest-press-macchina", "panca-piana-manubri", "bench-press"],
+      }),
+      slot({
+        slotId: "upper_a_row",
+        label: "Tirata orizzontale",
+        role: "compound",
+        category: "strength",
+        targetMuscles: ["dorsali"],
+        secondaryMuscles: ["deltoidi posteriori", "bicipiti"],
+        movementPatterns: ["horizontal_pull"],
+        preferredTags: ["compound", "machine", "cable", "dumbbell"],
+        avoidTags: ["back_caution"],
+        notes: "Tirata orizzontale per spessore dorsale e controllo scapolare.",
+        fallbackSlugs: ["seated-cable-row", "rematore-con-manubrio", "rematore-macchina"],
+      }),
+      slot({
+        slotId: "upper_a_secondary_push",
+        label: "Spinta secondaria petto",
+        role: "compound",
+        category: "strength",
+        targetMuscles: ["petto"],
+        secondaryMuscles: ["tricipiti", "spalle"],
+        movementPatterns: ["horizontal_push"],
+        preferredTags: ["compound", "hypertrophy", "dumbbell", "machine"],
+        avoidTags: ["shoulder_caution"],
+        notes: "Secondo pattern di spinta per volume petto senza caos.",
+        fallbackSlugs: ["incline-dumbbell-press", "chest-press-inclinata", "push-up-inclinati"],
+      }),
+      slot({
+        slotId: "upper_a_vertical_pull",
+        label: "Tirata verticale",
+        role: "compound",
+        category: "strength",
+        targetMuscles: ["dorsali"],
+        secondaryMuscles: ["bicipiti"],
+        movementPatterns: ["vertical_pull"],
+        preferredTags: ["compound", "machine", "cable", "bodyweight"],
+        notes: "Tirata verticale per gran dorsale e parte alta della schiena.",
+        fallbackSlugs: ["lat-machine-avanti", "neutral-grip-lat-pulldown", "assisted-pull-up"],
+      }),
+      slot({
+        slotId: "upper_a_shoulders",
+        label: "Deltoidi laterali o posteriori",
+        role: "accessory",
+        category: "strength",
+        targetMuscles: ["spalle", "deltoidi posteriori"],
+        movementPatterns: ["shoulder_abduction", "horizontal_pull"],
+        preferredTags: ["isolation", "hypertrophy", "shoulder_friendly", "cable", "machine", "dumbbell"],
+        avoidTags: ["shoulder_caution"],
+        notes: "Complementare deltoidi con ROM gestibile e controllo.",
+        fallbackSlugs: ["alzate-laterali", "face-pull", "reverse-fly-machine"],
+      }),
+      slot({
+        slotId: "upper_a_biceps",
+        label: "Bicipite",
+        role: "isolation",
+        category: "strength",
+        targetMuscles: ["bicipiti"],
+        movementPatterns: ["elbow_flexion"],
+        preferredTags: ["isolation", "hypertrophy", "dumbbell", "cable", "machine"],
+        notes: "Isolamento bicipiti senza inseguire il cedimento in ogni seduta.",
+        fallbackSlugs: ["curl-manubri", "curl-cavo", "preacher-curl-macchina"],
+      }),
+      slot({
+        slotId: "upper_a_triceps",
+        label: "Tricipite",
+        role: "isolation",
+        category: "strength",
+        targetMuscles: ["tricipiti"],
+        movementPatterns: ["elbow_extension", "horizontal_push"],
+        preferredTags: ["isolation", "hypertrophy", "cable", "machine"],
+        avoidTags: ["shoulder_caution"],
+        notes: "Complementare tricipiti con tecnica stabile.",
+        fallbackSlugs: ["triceps-pushdown", "pushdown-barra", "triceps-machine"],
+      }),
     ],
-  } satisfies GeneratedWorkout;
+  };
 }
 
-function buildUpperB(profile: NormalizedTrainingProfile, available: Set<string>) {
+function buildUpperB() {
   return {
     title: "Upper B",
-    focus: "Dorso, petto inclinato/macchina, deltoidi e braccia",
-    estimatedMinutes: profile.sessionMinutes ?? 60,
+    focus: "Dorso, petto alternativo, spalle e braccia",
     notes:
-      "Seduta upper con enfasi dorsale e secondo pattern di spinta per volume sostenibile.",
-    exercises: [
-      selectVerticalOrWidePull(profile, available),
-      selectInclinePush(profile, available),
-      selectHorizontalPull(profile, available),
-      selectShoulderWork(profile, available),
-      selectTriceps(profile, available),
-      selectBiceps(profile, available),
+      "Seduta upper con enfasi dorsale e spinta petto alternativa, senza duplicare in modo rigido Upper A.",
+    slots: [
+      slot({
+        slotId: "upper_b_primary_pull",
+        label: "Tirata verticale principale",
+        role: "heavy_compound",
+        category: "strength",
+        targetMuscles: ["dorsali"],
+        secondaryMuscles: ["bicipiti"],
+        movementPatterns: ["vertical_pull"],
+        preferredTags: ["compound", "machine", "bodyweight", "strength"],
+        notes: "Dominante dorsale verticale come asse principale della seduta.",
+        fallbackSlugs: ["lat-machine-avanti", "assisted-pull-up", "neutral-grip-lat-pulldown"],
+      }),
+      slot({
+        slotId: "upper_b_push",
+        label: "Spinta petto alternativa",
+        role: "compound",
+        category: "strength",
+        targetMuscles: ["petto"],
+        secondaryMuscles: ["tricipiti", "spalle"],
+        movementPatterns: ["horizontal_push"],
+        preferredTags: ["compound", "dumbbell", "machine", "hypertrophy"],
+        avoidTags: ["shoulder_caution"],
+        notes: "Spinta petto alternativa rispetto a Upper A.",
+        fallbackSlugs: ["incline-dumbbell-press", "chest-press-inclinata", "push-up"],
+      }),
+      slot({
+        slotId: "upper_b_row",
+        label: "Tirata orizzontale alternativa",
+        role: "compound",
+        category: "strength",
+        targetMuscles: ["dorsali"],
+        secondaryMuscles: ["deltoidi posteriori", "bicipiti"],
+        movementPatterns: ["horizontal_pull"],
+        preferredTags: ["compound", "cable", "machine", "dumbbell"],
+        avoidTags: ["back_caution"],
+        notes: "Seconda tirata per spessore dorsale senza ripetere sempre lo stesso rematore.",
+        fallbackSlugs: ["rematore-macchina", "seated-cable-row", "chest-supported-row"],
+      }),
+      slot({
+        slotId: "upper_b_shoulders",
+        label: "Spalle",
+        role: "accessory",
+        category: "strength",
+        targetMuscles: ["spalle", "deltoidi posteriori"],
+        movementPatterns: ["shoulder_abduction", "horizontal_pull", "vertical_push"],
+        preferredTags: ["shoulder_friendly", "machine", "dumbbell", "cable", "isolation"],
+        avoidTags: ["shoulder_caution"],
+        notes: "Lavoro spalle ordinato, non come esercizio tecnico dominante.",
+        fallbackSlugs: ["alzate-laterali-ai-cavi", "alzate-laterali", "face-pull"],
+      }),
+      slot({
+        slotId: "upper_b_biceps",
+        label: "Bicipite",
+        role: "isolation",
+        category: "strength",
+        targetMuscles: ["bicipiti"],
+        movementPatterns: ["elbow_flexion"],
+        preferredTags: ["isolation", "hypertrophy", "cable", "dumbbell", "machine"],
+        notes: "Richiamo bicipiti con variante diversa se disponibile.",
+        fallbackSlugs: ["curl-cavo", "curl-manubri", "hammer-curl"],
+      }),
+      slot({
+        slotId: "upper_b_triceps",
+        label: "Tricipite",
+        role: "isolation",
+        category: "strength",
+        targetMuscles: ["tricipiti"],
+        movementPatterns: ["elbow_extension", "horizontal_push"],
+        preferredTags: ["isolation", "hypertrophy", "cable", "machine"],
+        avoidTags: ["shoulder_caution"],
+        notes: "Richiamo tricipiti coerente e stabile.",
+        fallbackSlugs: ["pushdown-barra", "triceps-pushdown", "triceps-machine"],
+      }),
     ],
-  } satisfies GeneratedWorkout;
+  };
 }
 
-function buildLowerA(profile: NormalizedTrainingProfile, available: Set<string>) {
+function buildLowerA() {
   return {
     title: "Lower A",
     focus: "Quadricipiti, glutei, femorali, polpacci e core",
-    estimatedMinutes: profile.sessionMinutes ?? 60,
     notes:
       "Seduta lower con pattern di squat come asse principale e catena posteriore complementare.",
-    exercises: [
-      selectQuad(profile, available),
-      selectPosteriorChain(profile, available),
-      selectSingleLeg(profile, available),
-      selectCalves(profile, available),
-      selectCore(profile, available),
+    slots: [
+      slot({
+        slotId: "lower_a_quad_primary",
+        label: "Quadricipite principale",
+        role: "heavy_compound",
+        category: "strength",
+        targetMuscles: ["quadricipiti"],
+        secondaryMuscles: ["glutei"],
+        movementPatterns: ["squat", "knee_extension"],
+        preferredTags: ["compound", "machine", "dumbbell", "barbell", "beginner_friendly"],
+        avoidTags: ["knee_caution", "high_impact"],
+        notes: "Pattern dominante per quadricipiti, senza impatto inutile.",
+        fallbackSlugs: ["leg-press", "goblet-squat", "hack-squat"],
+      }),
+      slot({
+        slotId: "lower_a_hip_extension",
+        label: "Hip extension glutei",
+        role: "compound",
+        category: "strength",
+        targetMuscles: ["glutei"],
+        secondaryMuscles: ["femorali"],
+        movementPatterns: ["hip_extension", "hinge"],
+        preferredTags: ["compound", "machine", "dumbbell", "barbell", "hypertrophy"],
+        avoidTags: ["back_caution"],
+        notes: "Focus glutei con variante gestibile e stabile.",
+        fallbackSlugs: ["hip-thrust", "glute-bridge", "back-extension-glute-focus"],
+      }),
+      slot({
+        slotId: "lower_a_hamstrings",
+        label: "Femorale",
+        role: "accessory",
+        category: "strength",
+        targetMuscles: ["femorali"],
+        movementPatterns: ["knee_flexion", "hinge", "hip_extension"],
+        preferredTags: ["machine", "dumbbell", "hypertrophy", "beginner_friendly"],
+        avoidTags: ["back_caution"],
+        notes: "Richiamo femorali per completare il lower quad-dominant.",
+        fallbackSlugs: ["leg-curl-macchina", "romanian-deadlift-con-manubri", "leg-curl-fitball"],
+      }),
+      slot({
+        slotId: "lower_a_calves",
+        label: "Polpacci",
+        role: "isolation",
+        category: "strength",
+        targetMuscles: ["polpacci"],
+        movementPatterns: ["knee_extension", "mobility"],
+        preferredTags: ["isolation", "beginner_friendly"],
+        notes: "Volume semplice per polpacci e caviglie.",
+        fallbackSlugs: ["calf-raise", "seated-calf-raise", "mobility-caviglie"],
+      }),
+      slot({
+        slotId: "lower_a_core",
+        label: "Core",
+        role: "core",
+        category: "core",
+        allowedCategories: ["core"],
+        targetMuscles: ["core", "addome", "obliqui"],
+        movementPatterns: ["core_anti_extension", "core_anti_rotation"],
+        preferredTags: ["core_anti_rotation", "stability", "low_impact"],
+        notes: "Core anti-estensione o anti-rotazione con focus sul controllo.",
+        fallbackSlugs: ["dead-bug", "pallof-press", "plank"],
+      }),
     ],
-  } satisfies GeneratedWorkout;
+  };
 }
 
-function buildLowerB(profile: NormalizedTrainingProfile, available: Set<string>) {
+function buildLowerB() {
   return {
     title: "Lower B",
     focus: "Posterior chain, gambe e core",
-    estimatedMinutes: profile.sessionMinutes ?? 60,
     notes:
       "Seduta lower con focus su glutei/femorali e richiamo quadricipiti senza impatto inutile.",
-    exercises: [
-      selectPosteriorChain(profile, available, true),
-      selectQuad(profile, available),
-      selectSingleLeg(profile, available),
-      selectCalves(profile, available),
-      selectCore(profile, available),
+    slots: [
+      slot({
+        slotId: "lower_b_hinge_primary",
+        label: "Posterior chain principale",
+        role: "heavy_compound",
+        category: "strength",
+        targetMuscles: ["glutei", "femorali", "erettori spinali"],
+        secondaryMuscles: ["quadricipiti"],
+        movementPatterns: ["hinge", "hip_extension"],
+        preferredTags: ["compound", "barbell", "dumbbell", "machine", "strength"],
+        avoidTags: ["back_caution"],
+        notes: "Asse posterior chain con variante prudente se la schiena lo richiede.",
+        fallbackSlugs: ["hip-thrust", "romanian-deadlift-con-manubri", "glute-bridge"],
+      }),
+      slot({
+        slotId: "lower_b_quad_secondary",
+        label: "Quadricipite secondario",
+        role: "compound",
+        category: "strength",
+        targetMuscles: ["quadricipiti"],
+        secondaryMuscles: ["glutei"],
+        movementPatterns: ["squat", "knee_extension", "lunge"],
+        preferredTags: ["compound", "machine", "dumbbell", "beginner_friendly"],
+        avoidTags: ["knee_caution", "high_impact"],
+        notes: "Richiamo quadricipiti con variante secondaria e ordinata.",
+        fallbackSlugs: ["hack-squat", "leg-extension", "goblet-squat"],
+      }),
+      slot({
+        slotId: "lower_b_glutes_hams",
+        label: "Glutei o femorali complementare",
+        role: "accessory",
+        category: "strength",
+        targetMuscles: ["glutei", "femorali"],
+        movementPatterns: ["hip_extension", "knee_flexion", "hinge"],
+        preferredTags: ["machine", "dumbbell", "hypertrophy", "unilateral"],
+        avoidTags: ["back_caution"],
+        notes: "Complementare catena posteriore senza duplicare il main lift.",
+        fallbackSlugs: ["leg-curl-macchina", "glute-bridge", "cable-kickback"],
+      }),
+      slot({
+        slotId: "lower_b_calves",
+        label: "Polpacci",
+        role: "isolation",
+        category: "strength",
+        targetMuscles: ["polpacci"],
+        movementPatterns: ["knee_extension", "mobility"],
+        preferredTags: ["isolation", "beginner_friendly"],
+        notes: "Volume semplice per polpacci e caviglie.",
+        fallbackSlugs: ["calf-raise", "seated-calf-raise", "mobility-caviglie"],
+      }),
+      slot({
+        slotId: "lower_b_core",
+        label: "Core",
+        role: "core",
+        category: "core",
+        allowedCategories: ["core"],
+        targetMuscles: ["core", "addome", "obliqui"],
+        movementPatterns: ["core_anti_rotation", "core_anti_extension", "carry"],
+        preferredTags: ["core_anti_rotation", "stability", "low_impact"],
+        notes: "Core stabile per supportare il lavoro lower.",
+        fallbackSlugs: ["pallof-press", "side-plank", "bird-dog"],
+      }),
     ],
-  } satisfies GeneratedWorkout;
+  };
 }
 
-function buildFullBodyA(profile: NormalizedTrainingProfile, available: Set<string>) {
+function buildFullBodyA() {
   return {
     title: "Full Body A",
     focus: "Squat, spinta, tirata e core",
-    estimatedMinutes: profile.sessionMinutes ?? 60,
     notes:
       "Seduta full body tecnica e completa, adatta a principianti o frequenze piu basse.",
-    exercises: [
-      selectQuad(profile, available),
-      selectHorizontalPush(profile, available),
-      selectHorizontalPull(profile, available),
-      selectPosteriorChain(profile, available),
-      selectCore(profile, available),
+    slots: [
+      buildLowerA().slots[0],
+      buildUpperA().slots[0],
+      buildUpperA().slots[1],
+      buildLowerA().slots[1],
+      buildLowerA().slots[4],
     ],
-  } satisfies GeneratedWorkout;
+  };
 }
 
-function buildFullBodyB(profile: NormalizedTrainingProfile, available: Set<string>) {
+function buildFullBodyB() {
   return {
     title: "Full Body B",
     focus: "Hinge, tirata, spinta complementare e core",
-    estimatedMinutes: profile.sessionMinutes ?? 60,
     notes:
       "Seconda seduta full body con enfasi su catena posteriore e variazione della parte alta.",
-    exercises: [
-      selectPosteriorChain(profile, available, true),
-      selectVerticalOrWidePull(profile, available),
-      selectInclinePush(profile, available),
-      selectSingleLeg(profile, available),
-      selectCore(profile, available),
+    slots: [
+      buildLowerB().slots[0],
+      buildUpperB().slots[0],
+      buildUpperB().slots[1],
+      slot({
+        slotId: "full_body_b_unilateral",
+        label: "Unilaterale prudente",
+        role: "accessory",
+        category: "strength",
+        targetMuscles: ["quadricipiti", "glutei"],
+        movementPatterns: ["lunge", "squat"],
+        preferredTags: ["unilateral", "dumbbell", "beginner_friendly"],
+        avoidTags: ["knee_caution", "high_impact"],
+        notes: "Pattern unilaterale solo se coerente con profilo e limitazioni.",
+        fallbackSlugs: ["split-squat-statico", "step-up", "goblet-squat"],
+      }),
+      buildLowerB().slots[4],
     ],
-  } satisfies GeneratedWorkout;
+  };
 }
 
-function buildFullBodyC(profile: NormalizedTrainingProfile, available: Set<string>) {
+function buildFullBodyC(profile: NormalizedTrainingProfile) {
+  const upperPullSlot =
+    profile.environment === "home" || profile.environment === "outdoor"
+      ? buildUpperA().slots[1]
+      : buildUpperB().slots[0];
+
   return {
     title: "Full Body C",
     focus: "Richiamo globale, deltoidi, braccia e condizionamento",
-    estimatedMinutes: profile.sessionMinutes ?? 60,
     notes:
       profile.goal === "fat_loss"
         ? "Seduta full body con finale cardio moderato, senza snaturare il lavoro di forza/ipertrofia."
         : "Terza seduta full body con volume sostenibile e richiamo tecnico.",
-    exercises: [
-      selectQuad(profile, available),
-      selectVerticalOrWidePull(profile, available),
-      selectShoulderWork(profile, available),
-      selectBiceps(profile, available),
+    slots: [
+      buildLowerA().slots[0],
+      upperPullSlot,
+      buildUpperA().slots[4],
+      buildUpperA().slots[5],
       profile.goal === "fat_loss" || profile.goal === "wellness"
-        ? selectCardio(profile, available)
-        : selectCore(profile, available),
+        ? slot({
+            slotId: "conditioning_finisher",
+            label: "Cardio leggero",
+            role: "cardio",
+            category: "cardio",
+            allowedCategories: ["cardio"],
+            targetMuscles: ["cardio", "quadricipiti", "glutei", "core"],
+            movementPatterns: ["cardio", "carry"],
+            preferredTags: ["low_impact", "conditioning", "cardio"],
+            avoidTags: ["high_impact"],
+            notes: "Complemento cardio low impact, non asse principale della scheda.",
+            fallbackSlugs: ["bike-cyclette", "ellittica", "camminata-inclinata"],
+          })
+        : buildLowerA().slots[4],
     ],
-  } satisfies GeneratedWorkout;
+  };
 }
 
 function buildWellnessWorkout(
   title: string,
   focus: string,
-  profile: NormalizedTrainingProfile,
-  available: Set<string>,
   includeCardio: boolean
 ) {
   return {
     title,
     focus,
-    estimatedMinutes: Math.min(profile.sessionMinutes ?? 60, 55),
     notes:
       "Seduta conservativa: tecnica pulita, recupero completo e intensita gestibile.",
-    exercises: [
-      selectQuad(profile, available),
-      selectHorizontalPush(profile, available),
-      selectHorizontalPull(profile, available),
-      selectCore(profile, available),
+    slots: [
+      slot({
+        slotId: `${title.toLowerCase().replaceAll(" ", "_")}_base_lower`,
+        label: "Lower base wellness",
+        role: "compound",
+        category: "strength",
+        targetMuscles: ["quadricipiti", "glutei"],
+        movementPatterns: ["squat", "hip_extension"],
+        preferredTags: ["beginner_friendly", "low_impact", "machine", "bodyweight"],
+        avoidTags: ["high_impact", "knee_caution"],
+        difficultyMax: "beginner",
+        notes: "Lavoro lower di base, low impact e gestibile.",
+        fallbackSlugs: ["goblet-squat", "leg-press", "glute-bridge"],
+      }),
+      slot({
+        slotId: `${title.toLowerCase().replaceAll(" ", "_")}_base_push`,
+        label: "Upper base wellness",
+        role: "compound",
+        category: "strength",
+        targetMuscles: ["petto", "spalle"],
+        movementPatterns: ["horizontal_push", "vertical_push"],
+        preferredTags: ["beginner_friendly", "machine", "bodyweight", "shoulder_friendly"],
+        avoidTags: ["shoulder_caution"],
+        difficultyMax: "beginner",
+        notes: "Spinta upper semplice e stabile.",
+        fallbackSlugs: ["chest-press-macchina", "push-up-inclinati", "panca-piana-manubri"],
+      }),
+      slot({
+        slotId: `${title.toLowerCase().replaceAll(" ", "_")}_base_pull`,
+        label: "Upper pull wellness",
+        role: "compound",
+        category: "strength",
+        targetMuscles: ["dorsali", "deltoidi posteriori"],
+        movementPatterns: ["horizontal_pull", "vertical_pull"],
+        preferredTags: ["beginner_friendly", "machine", "cable", "bodyweight"],
+        avoidTags: ["back_caution"],
+        difficultyMax: "beginner",
+        notes: "Tirata upper controllata e low impact.",
+        fallbackSlugs: ["seated-cable-row", "lat-machine-avanti", "face-pull"],
+      }),
+      slot({
+        slotId: `${title.toLowerCase().replaceAll(" ", "_")}_core`,
+        label: "Core wellness",
+        role: "core",
+        category: "core",
+        allowedCategories: ["core"],
+        targetMuscles: ["core", "addome", "obliqui"],
+        movementPatterns: ["core_anti_extension", "core_anti_rotation"],
+        preferredTags: ["low_impact", "stability"],
+        notes: "Core di base per controllo e postura.",
+        fallbackSlugs: ["dead-bug", "bird-dog", "pallof-press"],
+      }),
       includeCardio
-        ? selectCardio(profile, available)
-        : makeExercise(
-            available,
-            profile,
-            "mobility",
-            ["mobility-anche", "mobility-spalle"],
-            "Mobility anche",
-            "Chiusura su mobilita e respirazione."
-          ),
+        ? slot({
+            slotId: `${title.toLowerCase().replaceAll(" ", "_")}_cardio`,
+            label: "Cardio leggero wellness",
+            role: "cardio",
+            category: "cardio",
+            allowedCategories: ["cardio"],
+            targetMuscles: ["cardio", "quadricipiti", "glutei", "core"],
+            movementPatterns: ["cardio", "carry"],
+            preferredTags: ["low_impact", "conditioning", "cardio"],
+            avoidTags: ["high_impact"],
+            notes: "Finale cardio leggero e sostenibile.",
+            fallbackSlugs: ["bike-cyclette", "camminata-treadmill", "ellittica"],
+          })
+        : slot({
+            slotId: `${title.toLowerCase().replaceAll(" ", "_")}_mobility`,
+            label: "Mobilita wellness",
+            role: "mobility",
+            category: "mobility",
+            allowedCategories: ["mobility", "prehab"],
+            targetMuscles: ["anche", "spalle", "colonna toracica", "caviglie"],
+            movementPatterns: ["mobility"],
+            preferredTags: ["mobility", "prehab", "low_impact", "warmup"],
+            notes: "Chiusura su mobilita e respirazione.",
+            fallbackSlugs: ["mobility-anche", "mobility-spalle", "thoracic-rotation"],
+          }),
     ],
-  } satisfies GeneratedWorkout;
+  };
 }
 
 function buildWorkoutList(
-  profile: NormalizedTrainingProfile,
-  available: Set<string>
+  profile: NormalizedTrainingProfile
 ) {
   const split = getSplitDefinition(profile);
 
@@ -578,51 +532,24 @@ function buildWorkoutList(
     case "upper_lower_4":
     case "fat_loss_upper_lower_4":
     case "strength_upper_lower_4":
-      return [
-        buildUpperA(profile, available),
-        buildLowerA(profile, available),
-        buildUpperB(profile, available),
-        buildLowerB(profile, available),
-      ];
+      return [buildUpperA(), buildLowerA(), buildUpperB(), buildLowerB()];
     case "upper_lower_full":
-      return [
-        buildUpperA(profile, available),
-        buildLowerA(profile, available),
-        buildFullBodyB(profile, available),
-      ];
+      return [buildUpperA(), buildLowerA(), buildFullBodyB()];
     case "full_body_2":
     case "strength_full_body":
     case "fat_loss_full_body":
-      return [buildFullBodyA(profile, available), buildFullBodyB(profile, available)];
+      return [buildFullBodyA(), buildFullBodyB()];
     case "full_body_3":
-      return [
-        buildFullBodyA(profile, available),
-        buildFullBodyB(profile, available),
-        buildFullBodyC(profile, available),
-      ];
+      return [buildFullBodyA(), buildFullBodyB(), buildFullBodyC(profile)];
     case "wellness_full_body":
       return [
-        buildWellnessWorkout(
-          "Full Body A",
-          "Forza base e mobilita",
-          profile,
-          available,
-          false
-        ),
-        buildWellnessWorkout(
-          "Full Body B",
-          "Tecnica, core e controllo",
-          profile,
-          available,
-          true
-        ),
+        buildWellnessWorkout("Full Body A", "Forza base e mobilita", false),
+        buildWellnessWorkout("Full Body B", "Tecnica, core e controllo", true),
         ...(clampWorkoutCount(profile.daysPerWeek) >= 3
           ? [
               buildWellnessWorkout(
                 "Full Body C",
                 "Recupero attivo e tonicita",
-                profile,
-                available,
                 true
               ),
             ]
@@ -631,27 +558,27 @@ function buildWorkoutList(
     case "hybrid_5":
       return [
         {
-          ...buildUpperA(profile, available),
+          ...buildUpperA(),
           title: "Push",
           focus: "Petto, spalle, tricipiti",
         },
         {
-          ...buildUpperB(profile, available),
+          ...buildUpperB(),
           title: "Pull",
           focus: "Dorso, bicipiti, deltoidi posteriori",
         },
         {
-          ...buildLowerA(profile, available),
+          ...buildLowerA(),
           title: "Legs",
           focus: "Gambe complete e core",
         },
         {
-          ...buildUpperA(profile, available),
+          ...buildUpperA(),
           title: "Upper",
           focus: "Richiamo upper sostenibile",
         },
         {
-          ...buildLowerB(profile, available),
+          ...buildLowerB(),
           title: "Lower",
           focus: "Richiamo lower con posterior chain",
         },
@@ -659,42 +586,38 @@ function buildWorkoutList(
     case "ppl_6":
       return [
         {
-          ...buildUpperA(profile, available),
+          ...buildUpperA(),
           title: "Push A",
           focus: "Spinte e tricipiti",
         },
         {
-          ...buildUpperB(profile, available),
+          ...buildUpperB(),
           title: "Pull A",
           focus: "Tirate e bicipiti",
         },
         {
-          ...buildLowerA(profile, available),
+          ...buildLowerA(),
           title: "Legs A",
           focus: "Quad focus",
         },
         {
-          ...buildUpperA(profile, available),
+          ...buildUpperA(),
           title: "Push B",
           focus: "Spinte e deltoidi",
         },
         {
-          ...buildUpperB(profile, available),
+          ...buildUpperB(),
           title: "Pull B",
           focus: "Dorso e parte posteriore",
         },
         {
-          ...buildLowerB(profile, available),
+          ...buildLowerB(),
           title: "Legs B",
           focus: "Posterior chain focus",
         },
       ];
     default:
-      return [
-        buildFullBodyA(profile, available),
-        buildFullBodyB(profile, available),
-        buildFullBodyC(profile, available),
-      ];
+      return [buildFullBodyA(), buildFullBodyB(), buildFullBodyC(profile)];
   }
 }
 
@@ -706,11 +629,25 @@ export function generateRuleBasedProgram(
   profile: NormalizedTrainingProfile,
   exercises: EngineExercise[]
 ): GeneratedProgram {
-  const available = new Set(exercises.map((exercise) => exercise.slug));
   const split = getSplitDefinition(profile);
-  const workouts = buildWorkoutList(profile, available);
+  const context = {
+    selectedSlugs: new Set<string>(),
+    slotSelections: new Map<string, string>(),
+  };
+  const workouts = buildWorkoutList(profile).map((workout) => ({
+    title: workout.title,
+    focus: workout.focus,
+    estimatedMinutes:
+      profile.goal === "wellness"
+        ? Math.min(profile.sessionMinutes ?? 60, 55)
+        : profile.sessionMinutes ?? 60,
+    notes: workout.notes,
+    exercises: workout.slots.map((exerciseSlot) =>
+      selectExerciseForSlot(exerciseSlot, profile, exercises, context)
+    ),
+  })) satisfies GeneratedWorkout[];
   const notes = [
-    getProgramDisclaimer(profile),
+    getProgramDisclaimer(profile).replace("Training Engine v1", "Training Engine v2"),
     `Split scelta: ${split.label}.`,
     profile.limitations.length > 0
       ? `Limitazioni considerate: ${profile.limitations.join(", ")}.`
