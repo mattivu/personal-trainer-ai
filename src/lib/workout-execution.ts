@@ -253,6 +253,9 @@ export async function getWorkoutPageDataForUser(
         },
       },
       exercises: {
+        where: {
+          isActive: true,
+        },
         orderBy: {
           sortOrder: "asc",
         },

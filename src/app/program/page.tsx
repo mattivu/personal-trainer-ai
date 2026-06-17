@@ -304,6 +304,9 @@ export default async function ProgramPage(props: ProgramPageProps) {
               },
             },
             exercises: {
+              where: {
+                isActive: true,
+              },
               orderBy: {
                 sortOrder: "asc",
               },

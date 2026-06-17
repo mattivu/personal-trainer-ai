@@ -218,6 +218,9 @@ async function getActiveProgramSummary(userId: number) {
         },
         include: {
           exercises: {
+            where: {
+              isActive: true,
+            },
             orderBy: {
               sortOrder: "asc",
             },

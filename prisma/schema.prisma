@@ -158,27 +158,33 @@ model ProgramWorkout {
 }
 
 model ProgramExercise {
-  id           Int             @id @default(autoincrement())
-  workoutId    Int
-  exerciseId   Int?
-  name         String
-  sortOrder    Int             @default(0)
-  sets         Int?
-  reps         String?
-  restSeconds  Int?
-  tempo        String?
-  intensity    String?
-  notes        String?         @db.Text
-  alternatives Json?
-  createdAt    DateTime        @default(now())
-  updatedAt    DateTime        @updatedAt
+  id                         Int             @id @default(autoincrement())
+  workoutId                  Int
+  exerciseId                 Int?
+  name                       String
+  sortOrder                  Int             @default(0)
+  sets                       Int?
+  reps                       String?
+  restSeconds                Int?
+  tempo                      String?
+  intensity                  String?
+  notes                      String?         @db.Text
+  alternatives               Json?
+  isActive                   Boolean         @default(true)
+  replacedAt                 DateTime?
+  replacedByProgramExerciseId Int?
+  replacementReason          String?         @db.Text
+  createdAt                  DateTime        @default(now())
+  updatedAt                  DateTime        @updatedAt
 
-  workout      ProgramWorkout  @relation(fields: [workoutId], references: [id], onDelete: Cascade)
-  exercise     Exercise?       @relation(fields: [exerciseId], references: [id], onDelete: SetNull)
-  setLogs      WorkoutSetLog[]
+  workout                    ProgramWorkout  @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+  exercise                   Exercise?       @relation(fields: [exerciseId], references: [id], onDelete: SetNull)
+  setLogs                    WorkoutSetLog[]
 
   @@index([workoutId])
   @@index([exerciseId])
+  @@index([workoutId, isActive, sortOrder])
+  @@index([replacedByProgramExerciseId])
   @@map("program_exercises")
 }
 
