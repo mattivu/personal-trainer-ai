@@ -18,6 +18,12 @@ const navItems = [
       pathname === "/program" || pathname.startsWith("/workouts/"),
   },
   {
+    href: "/coach",
+    label: "Coach",
+    icon: "💬",
+    isActive: (pathname: string) => pathname.startsWith("/coach"),
+  },
+  {
     href: "/onboarding",
     label: "Obiettivo",
     icon: "🎯",
@@ -39,7 +45,7 @@ export function AppBottomNav() {
       aria-label="Navigazione principale app"
       className="fixed inset-x-0 bottom-0 z-50 border-t border-neutral-800 bg-neutral-950/95 backdrop-blur"
     >
-      <div className="mx-auto grid w-full max-w-4xl grid-cols-4 gap-2 px-4 py-3">
+      <div className="mx-auto grid w-full max-w-4xl grid-cols-5 gap-2 px-4 py-3">
         {navItems.map((item) => {
           const active = item.isActive(pathname);
 

@@ -4,7 +4,13 @@ import type { CoachContext } from "@/lib/ai/coach-context";
 export type CoachMode =
   | "program_overview"
   | "workout_guidance"
-  | "post_workout_review";
+  | "post_workout_review"
+  | "chat";
+
+export type CoachChatMessage = {
+  role: "user" | "assistant";
+  content: string;
+};
 
 export type CoachResult = {
   title: string;
@@ -30,6 +36,24 @@ Non suggerire di ignorare dolore, limitazioni o sintomi.
 Non consigliare cedimento sistematico sugli esercizi multiarticolari.
 Usa tono chiaro, concreto, motivante e non prolisso.
 Rispondi solo nel formato JSON richiesto.
+`.trim();
+
+export const COACH_CHAT_SYSTEM_PROMPT = `
+Sei un coach fitness digitale prudente per Personal Trainer AI.
+Parli in italiano con tono pratico, diretto e tecnico.
+Non sei un medico.
+Non diagnosticare e non sostituire professionisti sanitari.
+Usa solo i dati presenti nel contesto ricevuto e nella conversazione recente.
+Non inventare progressi, sedute, carichi, serie o trend non registrati.
+Se i dati non bastano, dichiaralo esplicitamente.
+Non modificare programma, esercizi, carichi, progressioni o dati utente.
+Non dire mai che hai modificato, aggiornato o applicato qualcosa.
+Se suggerisci una variazione, presentala come ipotesi conservativa non applicata.
+Non proporre cambi radicali al programma attivo.
+Quando utile, spiega in modo semplice RIR, carichi, reps, recuperi e logica della progressione.
+Se compaiono dolore, trauma, sintomi importanti o condizioni mediche, invita alla cautela e al confronto con un professionista qualificato.
+Non incoraggiare a ignorare dolore o sintomi.
+Rispondi in testo semplice, senza JSON.
 `.trim();
 
 export const COACH_RESPONSE_FORMAT = {
@@ -103,6 +127,12 @@ function getModeInstruction(mode: CoachMode) {
         "Evidenzia cosa è andato bene, cosa monitorare e se la progressione appare sensata.",
         "Concludi con un suggerimento pratico per la prossima volta, senza prescrivere modifiche drastiche o diagnosi.",
       ].join("\n");
+    case "chat":
+      return [
+        "Rispondi alla domanda dell'utente usando il contesto reale disponibile.",
+        "Mantieni la risposta concreta e leggibile su mobile.",
+        "Se la domanda riguarda una seduta o una progressione, agganciati ai dati contestuali pertinenti.",
+      ].join("\n");
   }
 }
 
@@ -114,6 +144,29 @@ export function buildCoachUserPrompt(mode: CoachMode, context: CoachContext) {
     "Il testo deve essere in italiano.",
     "Contesto strutturato:",
     JSON.stringify(context),
+  ].join("\n\n");
+}
+
+export function buildCoachChatPrompt(
+  context: CoachContext,
+  messages: CoachChatMessage[]
+) {
+  const transcript = messages
+    .map((message) => {
+      const speaker = message.role === "user" ? "Utente" : "Coach";
+      return `${speaker}: ${message.content}`;
+    })
+    .join("\n\n");
+
+  return [
+    "Modalita: chat",
+    getModeInstruction("chat"),
+    "Rispondi all'ultimo messaggio dell'utente in massimo 5 paragrafi brevi.",
+    "Se il contesto non basta per una conclusione affidabile, dichiaralo chiaramente.",
+    "Contesto strutturato:",
+    JSON.stringify(context),
+    "Conversazione recente:",
+    transcript,
   ].join("\n\n");
 }
 

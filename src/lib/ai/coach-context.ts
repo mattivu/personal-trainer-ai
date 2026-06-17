@@ -493,12 +493,19 @@ export async function buildCoachContext({
   let currentWorkout: CoachContext["currentWorkout"] = null;
   let reviewedWorkoutLog: CoachContext["reviewedWorkoutLog"] = null;
 
-  if (mode === "workout_guidance") {
+  if (mode === "workout_guidance" || mode === "chat") {
     if (workoutId === undefined) {
-      throw new CoachContextError(400, "workoutId obbligatorio per workout_guidance.");
+      if (mode === "workout_guidance") {
+        throw new CoachContextError(
+          400,
+          "workoutId obbligatorio per workout_guidance."
+        );
+      }
     }
 
-    currentWorkout = await getWorkoutGuidanceContext(userId, workoutId);
+    if (workoutId !== undefined) {
+      currentWorkout = await getWorkoutGuidanceContext(userId, workoutId);
+    }
   }
 
   if (mode === "post_workout_review") {

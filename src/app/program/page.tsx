@@ -512,11 +512,20 @@ export default async function ProgramPage(props: ProgramPageProps) {
             </section>
 
             <section className="space-y-3">
-              <div className="px-1">
-                <h3 className="text-xl font-semibold">Coach AI</h3>
-                <p className="mt-1 text-sm text-neutral-400">
-                  Analisi testuale del blocco attivo, senza modificare il programma.
-                </p>
+              <div className="flex flex-col gap-3 px-1 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                  <h3 className="text-xl font-semibold">Coach AI</h3>
+                  <p className="mt-1 text-sm text-neutral-400">
+                    Analisi testuale del blocco attivo, senza modificare il programma.
+                  </p>
+                </div>
+
+                <Link
+                  href="/coach"
+                  className="inline-flex justify-center rounded-xl border border-neutral-700 px-4 py-2.5 text-sm font-semibold text-neutral-100"
+                >
+                  Apri chat coach
+                </Link>
               </div>
 
               <AiCoachCard

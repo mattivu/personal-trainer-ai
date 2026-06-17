@@ -126,6 +126,14 @@ export default async function WorkoutPage(props: WorkoutPageProps) {
         </section>
 
         <section className="mt-6">
+          <div className="mb-3 flex justify-end">
+            <Link
+              href={`/coach?workoutId=${workoutData.workout.id}`}
+              className="inline-flex justify-center rounded-xl border border-neutral-700 px-4 py-2.5 text-sm font-semibold text-neutral-100"
+            >
+              Apri chat su questa seduta
+            </Link>
+          </div>
           <AiCoachCard
             mode="workout_guidance"
             workoutId={workoutData.workout.id}
