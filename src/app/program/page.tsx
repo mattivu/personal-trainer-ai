@@ -425,6 +425,12 @@ export default async function ProgramPage(props: ProgramPageProps) {
                     >
                       Revisione settimanale
                     </Link>
+                    <Link
+                      href="/block-review"
+                      className="inline-flex justify-center rounded-xl border border-neutral-700 px-4 py-2.5 text-sm font-semibold text-neutral-100"
+                    >
+                      Revisione blocco
+                    </Link>
                   </div>
                   <p className="mt-2 text-sm text-neutral-400">
                     {getTrainingEngineLabel(activeProgram.source)}
