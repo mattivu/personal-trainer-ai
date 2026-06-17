@@ -1,6 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import type { CoachAction } from "@/lib/ai/coach-action-types";
 
 type CoachChatProps = {
   currentWorkoutId?: number;
@@ -10,6 +12,7 @@ type CoachChatMessage = {
   id: string;
   role: "user" | "assistant";
   content: string;
+  actions?: CoachAction[];
 };
 
 type CoachChatApiResponse =
@@ -19,6 +22,7 @@ type CoachChatApiResponse =
         role: "assistant";
         content: string;
       };
+      actions: CoachAction[];
     }
   | {
       ok: false;
@@ -131,6 +135,7 @@ export function CoachChat({ currentWorkoutId }: CoachChatProps) {
           id: createMessageId(),
           role: "assistant",
           content: payload.message.content,
+          actions: payload.actions,
         },
       ]);
     } catch {
@@ -191,6 +196,36 @@ export function CoachChat({ currentWorkoutId }: CoachChatProps) {
                 {message.role === "user" ? "Tu" : "Coach"}
               </p>
               <p className="whitespace-pre-wrap">{message.content}</p>
+              {message.role === "assistant" && message.actions?.length ? (
+                <div className="mt-4 border-t border-neutral-800 pt-4">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-neutral-500">
+                    Azioni consigliate
+                  </p>
+                  <div className="mt-3 space-y-2">
+                    {message.actions.map((action) => (
+                      <Link
+                        key={action.id}
+                        href={action.href}
+                        className="block rounded-2xl border border-neutral-700 bg-neutral-900 px-4 py-3 text-left transition hover:border-neutral-500 hover:bg-neutral-800"
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-sm font-semibold text-white">
+                            {action.label}
+                          </span>
+                          <span className="text-[10px] uppercase tracking-[0.18em] text-neutral-500">
+                            {action.kind === "guided" ? "Guidata" : "Apri"}
+                          </span>
+                        </div>
+                        {action.description ? (
+                          <p className="mt-2 text-sm text-neutral-300">
+                            {action.description}
+                          </p>
+                        ) : null}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
             </div>
           </div>
         ))}

@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { APIError } from "openai";
+import { generateCoachActions } from "@/lib/ai/coach-actions";
 import { buildCoachContext, CoachContextError } from "@/lib/ai/coach-context";
+import type { CoachAction } from "@/lib/ai/coach-action-types";
 import {
   buildCoachChatPrompt,
   COACH_CHAT_SYSTEM_PROMPT,
@@ -21,6 +23,15 @@ const MAX_MESSAGE_LENGTH = 800;
 type RawBody = {
   messages?: unknown;
   currentWorkoutId?: unknown;
+};
+
+type CoachChatSuccessResponse = {
+  ok: true;
+  message: {
+    role: "assistant";
+    content: string;
+  };
+  actions: CoachAction[];
 };
 
 function isJsonSyntaxError(error: unknown) {
@@ -171,13 +182,27 @@ export async function POST(request: Request) {
       throw new Error("Risposta AI vuota.");
     }
 
-    return NextResponse.json({
+    const latestUserMessage = [...messages]
+      .reverse()
+      .find((message) => message.role === "user");
+    const actions = latestUserMessage
+      ? await generateCoachActions({
+          userId: user.id,
+          latestUserMessage: latestUserMessage.content,
+          context,
+        })
+      : [];
+
+    const payload: CoachChatSuccessResponse = {
       ok: true,
       message: {
         role: "assistant",
         content,
       },
-    });
+      actions,
+    };
+
+    return NextResponse.json(payload);
   } catch (error) {
     if (error instanceof AIConfigurationError) {
       return NextResponse.json(
