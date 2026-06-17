@@ -10,6 +10,8 @@ import {
 } from "@/lib/training-engine/program-block";
 import { getProgramWorkoutAvailabilityState } from "@/lib/workout-execution";
 import { CreateDemoProgramButton } from "./create-demo-program-button";
+import { ProgramNotesToggle } from "./program-notes-toggle";
+import { ProgramWorkoutCard } from "./program-workout-card";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +25,17 @@ function formatRest(restSeconds: number | null) {
   }
 
   return `${restSeconds} sec`;
+}
+
+function formatExercisePrescription(sets: number | null, reps: string | null) {
+  const setsLabel = sets ? `${sets}` : "Serie non indicate";
+  const repsLabel = reps ?? "reps non indicate";
+
+  if (!sets) {
+    return reps ? reps : "Dettagli non indicati";
+  }
+
+  return `${setsLabel} x ${repsLabel}`;
 }
 
 function getSingleSearchParam(
@@ -94,6 +107,16 @@ function getProgramDurationWeeks(program: {
   goal: string | null;
 }) {
   return program.durationWeeks ?? getFallbackDurationWeeks(program.goal);
+}
+
+function getNotePreview(note: string, maxLength = 160) {
+  const normalizedNote = note.replace(/\s+/g, " ").trim();
+
+  if (normalizedNote.length <= maxLength) {
+    return normalizedNote;
+  }
+
+  return `${normalizedNote.slice(0, maxLength).trimEnd()}...`;
 }
 
 function ProgramActions({
@@ -277,7 +300,7 @@ export default async function ProgramPage(props: ProgramPageProps) {
             ) : null}
 
             <section className="rounded-2xl border border-neutral-800 bg-neutral-900 p-6">
-              <div className="flex flex-col gap-6">
+              <div className="flex flex-col gap-5">
                 <div>
                   <p className="text-sm uppercase tracking-[0.2em] text-neutral-500">
                     Blocco attivo
@@ -286,21 +309,29 @@ export default async function ProgramPage(props: ProgramPageProps) {
                     {activeProgram.title}
                   </h2>
                   <p className="mt-2 text-sm text-neutral-400">
-                    Generato da: Training Engine v1
-                  </p>
-                  <p className="mt-1 text-xs text-neutral-500">
-                    Versione programma #{activeProgram.id}
+                    Generato da Training Engine v1
                   </p>
                 </div>
 
-                <div className="grid gap-4 text-sm text-neutral-300 sm:grid-cols-2">
+                <div className="grid gap-3 text-sm text-neutral-300 sm:grid-cols-2">
                   <div className="rounded-xl border border-neutral-800 bg-neutral-950 p-4">
-                    <p className="text-neutral-500">Durata</p>
+                    <p className="text-neutral-500">Nome programma</p>
+                    <p className="mt-1 font-semibold text-white">
+                      {activeProgram.title}
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-neutral-800 bg-neutral-950 p-4">
+                    <p className="text-neutral-500">Obiettivo</p>
+                    <p className="mt-1 font-semibold text-white">
+                      {activeProgram.goal ?? "Non indicato"}
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-neutral-800 bg-neutral-950 p-4">
+                    <p className="text-neutral-500">Durata blocco</p>
                     <p className="mt-1 font-semibold text-white">
                       {getProgramDurationWeeks(activeProgram)} settimane
                     </p>
                   </div>
-
                   <div className="rounded-xl border border-neutral-800 bg-neutral-950 p-4">
                     <p className="text-neutral-500">Settimana corrente</p>
                     <p className="mt-1 font-semibold text-white">
@@ -311,14 +342,12 @@ export default async function ProgramPage(props: ProgramPageProps) {
                       di {getProgramDurationWeeks(activeProgram)}
                     </p>
                   </div>
-
                   <div className="rounded-xl border border-neutral-800 bg-neutral-950 p-4">
                     <p className="text-neutral-500">Data inizio</p>
                     <p className="mt-1 font-semibold text-white">
                       {formatItalianDate(getProgramStartedAt(activeProgram))}
                     </p>
                   </div>
-
                   <div className="rounded-xl border border-neutral-800 bg-neutral-950 p-4">
                     <p className="text-neutral-500">Prossima revisione</p>
                     <p className="mt-1 font-semibold text-white">
@@ -336,168 +365,118 @@ export default async function ProgramPage(props: ProgramPageProps) {
                       )}
                     </p>
                   </div>
+                </div>
 
-                  <div className="rounded-xl border border-neutral-800 bg-neutral-950 p-4">
-                    <p className="text-neutral-500">Obiettivo</p>
-                    <p className="mt-1 font-semibold text-white">
-                      {activeProgram.goal ?? "Non indicato"}
-                    </p>
-                  </div>
+                <div className="rounded-xl border border-neutral-800 bg-neutral-950 p-4 text-sm text-neutral-300">
+                  <p className="font-medium text-white">Nota principale</p>
+                  <p className="mt-2">
+                    {activeProgram.notes
+                      ? getNotePreview(activeProgram.notes)
+                      : "Nessuna nota disponibile."}
+                  </p>
+                </div>
 
-                  <div className="rounded-xl border border-neutral-800 bg-neutral-950 p-4">
-                    <p className="text-neutral-500">Split / focus</p>
-                    <p className="mt-1 font-semibold text-white">
-                      {getProgramSplitSummary(activeProgram.workouts)}
-                    </p>
-                    <p className="mt-2 text-xs text-neutral-400">
-                      {getProgramFocusSummary(activeProgram.workouts)}
-                    </p>
-                  </div>
+                {activeProgram.notes &&
+                getNotePreview(activeProgram.notes) !==
+                  activeProgram.notes.replace(/\s+/g, " ").trim() ? (
+                  <ProgramNotesToggle fullText={activeProgram.notes} />
+                ) : null}
+
+                <div className="rounded-xl border border-neutral-800 bg-neutral-950 p-4 text-sm text-neutral-300">
+                  <p className="text-neutral-500">Split / focus</p>
+                  <p className="mt-1 font-semibold text-white">
+                    {getProgramSplitSummary(activeProgram.workouts)}
+                  </p>
+                  <p className="mt-2 text-xs text-neutral-400">
+                    {getProgramFocusSummary(activeProgram.workouts)}
+                  </p>
                 </div>
 
                 <ProgramActions
                   canCreateProgram={false}
                   createLabel={undefined}
                 />
-              </div>
 
-              <div className="mt-6 rounded-xl border border-neutral-800 bg-neutral-950 px-4 py-3 text-sm text-neutral-300">
-                <p className="font-semibold text-white">
-                  Note su progressione / RIR / cedimento / recuperi
-                </p>
-                <p className="mt-3 whitespace-pre-line">
-                  {activeProgram.notes ?? "Nessuna nota disponibile."}
+                <p className="text-xs text-neutral-500">
+                  Ultimo aggiornamento:{" "}
+                  {formatItalianDateTime(activeProgram.updatedAt)}
                 </p>
               </div>
-
-              <p className="mt-4 text-xs text-neutral-500">
-                Ultimo aggiornamento: {formatItalianDateTime(activeProgram.updatedAt)}
-              </p>
             </section>
 
-            <section className="rounded-2xl border border-neutral-800 bg-neutral-900 p-6">
-              <div className="mb-5">
-                <h3 className="text-xl font-semibold">Profilo corrente letto dal questionario</h3>
-                <p className="mt-2 text-sm text-neutral-400">
-                  Obiettivo: {activeProgram.goal ?? "Non indicato"} · Frequenza:{" "}
-                  {profile.daysPerWeek} giorni/settimana · Durata sessione:{" "}
-                  {profile.sessionMinutes ? `${profile.sessionMinutes} min` : "Non indicata"}
+            <section className="space-y-4">
+              <div className="px-1">
+                <h3 className="text-xl font-semibold">Sedute del blocco</h3>
+                <p className="mt-1 text-sm text-neutral-400">
+                  {profile.daysPerWeek} giorni/settimana ·{" "}
+                  {profile.sessionMinutes
+                    ? `${profile.sessionMinutes} min per sessione`
+                    : "Durata sessione non indicata"}
                 </p>
               </div>
 
-              <div className="space-y-6">
+              <div className="space-y-4">
                 {activeProgram.workouts.map((workout) => {
                   const latestWorkoutLog = workout.workoutLogs[0] ?? null;
                   const workoutAvailability =
                     getProgramWorkoutAvailabilityState(latestWorkoutLog);
+                  const statusLabel =
+                    workoutAvailability.state === "in_progress"
+                      ? "Allenamento in corso"
+                      : workoutAvailability.state === "completed_locked"
+                        ? "Seduta completata"
+                        : "Da completare";
+                  const ctaLabel =
+                    workoutAvailability.state === "in_progress"
+                      ? "Continua seduta"
+                      : workoutAvailability.state === "completed_locked"
+                        ? "Modifica dati"
+                        : "Inizia seduta";
+                  const availabilityLabel =
+                    workoutAvailability.state === "completed_locked"
+                      ? `Disponibile di nuovo da: ${formatItalianDateTime(
+                          workoutAvailability.nextAvailableAt
+                        )}`
+                      : null;
 
                   return (
-                    <section
+                    <ProgramWorkoutCard
                       key={workout.id}
-                      className="rounded-xl border border-neutral-800 bg-neutral-950 p-5"
-                    >
-                      <div className="mb-5">
-                        <p className="text-sm uppercase tracking-[0.2em] text-neutral-500">
-                          {workout.dayLabel ?? "Workout"}
-                        </p>
-                        <h4 className="mt-2 text-xl font-semibold">{workout.title}</h4>
-                        <p className="mt-2 text-sm text-neutral-400">
-                          Focus: {workout.focus ?? "Non indicato"} · Durata stimata:{" "}
-                          {workout.estimatedMinutes
-                            ? `${workout.estimatedMinutes} min`
-                            : "Non indicata"}
-                        </p>
-                        {workout.notes ? (
-                          <p className="mt-3 text-sm text-neutral-300">
-                            {workout.notes}
-                          </p>
-                        ) : null}
-
-                        <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                          <div className="space-y-2">
-                            {workoutAvailability.state === "in_progress" ? (
-                              <>
-                                <p className="text-sm font-semibold text-amber-200">
-                                  Allenamento in corso
-                                </p>
-                                <Link
-                                  href={`/workouts/${workout.id}`}
-                                  className="inline-flex justify-center rounded-xl bg-white px-4 py-2 font-semibold text-neutral-950"
-                                >
-                                  Continua seduta
-                                </Link>
-                              </>
-                            ) : workoutAvailability.state === "completed_locked" ? (
-                              <>
-                                <p className="text-sm font-semibold text-emerald-200">
-                                  Seduta completata
-                                </p>
-                                <p className="text-sm text-neutral-300">
-                                  Hai già completato questa seduta.
-                                </p>
-                                <Link
-                                  href={`/workouts/${workout.id}`}
-                                  className="inline-flex justify-center rounded-xl border border-neutral-700 px-4 py-2 font-semibold text-neutral-100"
-                                >
-                                  Modifica dati
-                                </Link>
-                                <p className="text-sm text-neutral-400">
-                                  Disponibile di nuovo da:{" "}
-                                  {formatItalianDateTime(
-                                    workoutAvailability.nextAvailableAt
-                                  )}
-                                </p>
-                              </>
-                            ) : (
-                              <Link
-                                href={`/workouts/${workout.id}`}
-                                className="inline-flex justify-center rounded-xl bg-white px-4 py-2 font-semibold text-neutral-950"
-                              >
-                                Inizia seduta
-                              </Link>
-                            )}
-                          </div>
-
-                          {latestWorkoutLog ? (
-                            <p className="text-sm text-neutral-400">
-                              Ultima seduta {formatItalianDate(latestWorkoutLog.performedAt)}
-                            </p>
-                          ) : null}
-                        </div>
-                      </div>
-
-                      <div className="space-y-4">
-                        {workout.exercises.map((exercise) => (
-                          <article
-                            key={exercise.id}
-                            className="rounded-xl border border-neutral-800 bg-neutral-900 p-4"
-                          >
-                            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                              <div>
-                                <h5 className="text-lg font-semibold">{exercise.name}</h5>
-                                <p className="mt-1 text-sm text-neutral-400">
-                                  Muscolo primario:{" "}
-                                  {exercise.exercise?.primaryMuscle ?? "Non indicato"}
-                                </p>
-                              </div>
-
-                              <div className="grid gap-1 text-sm text-neutral-300 sm:text-right">
-                                <p>Serie: {exercise.sets ?? "Non indicate"}</p>
-                                <p>Reps: {exercise.reps ?? "Non indicate"}</p>
-                                <p>Recupero: {formatRest(exercise.restSeconds)}</p>
-                              </div>
-                            </div>
-
-                            <div className="mt-3 space-y-2 text-sm text-neutral-300">
-                              <p>
-                                Intensita target: {exercise.intensity ?? "Non indicata"}
-                              </p>
-                              <p>Note: {exercise.notes ?? "Nessuna nota"}</p>
-                            </div>
-                          </article>
-                        ))}
-                      </div>
-                    </section>
+                      dayLabel={workout.dayLabel ?? "Workout"}
+                      title={workout.title}
+                      focus={
+                        workout.focus ??
+                        workout.notes ??
+                        "Focus non indicato"
+                      }
+                      statusLabel={statusLabel}
+                      ctaLabel={ctaLabel}
+                      ctaHref={`/workouts/${workout.id}`}
+                      ctaVariant={
+                        workoutAvailability.state === "completed_locked"
+                          ? "secondary"
+                          : "primary"
+                      }
+                      availabilityLabel={availabilityLabel}
+                      lastSessionLabel={
+                        latestWorkoutLog
+                          ? `Ultima seduta ${formatItalianDate(
+                              latestWorkoutLog.performedAt
+                            )}`
+                          : null
+                      }
+                      exercises={workout.exercises.map((exercise) => ({
+                        id: exercise.id,
+                        name: exercise.name,
+                        prescription: formatExercisePrescription(
+                          exercise.sets,
+                          exercise.reps
+                        ),
+                        rest: formatRest(exercise.restSeconds),
+                        intensity: exercise.intensity ?? "Non indicata",
+                        notes: exercise.notes,
+                      }))}
+                    />
                   );
                 })}
               </div>
