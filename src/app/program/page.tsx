@@ -230,7 +230,7 @@ function ProgramActions({
           disabled
           className="inline-flex cursor-not-allowed justify-center rounded-xl border border-neutral-800 bg-neutral-950 px-5 py-3 font-semibold text-neutral-500"
         >
-          Log allenamenti in arrivo
+          Tracciamento sedute in arrivo
         </button>
       )}
     </div>
@@ -418,6 +418,14 @@ export default async function ProgramPage(props: ProgramPageProps) {
                   <h2 className="mt-2 text-2xl font-semibold">
                     {activeProgram.title}
                   </h2>
+                  <div className="mt-4 flex flex-wrap gap-3">
+                    <Link
+                      href="/weekly-review"
+                      className="inline-flex justify-center rounded-xl border border-neutral-700 px-4 py-2.5 text-sm font-semibold text-neutral-100"
+                    >
+                      Revisione settimanale
+                    </Link>
+                  </div>
                   <p className="mt-2 text-sm text-neutral-400">
                     {getTrainingEngineLabel(activeProgram.source)}
                   </p>

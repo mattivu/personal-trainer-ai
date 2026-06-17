@@ -81,6 +81,24 @@ export default async function CoachPage(props: CoachPageProps) {
           </div>
         </div>
 
+        <section className="mb-5 rounded-2xl border border-neutral-800 bg-neutral-900 p-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-base font-semibold">Revisione settimanale</h2>
+              <p className="mt-1 text-sm text-neutral-400">
+                Un riepilogo prudente e rule-based su aderenza, fatica, progressi e criticita.
+              </p>
+            </div>
+
+            <Link
+              href="/weekly-review"
+              className="inline-flex justify-center rounded-xl border border-neutral-700 px-4 py-2.5 text-sm font-semibold text-neutral-100"
+            >
+              Apri revisione
+            </Link>
+          </div>
+        </section>
+
         <CoachChat currentWorkoutId={currentWorkoutId} />
       </section>
 

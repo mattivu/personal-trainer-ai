@@ -6,6 +6,7 @@ import {
   getLatestCompletedWorkoutForUser,
   getWorkoutStatusLabel,
 } from "@/lib/workout-history";
+import { getWeeklyReviewForUser } from "@/lib/weekly-review";
 import { LogoutButton } from "./logout-button";
 
 function formatItalianDateTime(date: Date) {
@@ -27,7 +28,10 @@ export default async function DashboardPage() {
     redirect("/onboarding");
   }
 
-  const latestCompletedWorkout = await getLatestCompletedWorkoutForUser(user.id);
+  const [latestCompletedWorkout, weeklyReview] = await Promise.all([
+    getLatestCompletedWorkoutForUser(user.id),
+    getWeeklyReviewForUser(user.id),
+  ]);
 
   return (
     <main className="min-h-screen bg-neutral-950 px-6 py-12 pb-28 text-white">
@@ -103,6 +107,30 @@ export default async function DashboardPage() {
                 className="inline-flex justify-center rounded-xl bg-white px-5 py-3 font-semibold text-neutral-950"
               >
                 Vai al programma
+              </Link>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-6 rounded-2xl border border-neutral-800 bg-neutral-900 p-6">
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm uppercase tracking-[0.2em] text-neutral-500">
+                Revisione settimanale
+              </p>
+              <h2 className="mt-2 text-xl font-semibold">{weeklyReview.status}</h2>
+              <p className="mt-3 text-neutral-400">{weeklyReview.adherenceSummary}</p>
+              <p className="mt-2 text-sm text-neutral-500">
+                Raccomandazione: {weeklyReview.recommendation}
+              </p>
+            </div>
+
+            <div className="flex shrink-0 flex-col gap-3 sm:flex-row">
+              <Link
+                href="/weekly-review"
+                className="inline-flex justify-center rounded-xl bg-white px-5 py-3 font-semibold text-neutral-950"
+              >
+                Apri revisione
               </Link>
             </div>
           </div>
