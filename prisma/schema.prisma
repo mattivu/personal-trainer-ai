@@ -39,6 +39,7 @@ model User {
   workoutLogs       WorkoutLog[]
   nutritionProfile  NutritionProfile?
   mealEntries       MealEntry[]
+  bodyWeightEntries BodyWeightEntry[]
 
   @@map("users")
 }
@@ -79,6 +80,22 @@ model MealEntry {
 
   @@index([userId, date])
   @@map("meal_entries")
+}
+
+model BodyWeightEntry {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  date      DateTime
+  weightKg  Float
+  notes     String?  @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@index([userId, date])
+  @@map("body_weight_entries")
 }
 
 model OnboardingAnswer {

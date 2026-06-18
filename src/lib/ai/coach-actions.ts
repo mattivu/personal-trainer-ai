@@ -239,6 +239,15 @@ export async function generateCoachActions({
     /\bmacro\b/,
     /\bnutrizion/,
   ]);
+  const asksForBodyWeight = matchesAny(normalizedMessage, [
+    /\bpeso\b/,
+    /\bpesat/,
+    /\btrend peso\b/,
+    /\bdimagr/,
+    /\baumento peso\b/,
+    /\bmassa\b/,
+    /\bbilancia\b/,
+  ]);
 
   if (asksForNutrition) {
     addAction(
@@ -249,6 +258,19 @@ export async function generateCoachActions({
         "/nutrition",
         "navigation",
         "Apri il riepilogo con target indicativo, diario pasti e calorie registrate."
+      )
+    );
+  }
+
+  if (asksForBodyWeight) {
+    addAction(
+      actions,
+      createAction(
+        "open-body-weight",
+        "Apri peso corporeo",
+        "/body-weight",
+        "navigation",
+        "Apri riepilogo, storico pesate e trend senza modificare target o programma."
       )
     );
   }

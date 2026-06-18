@@ -110,6 +110,15 @@ export default async function NutritionPage({ searchParams }: NutritionPageProps
           </Link>
         </div>
 
+        <div className="mb-6 flex flex-wrap gap-3">
+          <Link
+            href="/body-weight"
+            className="inline-flex justify-center rounded-xl border border-neutral-700 px-4 py-3 text-sm font-semibold text-neutral-100"
+          >
+            Apri peso corporeo
+          </Link>
+        </div>
+
         <div className="rounded-2xl border border-neutral-800 bg-neutral-900 p-6">
           <p className="text-sm uppercase tracking-[0.2em] text-neutral-500">
             Target giornaliero indicativo

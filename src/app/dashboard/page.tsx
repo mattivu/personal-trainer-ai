@@ -187,6 +187,30 @@ export default async function DashboardPage() {
         <div className="mt-6 rounded-2xl border border-neutral-800 bg-neutral-900 p-6">
           <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
             <div>
+              <h2 className="text-xl font-semibold">Peso corporeo</h2>
+              <p className="mt-3 text-neutral-400">
+                Registra le pesate, consulta lo storico recente e guarda il trend.
+              </p>
+              <p className="mt-2 text-sm text-neutral-500">
+                Il peso giornaliero puo oscillare: usa questa sezione per vedere
+                l'andamento nel tempo.
+              </p>
+            </div>
+
+            <div className="flex shrink-0 flex-col gap-3 sm:flex-row">
+              <Link
+                href="/body-weight"
+                className="inline-flex justify-center rounded-xl bg-white px-5 py-3 font-semibold text-neutral-950"
+              >
+                Apri peso corporeo
+              </Link>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-6 rounded-2xl border border-neutral-800 bg-neutral-900 p-6">
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+            <div>
               <h2 className="text-xl font-semibold">Coach AI</h2>
               <p className="mt-3 text-neutral-400">
                 Fai domande sul programma, sui progressi e sulla seduta del giorno
