@@ -8,6 +8,7 @@ import {
   buildTrainingStrategySummary,
   type TrainingStrategy,
 } from "./training-strategy";
+import { buildProgramBlueprintV2 } from "./program-builder-v2";
 import {
   selectExerciseForSlot,
   type ExerciseSlot,
@@ -644,7 +645,10 @@ export function generateRuleBasedProgram(
     selectedSlugs: new Set<string>(),
     slotSelections: new Map<string, string>(),
   };
-  const workouts = buildWorkoutList(profile).map((workout) => ({
+  const workoutBlueprints = options?.trainingStrategy
+    ? buildProgramBlueprintV2(options.trainingStrategy, profile)
+    : buildWorkoutList(profile);
+  const workouts = workoutBlueprints.map((workout) => ({
     title: workout.title,
     focus: workout.focus,
     estimatedMinutes:
@@ -664,6 +668,9 @@ export function generateRuleBasedProgram(
       : "Limitazioni considerate: nessuna segnalazione specifica.",
     options?.trainingStrategy
       ? buildTrainingStrategySummary(options.trainingStrategy)
+      : null,
+    options?.trainingStrategy
+      ? `Indicazione cardio: ${options.trainingStrategy.cardio.weeklySessions}x ${options.trainingStrategy.cardio.minutesPerSession} min ${options.trainingStrategy.cardio.intensity}, da collocare ${options.trainingStrategy.cardio.placement.replaceAll("_", " ")} senza creare ancora sedute cardio dedicate.`
       : null,
   ]
     .filter((note): note is string => Boolean(note))

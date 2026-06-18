@@ -6,17 +6,26 @@ import {
 import type {
   EngineExercise,
   ExerciseRole,
-  GeneratedExercise,
   NormalizedTrainingProfile,
 } from "./types";
+import type { GeneratedExercise } from "./types";
 
 type ExerciseDifficulty = "beginner" | "intermediate" | "advanced";
 type ExerciseCategory = "strength" | "core" | "mobility" | "prehab" | "cardio";
+type SlotPriority = "main" | "secondary" | "accessory" | "isolation" | "core";
+
+export type ExercisePrescriptionOverride = {
+  sets?: number;
+  reps?: string;
+  intensity?: string;
+  restSeconds?: number;
+};
 
 export type ExerciseSlot = {
   slotId: string;
   label: string;
   role: ExerciseRole;
+  priority?: SlotPriority;
   category: ExerciseCategory;
   targetMuscles: string[];
   secondaryMuscles?: string[];
@@ -25,6 +34,7 @@ export type ExerciseSlot = {
   avoidTags?: string[];
   allowedCategories?: ExerciseCategory[];
   difficultyMax?: ExerciseDifficulty;
+  prescriptionOverride?: ExercisePrescriptionOverride;
   notes: string;
   fallbackSlugs?: string[];
 };
@@ -563,7 +573,10 @@ export function selectExerciseForSlot(
       : bestUnique ?? bestOverall;
 
   if (!selected) {
-    const prescription = getPrescription(profile, slot.role);
+    const prescription = {
+      ...getPrescription(profile, slot.role),
+      ...slot.prescriptionOverride,
+    };
 
     return {
       slugCandidates: slot.fallbackSlugs ?? [],
@@ -588,7 +601,10 @@ export function selectExerciseForSlot(
   }
 
   const normalizedExercises = exercises.map(normalizeExercise);
-  const prescription = getPrescription(profile, slot.role);
+  const prescription = {
+    ...getPrescription(profile, slot.role),
+    ...slot.prescriptionOverride,
+  };
   const topCandidates = avoidDuplicateExercises(
     [primary, ...deduped.filter((candidate) => candidate.exercise.slug !== primary.exercise.slug)],
     context
