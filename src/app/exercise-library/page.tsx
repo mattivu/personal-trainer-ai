@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { AppBottomNav } from "@/components/app-bottom-nav";
 import {
   getExerciseLibrary,
@@ -229,6 +229,12 @@ function ExerciseCard({ exercise }: { exercise: ExerciseLibraryItem }) {
 }
 
 export default async function ExerciseLibraryPage(props: ExerciseLibraryPageProps) {
+  const internalToolsEnabled = process.env.INTERNAL_TOOLS_ENABLED === "true";
+
+  if (process.env.NODE_ENV === "production" && !internalToolsEnabled) {
+    notFound();
+  }
+
   const user = await getCurrentUser();
 
   if (!user) {

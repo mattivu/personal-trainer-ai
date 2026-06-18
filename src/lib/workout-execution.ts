@@ -34,6 +34,11 @@ export type WorkoutFormExercise = {
   exerciseId: number | null;
   name: string;
   primaryMuscle: string | null;
+  secondaryMuscles: string[];
+  equipment: string | null;
+  difficulty: string | null;
+  instructions: string | null;
+  needsTranslation: boolean;
   imageUrls: string[];
   sets: number | null;
   reps: string | null;
@@ -90,6 +95,20 @@ function normalizeImageUrls(value: unknown) {
   return Array.isArray(value)
     ? value.filter((item): item is string => typeof item === "string" && item.trim().length > 0)
     : [];
+}
+
+function normalizeStringArray(value: unknown) {
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === "string" && item.trim().length > 0)
+    : [];
+}
+
+function parseNeedsTranslation(value: unknown) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return false;
+  }
+
+  return (value as { needsTranslation?: unknown }).needsTranslation === true;
 }
 
 function buildPreviousLogCutoff(currentLog: { id: number; performedAt: Date } | null) {
@@ -270,7 +289,12 @@ export async function getWorkoutPageDataForUser(
           exercise: {
             select: {
               primaryMuscle: true,
+              secondaryMuscles: true,
+              equipment: true,
+              difficulty: true,
+              instructions: true,
               imageUrls: true,
+              sourceMetadata: true,
             },
           },
         },
@@ -366,6 +390,11 @@ export async function getWorkoutPageDataForUser(
         exerciseId: exercise.exerciseId ?? null,
         name: exercise.name,
         primaryMuscle: exercise.exercise?.primaryMuscle ?? null,
+        secondaryMuscles: normalizeStringArray(exercise.exercise?.secondaryMuscles),
+        equipment: exercise.exercise?.equipment ?? null,
+        difficulty: exercise.exercise?.difficulty ?? null,
+        instructions: exercise.exercise?.instructions ?? null,
+        needsTranslation: parseNeedsTranslation(exercise.exercise?.sourceMetadata),
         imageUrls: normalizeImageUrls(exercise.exercise?.imageUrls).slice(0, 2),
         sets: exercise.sets,
         reps: exercise.reps,

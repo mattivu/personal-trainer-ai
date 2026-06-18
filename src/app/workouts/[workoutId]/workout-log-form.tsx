@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { ExerciseInstructionsModal } from "@/components/exercises/exercise-instructions-modal";
 import type {
   WorkoutFormExercise,
   WorkoutFormLog,
@@ -39,6 +40,11 @@ type ExerciseState = {
   exerciseId: number | null;
   name: string;
   primaryMuscle: string | null;
+  secondaryMuscles: string[];
+  equipment: string | null;
+  difficulty: string | null;
+  instructions: string | null;
+  needsTranslation: boolean;
   imageUrls: string[];
   sets: number | null;
   reps: string | null;
@@ -170,6 +176,11 @@ function buildExerciseState(exercise: WorkoutFormExercise): ExerciseState {
     exerciseId: exercise.exerciseId,
     name: exercise.name,
     primaryMuscle: exercise.primaryMuscle,
+    secondaryMuscles: exercise.secondaryMuscles,
+    equipment: exercise.equipment,
+    difficulty: exercise.difficulty,
+    instructions: exercise.instructions,
+    needsTranslation: exercise.needsTranslation,
     imageUrls: exercise.imageUrls,
     sets: exercise.sets,
     reps: exercise.reps,
@@ -224,7 +235,7 @@ function formatDifficultyLabel(value: string | null) {
   }
 }
 
-function ExerciseImages({
+function ExercisePreviewImage({
   name,
   imageUrls,
 }: {
@@ -232,20 +243,17 @@ function ExerciseImages({
   imageUrls: string[];
 }) {
   if (imageUrls.length === 0) {
-    return <p className="mt-3 text-xs text-neutral-500">Immagini non disponibili</p>;
+    return null;
   }
 
   return (
-    <div className="mt-4 flex flex-wrap gap-2">
-      {imageUrls.slice(0, 2).map((imageUrl, index) => (
-        <img
-          key={`${name}-${imageUrl}`}
-          src={imageUrl}
-          alt={`${name} immagine ${index + 1}`}
-          className="h-20 w-20 rounded-xl border border-neutral-800 object-cover"
-          loading="lazy"
-        />
-      ))}
+    <div className="mt-4 max-w-sm overflow-hidden rounded-2xl border border-neutral-800 bg-neutral-950">
+      <img
+        src={imageUrls[0]}
+        alt={`Esecuzione esercizio: ${name}`}
+        className="h-44 w-full object-cover"
+        loading="lazy"
+      />
     </div>
   );
 }
@@ -549,6 +557,11 @@ export function WorkoutLogForm({
                 primaryMuscle:
                   payload.programExercise?.primaryMuscle ?? exercise.primaryMuscle,
                 notes: payload.programExercise?.notes ?? exercise.notes,
+                secondaryMuscles: [],
+                equipment: null,
+                difficulty: null,
+                instructions: null,
+                needsTranslation: false,
                 imageUrls: [],
                 setLogs: buildEmptySetLogs(exercise.setLogs.length),
                 previousPerformance: null,
@@ -768,7 +781,19 @@ export function WorkoutLogForm({
                   Muscolo principale: {exercise.primaryMuscle}
                 </p>
               ) : null}
-              <ExerciseImages name={exercise.name} imageUrls={exercise.imageUrls} />
+              <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-start">
+                <ExercisePreviewImage name={exercise.name} imageUrls={exercise.imageUrls} />
+                <ExerciseInstructionsModal
+                  name={exercise.name}
+                  imageUrls={exercise.imageUrls}
+                  instructions={exercise.instructions}
+                  primaryMuscle={exercise.primaryMuscle}
+                  secondaryMuscles={exercise.secondaryMuscles}
+                  equipment={exercise.equipment}
+                  difficulty={exercise.difficulty}
+                  needsTranslation={exercise.needsTranslation}
+                />
+              </div>
               <div className="mt-4 rounded-xl border border-neutral-800 bg-neutral-950 p-4">
                 <p className="text-sm font-semibold text-white">Dati registrati</p>
                 {exercise.todaySummary.length > 0 ? (
@@ -853,6 +878,16 @@ export function WorkoutLogForm({
                           </span>
                         </div>
                       </button>
+                      <ExerciseInstructionsModal
+                        name={exercise.name}
+                        imageUrls={exercise.imageUrls}
+                        instructions={exercise.instructions}
+                        primaryMuscle={exercise.primaryMuscle}
+                        secondaryMuscles={exercise.secondaryMuscles}
+                        equipment={exercise.equipment}
+                        difficulty={exercise.difficulty}
+                        needsTranslation={exercise.needsTranslation}
+                      />
                     </div>
                   ) : (
                     <>
@@ -864,7 +899,24 @@ export function WorkoutLogForm({
                               Muscolo principale: {exercise.primaryMuscle}
                             </p>
                           ) : null}
-                          <ExerciseImages name={exercise.name} imageUrls={exercise.imageUrls} />
+                          <div className="mt-4 flex flex-col gap-4">
+                            <ExercisePreviewImage
+                              name={exercise.name}
+                              imageUrls={exercise.imageUrls}
+                            />
+                            <div>
+                              <ExerciseInstructionsModal
+                                name={exercise.name}
+                                imageUrls={exercise.imageUrls}
+                                instructions={exercise.instructions}
+                                primaryMuscle={exercise.primaryMuscle}
+                                secondaryMuscles={exercise.secondaryMuscles}
+                                equipment={exercise.equipment}
+                                difficulty={exercise.difficulty}
+                                needsTranslation={exercise.needsTranslation}
+                              />
+                            </div>
+                          </div>
                           <p className="mt-3 text-sm text-neutral-200">
                             Obiettivo: {exercise.sets ?? "Serie non indicate"} serie x{" "}
                             {exercise.reps ?? "reps non indicate"}

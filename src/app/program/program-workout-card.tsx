@@ -106,23 +106,7 @@ export function ProgramWorkoutCard({
               key={exercise.id}
               className="rounded-xl border border-neutral-800 bg-neutral-950 p-4"
             >
-              <div className="flex flex-col gap-1">
-                <h4 className="text-sm font-semibold text-white">
-                  {exercise.name}
-                </h4>
-                <p className="text-sm text-neutral-300">
-                  {exercise.prescription}
-                </p>
-                <p className="text-sm text-neutral-400">
-                  Recupero: {exercise.rest}
-                </p>
-                <p className="text-sm text-neutral-400">
-                  Intensita: {exercise.intensity}
-                </p>
-                {exercise.notes ? (
-                  <p className="text-sm text-neutral-400">{exercise.notes}</p>
-                ) : null}
-              </div>
+              <h4 className="text-sm font-semibold text-white">{exercise.name}</h4>
             </article>
           ))}
         </div>
