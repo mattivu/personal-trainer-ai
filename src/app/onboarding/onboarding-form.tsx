@@ -9,15 +9,27 @@ import {
   validateOnboardingSafety,
 } from "@/lib/onboarding-safety";
 
+type AnswerValue = string | string[];
+type Answers = Record<string, AnswerValue>;
+type AnswersByStep = Record<string, Answers>;
+
+type Option = {
+  label: string;
+  value: string;
+};
+
 type BaseField = {
   name: string;
   label: string;
   placeholder?: string;
   required?: boolean;
+  helpText?: string;
   showWhen?: {
     field: string;
     value: string;
   };
+  initialValue?: AnswerValue;
+  fullWidth?: boolean;
 };
 
 type Field =
@@ -26,7 +38,13 @@ type Field =
     })
   | (BaseField & {
       type: "select";
-      options: string[];
+      options: Option[];
+    })
+  | (BaseField & {
+      type: "multiselect";
+      options: Option[];
+      maxSelections?: number;
+      exclusiveOption?: string;
     });
 
 type Step = {
@@ -36,14 +54,13 @@ type Step = {
   fields: Field[];
 };
 
-type Answers = Record<string, string>;
-type AnswersByStep = Record<string, Answers>;
 type ApiResponse = {
   ok: boolean;
   message?: string;
   error?: string;
   safety?: SafetyResult;
 };
+
 type OnboardingFormProps = {
   initialAnswersByStep?: Partial<AnswersByStep>;
   onboardingStatus: string;
@@ -80,6 +97,120 @@ const STATUS_RANK: Record<SafetyStatus, number> = {
   blocked: 3,
 };
 
+const option = (value: string, label = value): Option => ({
+  label,
+  value,
+});
+
+const GOAL_OPTIONS = [
+  option("Massa muscolare"),
+  option("Forza"),
+  option("Dimagrimento"),
+  option("Ricomposizione"),
+  option("Performance atletica"),
+  option("Salute/mantenimento"),
+  option("Mobilita/postura"),
+  option("Altro"),
+];
+
+const EXPERIENCE_OPTIONS = [
+  option("Principiante assoluto"),
+  option("Principiante con esperienza"),
+  option("Intermedio"),
+  option("Avanzato"),
+  option("Bodybuilder/utente esperto"),
+];
+
+const SPLIT_OPTIONS = [
+  option("Nessuna preferenza, decidi tu"),
+  option("Full body"),
+  option("Upper/lower"),
+  option("Push/pull/legs"),
+  option("Monofrequenza"),
+  option("Multifrequenza"),
+  option("Focus su gruppo carente"),
+  option("Non so"),
+];
+
+const FOCUS_OPTIONS = [
+  option("Petto"),
+  option("Petto alto"),
+  option("Dorso ampiezza"),
+  option("Dorso spessore"),
+  option("Spalle laterali"),
+  option("Deltoidi posteriori"),
+  option("Braccia"),
+  option("Quadricipiti"),
+  option("Femorali"),
+  option("Glutei"),
+  option("Polpacci"),
+  option("Core"),
+  option("Mobilita"),
+  option("Postura"),
+  option("Nessuno"),
+];
+
+const EQUIPMENT_OPTIONS = [
+  option("Corpo libero"),
+  option("Manubri"),
+  option("Bilanciere"),
+  option("Panca"),
+  option("Rack"),
+  option("Cavi"),
+  option("Macchine"),
+  option("Leg press"),
+  option("Lat machine"),
+  option("Pulley"),
+  option("Sbarra trazioni"),
+  option("Elastici"),
+  option("Kettlebell"),
+  option("TRX/anelli"),
+  option("Tapis roulant"),
+  option("Cyclette/bike"),
+  option("Vogatore"),
+  option("Stair climber"),
+  option("Box/CrossFit"),
+  option("Sled/slitta"),
+  option("Corda climbing"),
+  option("Attrezzatura strongman"),
+  option("Parete arrampicata/Boulder"),
+  option("Altro"),
+];
+
+const CARDIO_OPTIONS = [
+  option("Camminata"),
+  option("Corsa"),
+  option("Bike/Cyclette"),
+  option("Vogatore"),
+  option("Tapis roulant inclinato"),
+  option("Stair climber"),
+  option("HIIT"),
+  option("Circuiti"),
+  option("Sport"),
+];
+
+const ADVANCED_TECHNIQUE_OPTIONS = [
+  option("Non voglio tecniche avanzate"),
+  option("Ok tecniche semplici"),
+  option("Rest-pause"),
+  option("Drop set"),
+  option("Superserie"),
+  option("Myo-reps"),
+  option("Top set + back-off"),
+  option("Cluster"),
+  option("Tempo controllato"),
+  option("Stripping/metaboliche"),
+  option("Decidi tu"),
+];
+
+const NUTRITION_DIFFICULTY_OPTIONS = [
+  option("Weekend"),
+  option("Fame serale"),
+  option("Fuori casa"),
+  option("Dolci/snack"),
+  option("Poca proteina"),
+];
+
 const steps: Step[] = [
   {
     id: "dati-base",
@@ -91,7 +222,12 @@ const steps: Step[] = [
         label: "Sesso",
         type: "select",
         required: true,
-        options: ["Donna", "Uomo", "Altro", "Preferisco non indicarlo"],
+        options: [
+          option("Donna"),
+          option("Uomo"),
+          option("Altro"),
+          option("Preferisco non indicarlo"),
+        ],
       },
       {
         name: "dataNascita",
@@ -117,28 +253,35 @@ const steps: Step[] = [
   },
   {
     id: "obiettivo",
-    title: "Obiettivo e peso desiderato",
-    description: "Priorita, direzione e orizzonte temporale realistico.",
+    title: "Obiettivo principale",
+    description:
+      "Definiamo direzione, urgenza e aspettative realistiche del percorso.",
     fields: [
       {
-        name: "obiettivo",
-        label: "Obiettivo principale",
+        name: "obiettivoTraining",
+        label: "Obiettivo allenamento",
+        type: "select",
+        required: true,
+        options: GOAL_OPTIONS,
+        helpText: "Questa scelta guidera il futuro motore allenamento.",
+      },
+      {
+        name: "intensitaObiettivo",
+        label: "Approccio desiderato",
         type: "select",
         required: true,
         options: [
-          "Perdere peso",
-          "Mantenere peso e migliorare composizione",
-          "Aumentare massa muscolare",
-          "Aumentare forza",
-          "Migliorare benessere/energia",
-          "Non lo so",
+          option("Conservativo"),
+          option("Moderato"),
+          option("Aggressivo solo se sicuro"),
         ],
+        helpText: "Le indicazioni prudenziali restano prioritarie.",
       },
       {
         name: "pesoObiettivoPresente",
         label: "Hai un peso obiettivo?",
         type: "select",
-        options: ["Si", "No"],
+        options: [option("Si"), option("No")],
       },
       {
         name: "pesoObiettivoKg",
@@ -155,58 +298,96 @@ const steps: Step[] = [
         label: "Tempistica desiderata",
         type: "select",
         options: [
-          "Non ho fretta",
-          "1-2 mesi",
-          "3-6 mesi",
-          "6-12 mesi",
-          "Oltre 12 mesi",
+          option("Non ho fretta"),
+          option("1-2 mesi"),
+          option("3-6 mesi"),
+          option("6-12 mesi"),
+          option("Oltre 12 mesi"),
         ],
+      },
+      {
+        name: "risultatoDesiderato",
+        label: "Cosa vuoi ottenere in concreto",
+        type: "textarea",
+        placeholder:
+          "Esempio: piu massa su petto e spalle, piu forza nei fondamentali, perdere 6 kg...",
+        fullWidth: true,
       },
     ],
   },
   {
     id: "esperienza",
-    title: "Esperienza allenamento",
-    description: "Esperienza, continuita e familiarita con programmi strutturati.",
+    title: "Livello reale",
+    description:
+      "Serve per calibrare volume, esercizi, progressione e tecniche utilizzabili.",
     fields: [
       {
-        name: "esperienza",
-        label: "Livello",
+        name: "livelloEsperienza",
+        label: "Come ti descriveresti oggi",
         type: "select",
         required: true,
-        options: ["Principiante", "Intermedio", "Avanzato"],
+        options: EXPERIENCE_OPTIONS,
       },
       {
         name: "tempoEsperienza",
-        label: "Da quanto tempo ti alleni o ti sei allenato",
+        label: "Da quanto ti alleni",
         type: "select",
         options: [
-          "Mai o quasi mai",
-          "Meno di 6 mesi",
-          "6-12 mesi",
-          "1-3 anni",
-          "Oltre 3 anni",
-          "A periodi alterni",
+          option("Mai o quasi mai"),
+          option("Meno di 6 mesi"),
+          option("6-12 mesi"),
+          option("1-3 anni"),
+          option("Oltre 3 anni"),
+          option("A periodi alterni"),
         ],
       },
       {
         name: "schedaStrutturata",
-        label: "Hai mai seguito una scheda strutturata?",
+        label: "Hai mai seguito una programmazione strutturata?",
         type: "select",
-        options: ["Mai", "Si, per poco", "Si, per diversi mesi", "Si, spesso"],
+        options: [
+          option("Mai"),
+          option("Si, per poco"),
+          option("Si, per diversi mesi"),
+          option("Si, spesso"),
+        ],
+      },
+      {
+        name: "conosceRirRpe",
+        label: "Sai usare RIR o RPE?",
+        type: "select",
+        options: [
+          option("No"),
+          option("Ne ho sentito parlare"),
+          option("Si, abbastanza"),
+          option("Si, bene"),
+        ],
+      },
+      {
+        name: "conosceTecnicheAvanzate",
+        label: "Conosci tecniche avanzate come drop set o rest-pause?",
+        type: "select",
+        options: [
+          option("No"),
+          option("Solo di nome"),
+          option("Si, qualcuna"),
+          option("Si, le uso gia"),
+        ],
       },
       {
         name: "sportPassati",
         label: "Sport o attivita praticate in passato",
         type: "textarea",
         placeholder: "Calcio, corsa, nuoto, palestra, arti marziali...",
+        fullWidth: true,
       },
     ],
   },
   {
     id: "disponibilita",
-    title: "Disponibilita e routine",
-    description: "Quanto spazio reale puoi dedicare agli allenamenti.",
+    title: "Frequenza e recupero",
+    description:
+      "Questa parte aiuta a stimare frequenza sostenibile, recupero e giorni utili.",
     fields: [
       {
         name: "giorni",
@@ -217,512 +398,576 @@ const steps: Step[] = [
       },
       {
         name: "tempoAllenamento",
-        label: "Tempo realistico per allenamento",
+        label: "Durata media seduta",
         type: "select",
         options: [
-          "20-30 minuti",
-          "30-45 minuti",
-          "45-60 minuti",
-          "60-75 minuti",
-          "Oltre 75 minuti",
+          option("20-30 minuti"),
+          option("30-45 minuti"),
+          option("45-60 minuti"),
+          option("60-75 minuti"),
+          option("Oltre 75 minuti"),
         ],
       },
       {
-        name: "giorniDifficili",
-        label: "Giorni difficili per allenarsi",
-        type: "text",
-        placeholder: "Lunedi, weekend, turni variabili...",
+        name: "giorniConsecutiviPossibili",
+        label: "Quanti giorni consecutivi riesci a fare",
+        type: "select",
+        options: [
+          option("1"),
+          option("2"),
+          option("3"),
+          option("4 o piu"),
+          option("Variabile"),
+        ],
+      },
+      {
+        name: "preferenzaRiposo",
+        label: "Preferenza giorni di riposo",
+        type: "select",
+        options: [
+          option("Nessuna preferenza"),
+          option("Weekend liberi"),
+          option("Mettere pausa a meta settimana"),
+          option("Evitare troppi giorni consecutivi"),
+          option("Variabile"),
+        ],
       },
       {
         name: "orariPreferiti",
         label: "Orari preferiti",
         type: "select",
-        options: ["Mattina", "Pranzo", "Pomeriggio", "Sera", "Variabile"],
+        options: [
+          option("Mattina"),
+          option("Pranzo"),
+          option("Pomeriggio"),
+          option("Sera"),
+          option("Variabile"),
+        ],
       },
       {
         name: "routineRegolare",
         label: "Routine regolare",
         type: "select",
         options: [
-          "Molto regolare",
-          "Abbastanza",
-          "Poco regolare",
-          "Molto variabile",
+          option("Molto regolare"),
+          option("Abbastanza"),
+          option("Poco regolare"),
+          option("Molto variabile"),
         ],
+      },
+      {
+        name: "qualitaSonno",
+        label: "Qualita del sonno",
+        type: "select",
+        options: [
+          option("Scarsa"),
+          option("Sufficiente"),
+          option("Buona"),
+          option("Ottima"),
+          option("Variabile"),
+        ],
+      },
+      {
+        name: "stress",
+        label: "Livello stress",
+        type: "select",
+        options: [
+          option("Basso"),
+          option("Medio"),
+          option("Alto"),
+          option("Molto alto"),
+        ],
+      },
+      {
+        name: "recuperoAllenamenti",
+        label: "Recupero percepito",
+        type: "select",
+        options: [
+          option("Male"),
+          option("Abbastanza"),
+          option("Bene"),
+          option("Non lo so"),
+        ],
+      },
+    ],
+  },
+  {
+    id: "split-focus",
+    title: "Split e focus",
+    description:
+      "La preferenza non e una regola assoluta, ma un segnale utile per il futuro Training Engine v2.",
+    fields: [
+      {
+        name: "preferenzaSplit",
+        label: "Preferenza split",
+        type: "select",
+        required: true,
+        options: SPLIT_OPTIONS,
+        helpText: "Se la scelta non fosse coerente, il motore potra adattarla.",
+      },
+      {
+        name: "focusMuscolari",
+        label: "Focus prioritari",
+        type: "multiselect",
+        options: FOCUS_OPTIONS,
+        maxSelections: 3,
+        exclusiveOption: "Nessuno",
+        helpText: "Seleziona fino a 3 priorita.",
+        fullWidth: true,
+      },
+      {
+        name: "focusMuscolariNote",
+        label: "C'e qualcosa che vuoi migliorare in particolare?",
+        type: "textarea",
+        placeholder: "Esempio: petto alto, postura scapole, femorali, mobilita caviglie...",
+        fullWidth: true,
       },
     ],
   },
   {
     id: "luogo-attrezzatura",
     title: "Luogo e attrezzatura",
-    description: "Ambiente, strumenti disponibili e vincoli logistici.",
+    description:
+      "Indica in modo esplicito cosa hai davvero a disposizione per filtrare meglio gli esercizi.",
     fields: [
       {
         name: "luogo",
         label: "Luogo allenamento",
         type: "select",
         required: true,
-        options: ["Casa", "Palestra", "Outdoor", "Misto"],
+        options: [
+          option("Casa"),
+          option("Palestra"),
+          option("Outdoor"),
+          option("Misto"),
+        ],
       },
       {
-        name: "attrezzatura",
+        name: "attrezzaturaDettagliata",
         label: "Attrezzatura disponibile",
-        type: "textarea",
-        placeholder: "Manubri, elastici, bilanciere, tappetino, macchine...",
-      },
-      {
-        name: "accessoAttrezzatura",
-        label: "Accesso a macchine/pesi/manubri/elastici/corpo libero",
-        type: "textarea",
-        placeholder: "Esempio: macchine e pesi in palestra, elastici a casa...",
+        type: "multiselect",
+        options: EQUIPMENT_OPTIONS,
+        helpText: "Seleziona tutto quello che puoi usare con continuita.",
+        fullWidth: true,
       },
       {
         name: "limitiLogistici",
         label: "Note su spazio o limiti logistici",
         type: "textarea",
-        placeholder: "Poco spazio, vicini, no salti, attrezzi condivisi...",
+        placeholder: "Poco spazio, no rumore, no salti, attrezzi condivisi, tempi stretti...",
+        fullWidth: true,
       },
     ],
   },
   {
-    id: "attivita-quotidiana",
-    title: "Attivita quotidiana",
-    description: "Movimento e sedentarieta fuori dagli allenamenti.",
+    id: "cardio-conditioning",
+    title: "Cardio e conditioning",
+    description:
+      "Raccogliamo il minimo utile per capire volume cardio, impatto e preferenze pratiche.",
     fields: [
       {
-        name: "situazionePrincipale",
-        label: "Situazione principale",
+        name: "cardioAttuale",
+        label: "Quanto cardio fai oggi",
         type: "select",
         options: [
-          "Lavoro sedentario",
-          "Lavoro in piedi/attivo",
-          "Lavoro fisicamente pesante",
-          "Studente",
-          "Pensionato",
-          "Disoccupato/in pausa",
-          "Casalingo/casalinga",
-          "Genitore a tempo pieno",
-          "Altro",
+          option("Mai"),
+          option("Poco"),
+          option("1-2 volte"),
+          option("3+ volte"),
         ],
       },
       {
-        name: "oreSeduto",
-        label: "Ore seduto al giorno",
-        type: "select",
-        options: ["Meno di 3", "3-5", "6-8", "Piu di 8"],
+        name: "preferenzeCardio",
+        label: "Preferenze cardio",
+        type: "multiselect",
+        options: CARDIO_OPTIONS,
+        fullWidth: true,
       },
       {
-        name: "passiMedi",
-        label: "Passi medi giornalieri",
+        name: "attrezzaturaCardioDisponibile",
+        label: "Attrezzatura cardio disponibile",
+        type: "multiselect",
+        options: CARDIO_OPTIONS,
+        helpText: "Se non hai macchine, lascia solo cio che puoi fare davvero.",
+        fullWidth: true,
+      },
+      {
+        name: "passiGiornalieriIndicativi",
+        label: "Passi giornalieri indicativi",
         type: "select",
         options: [
-          "Non lo so",
-          "Meno di 3000",
-          "3000-6000",
-          "6000-10000",
-          "Piu di 10000",
+          option("Non lo so"),
+          option("Meno di 3000"),
+          option("3000-6000"),
+          option("6000-10000"),
+          option("Piu di 10000"),
         ],
       },
       {
-        name: "spostamenti",
-        label: "Spostamenti",
+        name: "preferenzaTimingCardio",
+        label: "Quando preferisci fare cardio",
         type: "select",
         options: [
-          "Auto/mezzi",
-          "Misto",
-          "Cammino spesso",
-          "Bici/spostamenti attivi",
+          option("Dopo i pesi"),
+          option("In giorni separati"),
+          option("Nessuna preferenza"),
+        ],
+      },
+      {
+        name: "tolleranzaCardio",
+        label: "Tolleranza intensita",
+        type: "select",
+        options: [
+          option("Basso impatto"),
+          option("Normale"),
+          option("Alta intensita"),
+        ],
+      },
+      {
+        name: "obiettivoCardio",
+        label: "Obiettivo cardio",
+        type: "select",
+        options: [
+          option("Salute"),
+          option("Dimagrimento"),
+          option("Fiato"),
+          option("Performance"),
+          option("Recupero"),
+          option("Non so"),
         ],
       },
     ],
   },
   {
-    id: "sonno-stress-energia",
-    title: "Sonno, stress ed energia",
-    description: "Fattori che influenzano recupero, costanza e carico sostenibile.",
+    id: "tecniche-avanzate",
+    title: "Tecniche avanzate",
+    description:
+      "Le useremo solo se coerenti con livello, obiettivo e recupero.",
     fields: [
       {
-        name: "oreSonno",
-        label: "Ore di sonno medie",
-        type: "select",
-        options: ["Meno di 5", "5-6", "6-7", "7-8", "Piu di 8"],
+        name: "tecnicheAvanzatePreferite",
+        label: "Preferenze su tecniche avanzate",
+        type: "multiselect",
+        options: ADVANCED_TECHNIQUE_OPTIONS,
+        exclusiveOption: "Non voglio tecniche avanzate",
+        fullWidth: true,
       },
       {
-        name: "qualitaSonno",
-        label: "Qualita del sonno",
+        name: "noteTecnicheAvanzate",
+        label: "Note tecniche opzionali",
+        type: "textarea",
+        placeholder: "Esempio: ok top set, no drop set su gambe, bene superserie corte...",
+        fullWidth: true,
+      },
+    ],
+  },
+  {
+    id: "preferenze-esercizi",
+    title: "Preferenze esercizi",
+    description:
+      "Qui raccogliamo segnali pratici su esercizi graditi, fastidi e priorita di esecuzione.",
+    fields: [
+      {
+        name: "tipoAllenamentoPreferito",
+        label: "Formato allenamento che ti piace di piu",
         type: "select",
-        options: ["Scarsa", "Sufficiente", "Buona", "Ottima", "Variabile"],
+        options: [
+          option("Pesi/macchine"),
+          option("Corpo libero"),
+          option("Cardio"),
+          option("Breve e intenso"),
+          option("Tranquillo"),
+          option("Mix"),
+          option("Non lo so"),
+        ],
       },
       {
-        name: "stanchezzaRisveglio",
-        label: "Ti svegli spesso stanco?",
-        type: "select",
-        options: ["Si spesso", "A volte", "Raramente", "No"],
+        name: "eserciziPreferiti",
+        label: "Esercizi preferiti",
+        type: "textarea",
+        placeholder: "Esempio: panca inclinata, rematore chest supported, hack squat...",
+        fullWidth: true,
       },
       {
-        name: "stress",
-        label: "Livello stress",
-        type: "select",
-        options: ["Basso", "Medio", "Alto", "Molto alto"],
+        name: "eserciziDaEvitare",
+        label: "Esercizi da evitare",
+        type: "textarea",
+        placeholder: "Esempio: stacco da terra classico, military press, jumping lunges...",
+        fullWidth: true,
       },
       {
-        name: "energiaMedia",
-        label: "Livello energia medio",
-        type: "select",
-        options: ["Basso", "Medio-basso", "Medio", "Alto", "Variabile"],
+        name: "eserciziCheDannoFastidio",
+        label: "Esercizi che danno fastidio",
+        type: "textarea",
+        placeholder: "Descrivi eventuali fastidi ricorrenti o pattern problematici.",
+        fullWidth: true,
       },
       {
-        name: "recuperoAllenamenti",
-        label: "Recupero tra allenamenti",
+        name: "macchinePreferite",
+        label: "Macchine preferite se ti alleni in palestra",
+        type: "textarea",
+        placeholder: "Leg press, chest press, lat machine, cavi, smith machine...",
+        fullWidth: true,
+      },
+      {
+        name: "prioritaSicurezzaVsIntensita",
+        label: "Priorita tra sicurezza tecnica e intensita",
         type: "select",
-        options: ["Male", "Abbastanza", "Bene", "Non lo so"],
+        options: [
+          option("Prima sicurezza e tecnica"),
+          option("Equilibrio tra le due"),
+          option("Spingere forte quando ha senso"),
+        ],
+      },
+      {
+        name: "attivitaPiacciono",
+        label: "Attivita o esercizi che ti motivano",
+        type: "textarea",
+        placeholder: "Sport, formati o sensazioni che ti fanno restare costante.",
+        fullWidth: true,
+      },
+      {
+        name: "attivitaNonPiacciono",
+        label: "Attivita o esercizi che non ti piacciono",
+        type: "textarea",
+        placeholder: "Quello che preferiresti evitare il piu possibile.",
+        fullWidth: true,
       },
     ],
   },
   {
     id: "alimentazione-attuale",
-    title: "Alimentazione attuale",
-    description: "Abitudini utili per future stime indicative di calorie e macro.",
+    title: "Nutrizione adattiva",
+    description:
+      "Non cambiamo il motore nutrizione ora, ma raccogliamo dati utili per adattarlo meglio in futuro.",
     fields: [
       {
-        name: "alimentazioneAttuale",
-        label: "Alimentazione attuale",
+        name: "obiettivoNutrizionale",
+        label: "Obiettivo nutrizionale coerente con l'allenamento",
         type: "select",
         options: [
-          "Molto disordinata",
-          "Abbastanza disordinata",
-          "Normale",
-          "Abbastanza curata",
-          "Molto curata",
+          option("Supportare massa muscolare"),
+          option("Supportare forza"),
+          option("Supportare dimagrimento"),
+          option("Supportare ricomposizione"),
+          option("Mangiare meglio senza rigidita"),
+          option("Non lo so"),
+        ],
+      },
+      {
+        name: "registrarePasti",
+        label: "Disponibilita a tracciare i pasti",
+        type: "select",
+        options: [
+          option("Non voglio"),
+          option("Solo ogni tanto"),
+          option("3-4 giorni a settimana"),
+          option("Tutti i giorni"),
+          option("Solo per periodo iniziale"),
+        ],
+      },
+      {
+        name: "preferenzaTracking",
+        label: "Preferenza tra precisione e semplicita",
+        type: "select",
+        options: [
+          option("Indicazioni molto semplici"),
+          option("Abbastanza preciso"),
+          option("Target preciso"),
         ],
       },
       {
         name: "pastiGiorno",
-        label: "Pasti al giorno",
-        type: "select",
-        options: ["1-2", "3", "4", "5 o piu", "Variabile"],
-      },
-      {
-        name: "colazione",
-        label: "Fai colazione?",
-        type: "select",
-        options: ["Sempre", "Spesso", "Raramente", "Mai"],
-      },
-      {
-        name: "fuoriCasa",
-        label: "Mangi spesso fuori casa?",
+        label: "Numero pasti abituali",
         type: "select",
         options: [
-          "Quasi mai",
-          "1-2 volte a settimana",
-          "3-5 volte a settimana",
-          "Quasi ogni giorno",
+          option("1-2"),
+          option("3"),
+          option("4"),
+          option("5 o piu"),
+          option("Variabile"),
         ],
       },
       {
-        name: "cibiPronti",
-        label: "Cibi pronti/delivery/fast food",
+        name: "fameAppetito",
+        label: "Fame/appetito",
+        type: "select",
+        options: [option("Basso"), option("Normale"), option("Alto")],
+      },
+      {
+        name: "difficoltaNutrizione",
+        label: "Dove fai piu fatica",
+        type: "multiselect",
+        options: NUTRITION_DIFFICULTY_OPTIONS,
+        fullWidth: true,
+      },
+      {
+        name: "disponibilitaAggiustamenti",
+        label: "Disponibilita ad aggiustamenti ogni 1-2 settimane",
         type: "select",
         options: [
-          "Quasi mai",
-          "1 volta a settimana",
-          "2-3 volte a settimana",
-          "Spesso",
+          option("Si"),
+          option("Solo se serve davvero"),
+          option("Preferisco cambiare poco"),
+        ],
+      },
+      {
+        name: "alimentazioneAttuale",
+        label: "Come valuti oggi la tua alimentazione",
+        type: "select",
+        options: [
+          option("Molto disordinata"),
+          option("Abbastanza disordinata"),
+          option("Normale"),
+          option("Abbastanza curata"),
+          option("Molto curata"),
         ],
       },
       {
         name: "proteinePasti",
         label: "Fonte proteica nei pasti principali",
         type: "select",
-        options: ["Quasi sempre", "A volte", "Raramente", "Non lo so"],
-      },
-      {
-        name: "fruttaVerdura",
-        label: "Porzioni frutta/verdura al giorno",
-        type: "select",
-        options: ["0-1", "2-3", "4-5", "Piu di 5"],
-      },
-      {
-        name: "andamentoPeso",
-        label: "Peso negli ultimi 3-6 mesi",
-        type: "select",
         options: [
-          "Aumentato",
-          "Diminuito",
-          "Stabile",
-          "Oscillato molto",
-          "Non lo so",
-        ],
-      },
-    ],
-  },
-  {
-    id: "preferenze-restrizioni-alimentari",
-    title: "Preferenze e restrizioni alimentari",
-    description: "Preferenze, esclusioni e abitudini da considerare in futuro.",
-    fields: [
-      {
-        name: "restrizioniPreferenze",
-        label: "Restrizioni/preferenze",
-        type: "select",
-        options: [
-          "Nessuna",
-          "Vegetariano",
-          "Vegano",
-          "Pescetariano",
-          "Senza lattosio",
-          "Senza glutine",
-          "Halal",
-          "Kosher",
-          "Altro",
-        ],
-      },
-      {
-        name: "alimentiDaEvitare",
-        label: "Alimenti da evitare o che non mangi",
-        type: "textarea",
-        placeholder: "Alimenti esclusi, gusti forti, ingredienti non graditi...",
-      },
-      {
-        name: "intolleranzeAllergie",
-        label: "Intolleranze o allergie dichiarate",
-        type: "textarea",
-        placeholder: "Inserisci solo informazioni che vuoi segnalare.",
-      },
-      {
-        name: "alcolici",
-        label: "Alcolici",
-        type: "select",
-        options: ["Mai", "Raramente", "1-2 volte a settimana", "3+ volte a settimana"],
-      },
-      {
-        name: "drinkCalorici",
-        label: "Bibite zuccherate/succhi/drink calorici",
-        type: "select",
-        options: ["Mai/quasi mai", "A volte", "Spesso", "Ogni giorno"],
-      },
-      {
-        name: "snack",
-        label: "Snack fuori pasto",
-        type: "select",
-        options: [
-          "No",
-          "1 volta al giorno",
-          "Piu volte al giorno",
-          "Soprattutto la sera",
-        ],
-      },
-    ],
-  },
-  {
-    id: "tracking-calorie-macro",
-    title: "Tracking calorie e macro",
-    description: "Disponibilita e livello di dettaglio per un eventuale tracking futuro.",
-    fields: [
-      {
-        name: "conteggioCalorieMacro",
-        label: "Hai mai contato calorie o macro?",
-        type: "select",
-        options: [
-          "Mai",
-          "Si per poco",
-          "Si per diversi mesi",
-          "Si lo faccio gia",
-        ],
-      },
-      {
-        name: "stimaQuantita",
-        label: "Sai stimare le quantita?",
-        type: "select",
-        options: ["No", "Piu o meno", "Si abbastanza bene"],
-      },
-      {
-        name: "registrarePasti",
-        label: "Disponibilita a registrare i pasti",
-        type: "select",
-        options: [
-          "Non voglio",
-          "Solo ogni tanto",
-          "3-4 giorni a settimana",
-          "Tutti i giorni",
-          "Solo per periodo iniziale",
-        ],
-      },
-      {
-        name: "preferenzaTracking",
-        label: "Preferenza tracking",
-        type: "select",
-        options: [
-          "Molto semplice e veloce",
-          "Abbastanza preciso",
-          "Dettagliato con quantita e macro",
-        ],
-      },
-      {
-        name: "interesseNutrizione",
-        label: "Interesse principale nutrizione",
-        type: "select",
-        options: [
-          "Capire quanto mangio",
-          "Perdere peso",
-          "Aumentare massa",
-          "Migliorare qualita alimentare",
-          "Avere piu energia",
-          "Non lo so",
+          option("Quasi sempre"),
+          option("A volte"),
+          option("Raramente"),
+          option("Non lo so"),
         ],
       },
     ],
   },
   {
     id: "limitazioni",
-    title: "Sicurezza, dolori e limitazioni",
-    description: "Informazioni per evitare proposte inadatte o poco sostenibili.",
+    title: "Sicurezza e limitazioni",
+    description:
+      "Informazioni per evitare proposte inadatte o poco sostenibili.",
     fields: [
       {
         name: "disturboAlimentare",
         label:
           "Hai mai avuto o ti e mai stato diagnosticato un disturbo alimentare?",
         type: "select",
-        options: ["Si", "No", "Preferisco non rispondere"],
+        options: [
+          option("Si"),
+          option("No"),
+          option("Preferisco non rispondere"),
+        ],
       },
       {
         name: "pauraAumentoPeso",
         label: "Hai paura intensa di aumentare peso?",
         type: "select",
-        options: ["Si", "No", "Preferisco non rispondere"],
+        options: [
+          option("Si"),
+          option("No"),
+          option("Preferisco non rispondere"),
+        ],
       },
       {
         name: "saltoPastiCompensazione",
         label:
           "Ti capita spesso di saltare pasti volontariamente per compensare cio che mangi?",
         type: "select",
-        options: ["Si", "No", "Preferisco non rispondere"],
+        options: [
+          option("Si"),
+          option("No"),
+          option("Preferisco non rispondere"),
+        ],
       },
       {
         name: "condizioniMedicheRilevanti",
         label:
           "Hai condizioni mediche rilevanti, problemi cardiaci, pressione alta non controllata, diabete, gravidanza, infortuni importanti o indicazioni mediche specifiche?",
         type: "select",
-        options: ["Si", "No", "Preferisco non rispondere"],
+        options: [
+          option("Si"),
+          option("No"),
+          option("Preferisco non rispondere"),
+        ],
       },
       {
         name: "doloriInfortuni",
-        label: "Dolori/fastidi ricorrenti",
+        label: "Dolori o fastidi ricorrenti",
         type: "textarea",
-        placeholder: "No, schiena, collo, spalle, gomiti, polsi, anche, ginocchia...",
+        placeholder: "Schiena, collo, spalle, gomiti, polsi, anche, ginocchia...",
+        fullWidth: true,
       },
       {
         name: "intensitaFastidio",
         label: "Intensita fastidio",
         type: "select",
-        options: ["Lieve", "Medio", "Forte", "Non saprei"],
+        options: [
+          option("Lieve"),
+          option("Medio"),
+          option("Forte"),
+          option("Non saprei"),
+        ],
       },
       {
         name: "movimentiDaEvitare",
         label: "Movimenti da evitare",
         type: "textarea",
         placeholder: "Squat, affondi, corsa, salti, piegamenti, sopra la testa...",
+        fullWidth: true,
       },
       {
         name: "infortuniLimitazioni",
         label: "Infortuni o limitazioni da segnalare",
         type: "textarea",
         placeholder: "Interventi, indicazioni ricevute, limitazioni note...",
-      },
-      {
-        name: "eserciziDaEvitare",
-        label: "Esercizi che sai gia non essere adatti",
-        type: "textarea",
-        placeholder: "Esercizi o movimenti che vuoi evitare.",
-      },
-    ],
-  },
-  {
-    id: "preferenze-allenamento",
-    title: "Preferenze allenamento e ostacoli",
-    description: "Cosa ti aiuta a essere costante e cosa ti ha frenato in passato.",
-    fields: [
-      {
-        name: "tipoAllenamentoPreferito",
-        label: "Tipo allenamento preferito",
-        type: "select",
-        options: [
-          "Pesi/macchine",
-          "Corpo libero",
-          "Cardio",
-          "Breve e intenso",
-          "Tranquillo",
-          "Mix",
-          "Non lo so",
-        ],
-      },
-      {
-        name: "attivitaPiacciono",
-        label: "Esercizi/attivita che piacciono",
-        type: "textarea",
-        placeholder: "Esercizi, sport o formati che ti motivano.",
-      },
-      {
-        name: "attivitaNonPiacciono",
-        label: "Esercizi/attivita che non piacciono",
-        type: "textarea",
-        placeholder: "Esercizi o formati che eviteresti volentieri.",
-      },
-      {
-        name: "ostacoloPrincipale",
-        label: "Ostacolo principale in passato",
-        type: "select",
-        options: [
-          "Tempo",
-          "Costanza",
-          "Schede troppo difficili",
-          "Noia",
-          "Dolori",
-          "Mancanza risultati",
-          "Non sapere cosa fare",
-          "Altro",
-        ],
-      },
-      {
-        name: "allenamentiRipetitiviVariati",
-        label: "Preferisci allenamenti ripetitivi o variati?",
-        type: "select",
-        options: ["Ripetitivi", "Variati", "Mix"],
+        fullWidth: true,
       },
     ],
   },
   {
     id: "motivazione",
     title: "Motivazione finale",
-    description: "Motivo personale, aspettative e livello di guida desiderato.",
+    description:
+      "Ultimi dettagli su motivazione, ostacoli e livello di guida desiderato.",
     fields: [
+      {
+        name: "ostacoloPrincipale",
+        label: "Ostacolo principale in passato",
+        type: "select",
+        options: [
+          option("Tempo"),
+          option("Costanza"),
+          option("Schede troppo difficili"),
+          option("Noia"),
+          option("Dolori"),
+          option("Mancanza risultati"),
+          option("Non sapere cosa fare"),
+          option("Altro"),
+        ],
+      },
+      {
+        name: "allenamentiRipetitiviVariati",
+        label: "Preferisci allenamenti ripetitivi o variati?",
+        type: "select",
+        options: [option("Ripetitivi"), option("Variati"), option("Mix")],
+      },
       {
         name: "perche",
         label: "Motivo principale per iniziare",
         type: "textarea",
         placeholder: "Energia, salute, estetica, performance, routine...",
-      },
-      {
-        name: "risultatoDesiderato",
-        label: "Risultato desiderato nei prossimi mesi",
-        type: "textarea",
-        placeholder: "Cosa vorresti ottenere concretamente.",
+        fullWidth: true,
       },
       {
         name: "motivazione",
         label: "Quanto ti senti motivato da 1 a 5",
         type: "select",
-        options: ["1", "2", "3", "4", "5"],
+        options: [option("1"), option("2"), option("3"), option("4"), option("5")],
       },
       {
         name: "livelloGuida",
         label: "Quanto vuoi essere guidato?",
         type: "select",
         options: [
-          "Molto",
-          "Abbastanza",
-          "Poco",
-          "Solo indicazioni essenziali",
+          option("Molto"),
+          option("Abbastanza"),
+          option("Poco"),
+          option("Solo indicazioni essenziali"),
         ],
       },
       {
@@ -730,6 +975,7 @@ const steps: Step[] = [
         label: "Note finali libere",
         type: "textarea",
         placeholder: "Qualsiasi informazione utile da aggiungere.",
+        fullWidth: true,
       },
     ],
   },
@@ -740,21 +986,212 @@ function isFieldVisible(field: Field, answers: Answers) {
     return true;
   }
 
-  return answers[field.showWhen.field] === field.showWhen.value;
+  const currentValue = answers[field.showWhen.field];
+  return typeof currentValue === "string" && currentValue === field.showWhen.value;
 }
 
 function getVisibleFields(step: Step, answers: Answers) {
   return step.fields.filter((field) => isFieldVisible(field, answers));
 }
 
+function normalizeLegacyGoal(value: string) {
+  switch (value) {
+    case "Massa muscolare":
+      return "Aumentare massa muscolare";
+    case "Forza":
+      return "Aumentare forza";
+    case "Dimagrimento":
+      return "Perdere peso";
+    case "Ricomposizione":
+      return "Mantenere peso e migliorare composizione";
+    case "Performance atletica":
+    case "Salute/mantenimento":
+    case "Mobilita/postura":
+      return "Migliorare benessere/energia";
+    default:
+      return "Non lo so";
+  }
+}
+
+function normalizeLegacyExperience(value: string) {
+  switch (value) {
+    case "Intermedio":
+      return "Intermedio";
+    case "Avanzato":
+    case "Bodybuilder/utente esperto":
+      return "Avanzato";
+    default:
+      return "Principiante";
+  }
+}
+
+function getEquipmentLegacySummary(values: string[]) {
+  return values.join(", ");
+}
+
+function applyDerivedAnswers(stepId: string, answers: Answers): Answers {
+  if (stepId === "obiettivo") {
+    const trainingGoal =
+      typeof answers.obiettivoTraining === "string"
+        ? answers.obiettivoTraining
+        : "";
+
+    return {
+      ...answers,
+      obiettivo: normalizeLegacyGoal(trainingGoal),
+    };
+  }
+
+  if (stepId === "esperienza") {
+    const experience =
+      typeof answers.livelloEsperienza === "string"
+        ? answers.livelloEsperienza
+        : "";
+
+    return {
+      ...answers,
+      esperienza: normalizeLegacyExperience(experience),
+    };
+  }
+
+  if (stepId === "luogo-attrezzatura") {
+    const equipment = Array.isArray(answers.attrezzaturaDettagliata)
+      ? answers.attrezzaturaDettagliata
+      : [];
+    const equipmentSummary = getEquipmentLegacySummary(equipment);
+    const location =
+      typeof answers.luogo === "string" && answers.luogo ? answers.luogo : "";
+
+    return {
+      ...answers,
+      attrezzatura: equipmentSummary,
+      accessoAttrezzatura:
+        equipmentSummary && location
+          ? `${location}: ${equipmentSummary}`
+          : equipmentSummary || location,
+    };
+  }
+
+  if (stepId === "alimentazione-attuale") {
+    const nutritionGoal =
+      typeof answers.obiettivoNutrizionale === "string"
+        ? answers.obiettivoNutrizionale
+        : "";
+
+    let interesseNutrizione = "Non lo so";
+
+    if (nutritionGoal === "Supportare dimagrimento") {
+      interesseNutrizione = "Perdere peso";
+    } else if (nutritionGoal === "Supportare massa muscolare") {
+      interesseNutrizione = "Aumentare massa";
+    } else if (nutritionGoal === "Mangiare meglio senza rigidita") {
+      interesseNutrizione = "Migliorare qualita alimentare";
+    } else if (nutritionGoal === "Supportare forza") {
+      interesseNutrizione = "Avere piu energia";
+    }
+
+    return {
+      ...answers,
+      interesseNutrizione,
+    };
+  }
+
+  return answers;
+}
+
 function getFlattenedAnswers(answersByStep: AnswersByStep) {
-  return Object.values(answersByStep).reduce<Record<string, unknown>>(
-    (allAnswers, stepAnswers) => ({
+  return Object.entries(answersByStep).reduce<Record<string, unknown>>(
+    (allAnswers, [stepId, stepAnswers]) => ({
       ...allAnswers,
-      ...stepAnswers,
+      ...applyDerivedAnswers(stepId, stepAnswers),
     }),
     {}
   );
+}
+
+function inferInitialValue(field: Field, savedAnswers: Answers) {
+  const savedValue = savedAnswers[field.name];
+
+  if (savedValue !== undefined) {
+    return savedValue;
+  }
+
+  if (field.name === "obiettivoTraining") {
+    const legacyGoal = savedAnswers.obiettivo;
+
+    if (legacyGoal === "Aumentare massa muscolare") {
+      return "Massa muscolare";
+    }
+
+    if (legacyGoal === "Aumentare forza") {
+      return "Forza";
+    }
+
+    if (legacyGoal === "Perdere peso") {
+      return "Dimagrimento";
+    }
+
+    if (legacyGoal === "Mantenere peso e migliorare composizione") {
+      return "Ricomposizione";
+    }
+
+    if (legacyGoal === "Migliorare benessere/energia") {
+      return "Salute/mantenimento";
+    }
+  }
+
+  if (field.name === "livelloEsperienza") {
+    const legacyExperience = savedAnswers.esperienza;
+
+    if (legacyExperience === "Intermedio") {
+      return "Intermedio";
+    }
+
+    if (legacyExperience === "Avanzato") {
+      return "Avanzato";
+    }
+
+    if (legacyExperience === "Principiante") {
+      return "Principiante con esperienza";
+    }
+  }
+
+  if (field.name === "attrezzaturaDettagliata") {
+    const legacyEquipment = savedAnswers.attrezzatura;
+
+    if (typeof legacyEquipment === "string" && legacyEquipment.trim()) {
+      return legacyEquipment
+        .split(",")
+        .map((entry) => entry.trim())
+        .filter(Boolean);
+    }
+  }
+
+  if (field.name === "obiettivoNutrizionale") {
+    const legacyNutritionInterest = savedAnswers.interesseNutrizione;
+
+    if (legacyNutritionInterest === "Perdere peso") {
+      return "Supportare dimagrimento";
+    }
+
+    if (legacyNutritionInterest === "Aumentare massa") {
+      return "Supportare massa muscolare";
+    }
+
+    if (legacyNutritionInterest === "Migliorare qualita alimentare") {
+      return "Mangiare meglio senza rigidita";
+    }
+
+    if (legacyNutritionInterest === "Avere piu energia") {
+      return "Supportare forza";
+    }
+  }
+
+  if (field.type === "multiselect") {
+    return field.initialValue ?? [];
+  }
+
+  return field.initialValue ?? "";
 }
 
 function getInitialAnswers(initialAnswersByStep: Partial<AnswersByStep> = {}) {
@@ -762,7 +1199,7 @@ function getInitialAnswers(initialAnswersByStep: Partial<AnswersByStep> = {}) {
     const savedAnswers = initialAnswersByStep[step.id] ?? {};
 
     accumulator[step.id] = step.fields.reduce<Answers>((fields, field) => {
-      fields[field.name] = savedAnswers[field.name] ?? "";
+      fields[field.name] = inferInitialValue(field, savedAnswers);
       return fields;
     }, {});
 
@@ -778,9 +1215,15 @@ function getInitialStepIndex(
     return 0;
   }
 
-  const firstMissingStepIndex = steps.findIndex(
-    (step) => !initialAnswersByStep[step.id]
-  );
+  const firstMissingStepIndex = steps.findIndex((step) => {
+    const savedStep = initialAnswersByStep[step.id];
+
+    if (!savedStep) {
+      return true;
+    }
+
+    return step.fields.some((field) => savedStep[field.name] === undefined);
+  });
 
   return firstMissingStepIndex === -1 ? steps.length - 1 : firstMissingStepIndex;
 }
@@ -844,6 +1287,14 @@ async function parseApiResponse(response: Response) {
   };
 }
 
+function getAnswerArray(value: AnswerValue | undefined) {
+  return Array.isArray(value) ? value : [];
+}
+
+function getAnswerString(value: AnswerValue | undefined) {
+  return typeof value === "string" ? value : "";
+}
+
 export function OnboardingForm({
   initialAnswersByStep = {},
   onboardingStatus,
@@ -895,7 +1346,7 @@ export function OnboardingForm({
     [currentStepIndex]
   );
 
-  function updateAnswer(fieldName: string, value: string) {
+  function updateAnswer(fieldName: string, value: AnswerValue) {
     setMessage(null);
     setSafetyResult(null);
     setAnswersByStep((current) => ({
@@ -907,13 +1358,59 @@ export function OnboardingForm({
     }));
   }
 
+  function toggleMultiSelect(field: Extract<Field, { type: "multiselect" }>, value: string) {
+    const currentValues = getAnswerArray(currentAnswers[field.name]);
+
+    if (currentValues.includes(value)) {
+      updateAnswer(
+        field.name,
+        currentValues.filter((entry) => entry !== value)
+      );
+      return;
+    }
+
+    if (field.exclusiveOption === value) {
+      updateAnswer(field.name, [value]);
+      return;
+    }
+
+    const withoutExclusive = field.exclusiveOption
+      ? currentValues.filter((entry) => entry !== field.exclusiveOption)
+      : currentValues;
+
+    if (field.maxSelections && withoutExclusive.length >= field.maxSelections) {
+      setMessage(`Puoi selezionare massimo ${field.maxSelections} opzioni.`);
+      return;
+    }
+
+    updateAnswer(field.name, [...withoutExclusive, value]);
+  }
+
   function validateCurrentStep() {
-    const missingField = visibleFields.find(
-      (field) => field.required && !currentAnswers[field.name]?.trim()
-    );
+    const missingField = visibleFields.find((field) => {
+      if (!field.required) {
+        return false;
+      }
+
+      const value = currentAnswers[field.name];
+
+      if (field.type === "multiselect") {
+        return getAnswerArray(value).length === 0;
+      }
+
+      return !getAnswerString(value).trim();
+    });
 
     if (missingField) {
       return `Completa il campo obbligatorio: ${missingField.label}.`;
+    }
+
+    const daysPerWeek = Number(getAnswerString(currentAnswers.giorni));
+
+    if (currentStep.id === "disponibilita" && Number.isFinite(daysPerWeek)) {
+      if (daysPerWeek < 1 || daysPerWeek > 7) {
+        return "Inserisci un numero di giorni compreso tra 1 e 7.";
+      }
     }
 
     return null;
@@ -927,7 +1424,7 @@ export function OnboardingForm({
       },
       body: JSON.stringify({
         step: currentStep.id,
-        answers: currentAnswers,
+        answers: applyDerivedAnswers(currentStep.id, currentAnswers),
       }),
     });
 
@@ -960,8 +1457,6 @@ export function OnboardingForm({
     if (data?.safety) {
       setSafetyResult(data.safety);
     }
-
-    return data;
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -1016,7 +1511,7 @@ export function OnboardingForm({
   }
 
   return (
-    <main className="min-h-screen bg-neutral-950 px-6 py-10 pb-28 text-white">
+    <main className="min-h-screen bg-neutral-950 px-4 py-8 pb-28 text-white sm:px-6 sm:py-10">
       <section className="mx-auto w-full max-w-4xl">
         <div className="mb-8 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
           <div>
@@ -1030,7 +1525,7 @@ export function OnboardingForm({
             </h1>
             <p className="mt-3 max-w-2xl text-neutral-400">
               {isCompleted
-                ? "Hai gia completato il questionario. Puoi aggiornare le risposte e salvare di nuovo il percorso."
+                ? "Hai gia completato il questionario. Puoi aggiornare le risposte senza perdere l'accesso alle aree gia attive."
                 : `${userName ? `${userName}, ` : ""}rispondi alle domande essenziali per preparare un percorso piu adatto al tuo contesto.`}
             </p>
             <p className="mt-4 max-w-2xl rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
@@ -1051,7 +1546,7 @@ export function OnboardingForm({
           />
         </div>
 
-        <div className="rounded-2xl border border-neutral-800 bg-neutral-900 p-6">
+        <div className="rounded-2xl border border-neutral-800 bg-neutral-900 p-5 sm:p-6">
           <div className="mb-6">
             <h2 className="text-2xl font-semibold">{currentStep.title}</h2>
             <p className="mt-2 text-neutral-400">{currentStep.description}</p>
@@ -1062,7 +1557,7 @@ export function OnboardingForm({
               {visibleFields.map((field) => (
                 <label
                   key={field.name}
-                  className={field.type === "textarea" ? "sm:col-span-2" : ""}
+                  className={field.fullWidth ? "sm:col-span-2" : ""}
                 >
                   <span className="mb-2 block text-sm text-neutral-300">
                     {field.label}
@@ -1071,33 +1566,60 @@ export function OnboardingForm({
                     )}
                   </span>
 
+                  {field.helpText && (
+                    <p className="mb-2 text-xs text-neutral-500">{field.helpText}</p>
+                  )}
+
                   {field.type === "select" ? (
                     <select
-                      value={currentAnswers[field.name]}
+                      value={getAnswerString(currentAnswers[field.name])}
                       onChange={(event) =>
                         updateAnswer(field.name, event.target.value)
                       }
                       className="w-full rounded-xl border border-neutral-800 bg-neutral-950 px-4 py-3 text-white outline-none focus:border-white"
                     >
                       <option value="">Seleziona</option>
-                      {field.options.map((option) => (
-                        <option key={option} value={option}>
-                          {option}
+                      {field.options.map((entry) => (
+                        <option key={entry.value} value={entry.value}>
+                          {entry.label}
                         </option>
                       ))}
                     </select>
+                  ) : field.type === "multiselect" ? (
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      {field.options.map((entry) => {
+                        const selected = getAnswerArray(
+                          currentAnswers[field.name]
+                        ).includes(entry.value);
+
+                        return (
+                          <button
+                            key={entry.value}
+                            type="button"
+                            onClick={() => toggleMultiSelect(field, entry.value)}
+                            className={`rounded-xl border px-4 py-3 text-left text-sm transition ${
+                              selected
+                                ? "border-white bg-white text-neutral-950"
+                                : "border-neutral-800 bg-neutral-950 text-neutral-200"
+                            }`}
+                          >
+                            {entry.label}
+                          </button>
+                        );
+                      })}
+                    </div>
                   ) : field.type === "textarea" ? (
                     <textarea
-                      value={currentAnswers[field.name]}
+                      value={getAnswerString(currentAnswers[field.name])}
                       onChange={(event) =>
                         updateAnswer(field.name, event.target.value)
                       }
-                      className="min-h-32 w-full rounded-xl border border-neutral-800 bg-neutral-950 px-4 py-3 text-white outline-none focus:border-white"
+                      className="min-h-28 w-full rounded-xl border border-neutral-800 bg-neutral-950 px-4 py-3 text-white outline-none focus:border-white"
                       placeholder={field.placeholder}
                     />
                   ) : (
                     <input
-                      value={currentAnswers[field.name]}
+                      value={getAnswerString(currentAnswers[field.name])}
                       onChange={(event) =>
                         updateAnswer(field.name, event.target.value)
                       }
