@@ -5,6 +5,7 @@ import { MealEntryForm } from "@/components/nutrition/meal-entry-form";
 import { MealEntryList } from "@/components/nutrition/meal-entry-list";
 import { calculateNutritionTargets } from "@/lib/nutrition/calculate-targets";
 import {
+  getDailyActivityCaloriesEstimate,
   getDailyNutritionData,
   getMergedOnboardingAnswers,
   getNutritionDailySummary,
@@ -32,6 +33,18 @@ function formatDate(dateKey: string) {
   }).format(new Date(`${dateKey}T12:00:00Z`));
 }
 
+function getConfidenceLabel(confidence: "low" | "medium" | "high") {
+  switch (confidence) {
+    case "high":
+      return "Alta";
+    case "medium":
+      return "Media";
+    case "low":
+    default:
+      return "Bassa";
+  }
+}
+
 export default async function NutritionPage() {
   const user = await getCurrentUser();
 
@@ -43,16 +56,18 @@ export default async function NutritionPage() {
     redirect("/onboarding");
   }
 
-  const [answers, userProfile, nutritionProfileResult, dailyData] = await Promise.all([
-    getMergedOnboardingAnswers(user.id),
-    prisma.userProfile.findUnique({
-      where: {
-        userId: user.id,
-      },
-    }),
-    getOrCreateNutritionProfile(user.id),
-    getDailyNutritionData(user.id),
-  ]);
+  const [answers, userProfile, nutritionProfileResult, dailyData, activityEstimate] =
+    await Promise.all([
+      getMergedOnboardingAnswers(user.id),
+      prisma.userProfile.findUnique({
+        where: {
+          userId: user.id,
+        },
+      }),
+      getOrCreateNutritionProfile(user.id),
+      getDailyNutritionData(user.id),
+      getDailyActivityCaloriesEstimate(user.id),
+    ]);
 
   const calculation = calculateNutritionTargets({
     answers,
@@ -62,6 +77,7 @@ export default async function NutritionPage() {
   const dailySummary = getNutritionDailySummary({
     profile: nutritionProfile,
     meals: dailyData.meals,
+    estimatedActivityCalories: activityEstimate.totalEstimatedActivityCalories,
   });
 
   return (
@@ -167,14 +183,14 @@ export default async function NutritionPage() {
             <div className="rounded-2xl border border-neutral-800 bg-neutral-950 p-4">
               <p className="text-sm text-neutral-500">Calorie registrate</p>
               <p className="mt-2 text-2xl font-semibold">
-                {formatNumber(dailySummary.registered.calories)} kcal
+                {formatNumber(dailySummary.caloriesConsumed)} kcal
               </p>
             </div>
 
             <div className="rounded-2xl border border-neutral-800 bg-neutral-950 p-4">
               <p className="text-sm text-neutral-500">Calorie rimanenti</p>
               <p className="mt-2 text-2xl font-semibold">
-                {formatNumber(dailySummary.remainingCalories)} kcal
+                {formatNumber(dailySummary.caloriesRemaining)} kcal
               </p>
             </div>
           </div>
@@ -214,6 +230,69 @@ export default async function NutritionPage() {
               </p>
             </div>
           </div>
+        </div>
+
+        <div className="mt-6 rounded-2xl border border-sky-900/50 bg-sky-950/20 p-6">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-sm uppercase tracking-[0.2em] text-sky-200/70">
+                Attivita registrata oggi
+              </p>
+              <h2 className="mt-2 text-xl font-semibold text-white">
+                {formatNumber(dailySummary.estimatedActivityCalories)} kcal stimate
+              </h2>
+            </div>
+
+            <p className="max-w-md text-sm text-sky-50/80">
+              Bilancio indicativo includendo attivita:{" "}
+              {formatNumber(dailySummary.caloriesRemainingIncludingActivity)} kcal
+            </p>
+          </div>
+
+          <p className="mt-4 text-sm text-sky-50/80">
+            Le calorie attivita sono una stima. Non usarle come valore preciso da
+            recuperare automaticamente con il cibo.
+          </p>
+
+          {activityEstimate.activities.length === 0 ? (
+            <div className="mt-5 rounded-2xl border border-sky-900/40 bg-neutral-950/60 p-4 text-sm text-neutral-300">
+              Nessuna attivita registrata oggi.
+            </div>
+          ) : (
+            <div className="mt-5 space-y-3">
+              {activityEstimate.activities.map((activity, index) => (
+                <article
+                  key={`${activity.workoutName}-${index}`}
+                  className="rounded-2xl border border-sky-900/40 bg-neutral-950/70 p-4"
+                >
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <h3 className="font-semibold text-white">{activity.workoutName}</h3>
+                      <p className="mt-2 text-sm text-neutral-300">
+                        {activity.explanation}
+                      </p>
+                    </div>
+
+                    <div className="min-w-48 rounded-xl border border-neutral-800 bg-neutral-950 p-3">
+                      <p className="text-sm text-neutral-500">Stima attivita</p>
+                      <p className="mt-2 text-xl font-semibold text-white">
+                        {formatNumber(activity.estimatedCalories)} kcal
+                      </p>
+                      <p className="mt-2 text-sm text-neutral-400">
+                        {formatNumber(activity.estimatedDurationMinutes)} min · MET{" "}
+                        {activity.met.toFixed(1)}
+                      </p>
+                      <p className="mt-1 text-sm text-neutral-500">
+                        Affidabilita {getConfidenceLabel(activity.confidence)}
+                      </p>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+
+          <p className="mt-5 text-xs text-sky-50/65">{activityEstimate.disclaimer}</p>
         </div>
 
         <div className="mt-6 rounded-2xl border border-neutral-800 bg-neutral-900 p-6">

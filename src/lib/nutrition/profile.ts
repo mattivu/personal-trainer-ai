@@ -2,6 +2,10 @@ import "server-only";
 import type { MealEntry, NutritionProfile } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { mergeOnboardingAnswers } from "@/lib/training-engine/onboarding-profile";
+import {
+  estimateDailyActivityCalories,
+  type DailyActivityCaloriesEstimate,
+} from "./activity-calories";
 import { calculateNutritionTargets } from "./calculate-targets";
 
 type MealEntrySummary = {
@@ -15,6 +19,17 @@ export type DailyNutritionData = {
   date: string;
   meals: MealEntry[];
   summary: MealEntrySummary;
+};
+
+export type DailyNutritionSummary = {
+  calorieTarget: number;
+  caloriesConsumed: number;
+  caloriesRemaining: number;
+  estimatedActivityCalories: number;
+  caloriesRemainingIncludingActivity: number;
+  registered: MealEntrySummary;
+  remainingCalories: number;
+  progressPercent: number;
 };
 
 function formatDateKey(date: Date) {
@@ -91,6 +106,19 @@ function sumMeals(meals: Pick<MealEntry, "calories" | "protein" | "carbs" | "fat
       fat: 0,
     }
   );
+}
+
+function parseWeightKg(value: unknown) {
+  if (typeof value === "number" && Number.isFinite(value) && value > 0) {
+    return value;
+  }
+
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const parsed = Number(value.replace(",", ".").trim());
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
 }
 
 export async function getMergedOnboardingAnswers(userId: number) {
@@ -179,21 +207,140 @@ export async function getDailyNutritionData(
   };
 }
 
+export async function getDailyActivityCaloriesEstimate(
+  userId: number,
+  dateKey?: string
+): Promise<DailyActivityCaloriesEstimate> {
+  const range = getDateRangeForLocalDay(dateKey);
+
+  const [answers, userProfile, workoutEntries] = await Promise.all([
+    getMergedOnboardingAnswers(userId),
+    prisma.userProfile.findUnique({
+      where: {
+        userId,
+      },
+      select: {
+        startingWeight: true,
+      },
+    }),
+    prisma.workoutLog.findMany({
+      where: {
+        userId,
+        status: "completed",
+        OR: [
+          {
+            completedAt: {
+              gte: range.start,
+              lte: range.end,
+            },
+          },
+          {
+            completedAt: null,
+            performedAt: {
+              gte: range.start,
+              lte: range.end,
+            },
+          },
+        ],
+      },
+      orderBy: [{ completedAt: "asc" }, { performedAt: "asc" }, { id: "asc" }],
+      include: {
+        workout: {
+          select: {
+            title: true,
+            focus: true,
+            estimatedMinutes: true,
+            exercises: {
+              select: {
+                name: true,
+                intensity: true,
+              },
+              orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
+            },
+          },
+        },
+        setLogs: {
+          where: {
+            completed: true,
+          },
+          select: {
+            programExercise: {
+              select: {
+                name: true,
+                intensity: true,
+              },
+            },
+          },
+        },
+      },
+    }),
+  ]);
+
+  const weightKg = parseWeightKg(answers.pesoKg) ?? userProfile?.startingWeight ?? null;
+
+  return estimateDailyActivityCalories({
+    weightKg,
+    workouts: workoutEntries.map((entry) => {
+      const exerciseNames = Array.from(
+        new Set(
+          [
+            ...entry.setLogs.map((setLog) => setLog.programExercise?.name ?? "").filter(Boolean),
+            ...(entry.workout?.exercises.map((exercise) => exercise.name) ?? []),
+          ].map((value) => value.trim())
+        )
+      );
+      const exerciseIntensityHints = Array.from(
+        new Set(
+          [
+            ...entry.setLogs
+              .map((setLog) => setLog.programExercise?.intensity ?? "")
+              .filter(Boolean),
+            ...(entry.workout?.exercises
+              .map((exercise) => exercise.intensity ?? "")
+              .filter(Boolean) ?? []),
+          ].map((value) => value.trim())
+        )
+      );
+
+      return {
+        workoutName: entry.workout?.title ?? "Seduta completata",
+        workoutFocus: entry.workout?.focus,
+        estimatedMinutes: entry.workout?.estimatedMinutes ?? null,
+        durationMinutes: entry.durationMinutes,
+        perceivedEffort: entry.perceivedEffort,
+        exerciseNames,
+        exerciseIntensityHints,
+      };
+    }),
+  });
+}
+
 export function getNutritionDailySummary(input: {
   profile: Pick<
     NutritionProfile,
     "calorieTarget" | "proteinTarget" | "carbsTarget" | "fatTarget"
   >;
   meals: Pick<MealEntry, "calories" | "protein" | "carbs" | "fat">[];
-}) {
+  estimatedActivityCalories?: number;
+}): DailyNutritionSummary {
   const registered = sumMeals(input.meals);
+  const caloriesRemaining = Math.max(
+    input.profile.calorieTarget - registered.calories,
+    0
+  );
+  const estimatedActivityCalories = Math.max(
+    Math.round(input.estimatedActivityCalories ?? 0),
+    0
+  );
 
   return {
+    calorieTarget: input.profile.calorieTarget,
+    caloriesConsumed: registered.calories,
+    caloriesRemaining,
+    estimatedActivityCalories,
+    caloriesRemainingIncludingActivity: caloriesRemaining + estimatedActivityCalories,
     registered,
-    remainingCalories: Math.max(
-      input.profile.calorieTarget - registered.calories,
-      0
-    ),
+    remainingCalories: caloriesRemaining,
     progressPercent: Math.min(
       Math.round((registered.calories / input.profile.calorieTarget) * 100),
       100
