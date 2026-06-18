@@ -2,12 +2,14 @@ import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
+import { buildQuestionnaireProfile } from "@/lib/onboarding/questionnaire-profile";
 import { generateRuleBasedProgram } from "@/lib/training-engine/generate-program";
 import { buildNormalizedOnboardingProfile } from "@/lib/training-engine/onboarding-profile";
 import {
   getTrainingBlockDates,
   getTrainingBlockDurationWeeks,
 } from "@/lib/training-engine/program-block";
+import { buildTrainingStrategy } from "@/lib/training-engine/training-strategy";
 import type { EngineExercise } from "@/lib/training-engine/types";
 
 export const runtime = "nodejs";
@@ -75,6 +77,10 @@ export async function POST() {
     const onboardingProfile = buildNormalizedOnboardingProfile(
       onboardingAnswers.map((answer) => answer.answersJson)
     );
+    const questionnaireProfile = buildQuestionnaireProfile(
+      onboardingProfile.mergedAnswers
+    );
+    const trainingStrategy = buildTrainingStrategy(questionnaireProfile);
     const { profile, snapshotHash } = onboardingProfile;
     const exercises = await prisma.exercise.findMany({
       select: {
@@ -100,7 +106,10 @@ export async function POST() {
     });
     const programBlueprint = generateRuleBasedProgram(
       onboardingProfile,
-      exercises as EngineExercise[]
+      exercises as EngineExercise[],
+      {
+        trainingStrategy,
+      }
     );
 
     const exerciseMap = new Map(

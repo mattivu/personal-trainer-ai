@@ -5,6 +5,10 @@ import {
   getSplitDefinition,
 } from "./training-rules";
 import {
+  buildTrainingStrategySummary,
+  type TrainingStrategy,
+} from "./training-strategy";
+import {
   selectExerciseForSlot,
   type ExerciseSlot,
 } from "./exercise-selector";
@@ -628,7 +632,10 @@ function getProgramTitle(profile: NormalizedTrainingProfile) {
 
 export function generateRuleBasedProgram(
   onboardingProfile: NormalizedTrainingProfile | ExerciseAvailabilityProfile,
-  exercises: EngineExercise[]
+  exercises: EngineExercise[],
+  options?: {
+    trainingStrategy?: TrainingStrategy;
+  }
 ): GeneratedProgram {
   const profile =
     "profile" in onboardingProfile ? onboardingProfile.profile : onboardingProfile;
@@ -655,7 +662,12 @@ export function generateRuleBasedProgram(
     profile.limitations.length > 0
       ? `Limitazioni considerate: ${profile.limitations.join(", ")}.`
       : "Limitazioni considerate: nessuna segnalazione specifica.",
-  ].join("\n");
+    options?.trainingStrategy
+      ? buildTrainingStrategySummary(options.trainingStrategy)
+      : null,
+  ]
+    .filter((note): note is string => Boolean(note))
+    .join("\n");
 
   return {
     title: getProgramTitle(profile),
