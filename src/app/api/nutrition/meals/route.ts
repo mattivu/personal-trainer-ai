@@ -92,6 +92,10 @@ export async function POST(request: Request) {
       date?: unknown;
       mealType?: unknown;
       name?: unknown;
+      quantityValue?: unknown;
+      quantityUnit?: unknown;
+      brand?: unknown;
+      nutritionSource?: unknown;
       calories?: unknown;
       protein?: unknown;
       carbs?: unknown;
@@ -148,6 +152,10 @@ export async function POST(request: Request) {
         date: entryDate,
         mealType: mealInput.value.mealType,
         name: mealInput.value.name,
+        quantityValue: mealInput.value.quantityValue,
+        quantityUnit: mealInput.value.quantityUnit,
+        brand: mealInput.value.brand,
+        nutritionSource: mealInput.value.nutritionSource,
         calories: mealInput.value.calories,
         protein: mealInput.value.protein,
         carbs: mealInput.value.carbs,

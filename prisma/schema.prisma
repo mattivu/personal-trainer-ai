@@ -63,20 +63,24 @@ model NutritionProfile {
 }
 
 model MealEntry {
-  id        Int       @id @default(autoincrement())
-  userId    Int
-  date      DateTime
-  mealType  MealType
-  name      String
-  calories  Int
-  protein   Int
-  carbs     Int
-  fat       Int
-  notes     String?   @db.Text
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id              Int       @id @default(autoincrement())
+  userId          Int
+  date            DateTime
+  mealType        MealType
+  name            String
+  quantityValue   Float?
+  quantityUnit    String?
+  brand           String?
+  nutritionSource String?
+  calories        Float
+  protein         Float
+  carbs           Float
+  fat             Float
+  notes           String?   @db.Text
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, date])
   @@map("meal_entries")
