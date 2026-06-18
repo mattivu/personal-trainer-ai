@@ -34,6 +34,7 @@ export type WorkoutFormExercise = {
   exerciseId: number | null;
   name: string;
   primaryMuscle: string | null;
+  imageUrls: string[];
   sets: number | null;
   reps: string | null;
   restSeconds: number | null;
@@ -83,6 +84,12 @@ export function getCurrentWeekBounds(referenceDate = new Date()) {
     start: getWeekStart(referenceDate),
     end: getWeekEnd(referenceDate),
   };
+}
+
+function normalizeImageUrls(value: unknown) {
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === "string" && item.trim().length > 0)
+    : [];
 }
 
 function buildPreviousLogCutoff(currentLog: { id: number; performedAt: Date } | null) {
@@ -263,6 +270,7 @@ export async function getWorkoutPageDataForUser(
           exercise: {
             select: {
               primaryMuscle: true,
+              imageUrls: true,
             },
           },
         },
@@ -358,6 +366,7 @@ export async function getWorkoutPageDataForUser(
         exerciseId: exercise.exerciseId ?? null,
         name: exercise.name,
         primaryMuscle: exercise.exercise?.primaryMuscle ?? null,
+        imageUrls: normalizeImageUrls(exercise.exercise?.imageUrls).slice(0, 2),
         sets: exercise.sets,
         reps: exercise.reps,
         restSeconds: exercise.restSeconds,

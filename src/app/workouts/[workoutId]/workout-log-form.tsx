@@ -39,6 +39,7 @@ type ExerciseState = {
   exerciseId: number | null;
   name: string;
   primaryMuscle: string | null;
+  imageUrls: string[];
   sets: number | null;
   reps: string | null;
   restSeconds: number | null;
@@ -169,6 +170,7 @@ function buildExerciseState(exercise: WorkoutFormExercise): ExerciseState {
     exerciseId: exercise.exerciseId,
     name: exercise.name,
     primaryMuscle: exercise.primaryMuscle,
+    imageUrls: exercise.imageUrls,
     sets: exercise.sets,
     reps: exercise.reps,
     restSeconds: exercise.restSeconds,
@@ -220,6 +222,32 @@ function formatDifficultyLabel(value: string | null) {
     default:
       return `Difficolta: ${value}`;
   }
+}
+
+function ExerciseImages({
+  name,
+  imageUrls,
+}: {
+  name: string;
+  imageUrls: string[];
+}) {
+  if (imageUrls.length === 0) {
+    return <p className="mt-3 text-xs text-neutral-500">Immagini non disponibili</p>;
+  }
+
+  return (
+    <div className="mt-4 flex flex-wrap gap-2">
+      {imageUrls.slice(0, 2).map((imageUrl, index) => (
+        <img
+          key={`${name}-${imageUrl}`}
+          src={imageUrl}
+          alt={`${name} immagine ${index + 1}`}
+          className="h-20 w-20 rounded-xl border border-neutral-800 object-cover"
+          loading="lazy"
+        />
+      ))}
+    </div>
+  );
 }
 
 async function parseApiResponse(response: Response) {
@@ -521,6 +549,7 @@ export function WorkoutLogForm({
                 primaryMuscle:
                   payload.programExercise?.primaryMuscle ?? exercise.primaryMuscle,
                 notes: payload.programExercise?.notes ?? exercise.notes,
+                imageUrls: [],
                 setLogs: buildEmptySetLogs(exercise.setLogs.length),
                 previousPerformance: null,
                 todaySummary: [],
@@ -739,6 +768,7 @@ export function WorkoutLogForm({
                   Muscolo principale: {exercise.primaryMuscle}
                 </p>
               ) : null}
+              <ExerciseImages name={exercise.name} imageUrls={exercise.imageUrls} />
               <div className="mt-4 rounded-xl border border-neutral-800 bg-neutral-950 p-4">
                 <p className="text-sm font-semibold text-white">Dati registrati</p>
                 {exercise.todaySummary.length > 0 ? (
@@ -834,6 +864,7 @@ export function WorkoutLogForm({
                               Muscolo principale: {exercise.primaryMuscle}
                             </p>
                           ) : null}
+                          <ExerciseImages name={exercise.name} imageUrls={exercise.imageUrls} />
                           <p className="mt-3 text-sm text-neutral-200">
                             Obiettivo: {exercise.sets ?? "Serie non indicate"} serie x{" "}
                             {exercise.reps ?? "reps non indicate"}

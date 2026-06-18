@@ -142,6 +142,12 @@ function ExerciseCard({ exercise }: { exercise: ExerciseLibraryItem }) {
           </p>
         </div>
 
+        {exercise.hasMediaEnrichment ? (
+          <p className="rounded-xl border border-sky-800/60 bg-sky-950/30 px-3 py-2 text-sm text-sky-100">
+            Immagini arricchite da free-exercise-db
+          </p>
+        ) : null}
+
         {exercise.reviewWarnings.length > 0 ? (
           <div>
             <p className="text-sm text-neutral-500">Avvisi revisione</p>

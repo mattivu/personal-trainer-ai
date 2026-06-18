@@ -34,6 +34,13 @@ type ExerciseLibraryRecord = {
 };
 
 type ExerciseSourceMetadata = {
+  mediaEnrichment?: {
+    source?: string;
+    externalId?: string;
+    imageCount?: number;
+    enrichedAt?: string;
+    note?: string;
+  };
   needsTranslation?: boolean;
   hasImages?: boolean;
   imageCount?: number;
@@ -81,6 +88,7 @@ export type ExerciseLibraryItem = {
   qualityStatusLabel: string | null;
   reviewWarnings: string[];
   hasImages: boolean;
+  hasMediaEnrichment: boolean;
   sourceMetadata: ExerciseSourceMetadata | null;
   originalInstructions: string | null;
 };
@@ -150,8 +158,28 @@ function parseSourceMetadata(value: unknown): ExerciseSourceMetadata | null {
   }
 
   const questionnaireContext = normalizeObject(metadata.questionnaireContext);
+  const mediaEnrichment = normalizeObject(metadata.mediaEnrichment);
 
   return {
+    mediaEnrichment: mediaEnrichment
+      ? {
+          source: typeof mediaEnrichment.source === "string" ? mediaEnrichment.source : undefined,
+          externalId:
+            typeof mediaEnrichment.externalId === "string"
+              ? mediaEnrichment.externalId
+              : undefined,
+          imageCount:
+            typeof mediaEnrichment.imageCount === "number" &&
+            Number.isFinite(mediaEnrichment.imageCount)
+              ? mediaEnrichment.imageCount
+              : undefined,
+          enrichedAt:
+            typeof mediaEnrichment.enrichedAt === "string"
+              ? mediaEnrichment.enrichedAt
+              : undefined,
+          note: typeof mediaEnrichment.note === "string" ? mediaEnrichment.note : undefined,
+        }
+      : undefined,
     needsTranslation: metadata.needsTranslation === true,
     hasImages: metadata.hasImages === true,
     imageCount:
@@ -543,6 +571,7 @@ export async function getExerciseLibrary(
         reviewWarnings: sourceMetadata?.reviewWarnings ?? [],
         hasImages:
           sourceMetadata?.hasImages === true || normalizeArray(exercise.imageUrls).length > 0,
+        hasMediaEnrichment: sourceMetadata?.mediaEnrichment?.source === "free_exercise_db",
         sourceMetadata,
         originalInstructions: exercise.instructions,
       };

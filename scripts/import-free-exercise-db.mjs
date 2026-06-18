@@ -94,10 +94,16 @@ const SPECIALIZED_EQUIPMENT_KEYWORDS = [
 function parseArgs(argv) {
   let limit = DEFAULT_LIMIT;
   let importAll = false;
+  let enrichMediaOnly = false;
 
   for (const arg of argv) {
     if (arg === "--all") {
       importAll = true;
+      continue;
+    }
+
+    if (arg === "--enrich-media-only") {
+      enrichMediaOnly = true;
       continue;
     }
 
@@ -118,6 +124,7 @@ function parseArgs(argv) {
   return {
     limit,
     importAll,
+    enrichMediaOnly,
   };
 }
 
@@ -381,14 +388,16 @@ async function fetchDataset() {
 }
 
 async function main() {
-  const { limit, importAll } = parseArgs(process.argv.slice(2));
+  const { limit, importAll, enrichMediaOnly } = parseArgs(process.argv.slice(2));
   const dataset = await fetchDataset();
-  const cappedDataset = importAll ? dataset : dataset.slice(0, limit);
+  const cappedDataset = enrichMediaOnly || importAll ? dataset : dataset.slice(0, limit);
 
   const existingExercises = await prisma.exercise.findMany({
     select: {
       id: true,
+      name: true,
       slug: true,
+      imageUrls: true,
       externalSource: true,
       externalId: true,
       sourceMetadata: true,
@@ -411,6 +420,9 @@ async function main() {
     updated: 0,
     skipped: 0,
     errors: 0,
+    enrichedInternal: 0,
+    alreadyWithImages: 0,
+    collisionsWithoutSourceImages: 0,
     withImages: 0,
     withoutImages: 0,
     usableCandidate: 0,
@@ -440,12 +452,59 @@ async function main() {
         (!existingExternal || slugMatch.id !== existingExternal.id) &&
         (slugMatch.externalSource !== EXTERNAL_SOURCE ||
           slugMatch.externalId !== normalized.externalId);
+      const slugCollisionWithInternal = slugOwnedByDifferentRecord && !slugMatch.externalSource;
+
+      if (slugCollisionWithInternal) {
+        const existingInternalImages = normalizeArray(slugMatch.imageUrls);
+
+        if (existingInternalImages.length > 0) {
+          summary.alreadyWithImages += 1;
+          continue;
+        }
+
+        if (normalized.imageUrls.length === 0) {
+          summary.collisionsWithoutSourceImages += 1;
+          continue;
+        }
+
+        const mergedSourceMetadata = {
+          ...normalizeObject(slugMatch.sourceMetadata),
+          mediaEnrichment: {
+            source: EXTERNAL_SOURCE,
+            externalId: normalized.externalId,
+            imageCount: normalized.imageUrls.length,
+            enrichedAt: new Date().toISOString(),
+            note: "Media importati da free-exercise-db senza modificare la logica interna dell'esercizio.",
+          },
+        };
+
+        await prisma.exercise.update({
+          where: { id: slugMatch.id },
+          data: {
+            imageUrls: normalized.imageUrls,
+            sourceMetadata: mergedSourceMetadata,
+          },
+        });
+
+        summary.enrichedInternal += 1;
+        existingBySlug.set(slugMatch.slug, {
+          ...slugMatch,
+          imageUrls: normalized.imageUrls,
+          sourceMetadata: mergedSourceMetadata,
+        });
+        continue;
+      }
 
       if (slugOwnedByDifferentRecord) {
         summary.skipped += 1;
         console.warn(
           `WARN skipping ${normalized.externalId} because slug "${normalized.slug}" already belongs to record ${slugMatch.id}`
         );
+        continue;
+      }
+
+      if (enrichMediaOnly) {
+        summary.skipped += 1;
         continue;
       }
 
@@ -542,9 +601,22 @@ async function main() {
     }
   }
 
+  if (enrichMediaOnly) {
+    console.log("Exercise media enrichment summary");
+    console.log(`interni arricchiti: ${summary.enrichedInternal}`);
+    console.log(`gia con immagini: ${summary.alreadyWithImages}`);
+    console.log(`collisioni senza immagini sorgente: ${summary.collisionsWithoutSourceImages}`);
+    console.log(`saltati: ${summary.skipped}`);
+    console.log(`errori: ${summary.errors}`);
+    return;
+  }
+
   console.log("Import summary");
   console.log(`created: ${summary.created}`);
   console.log(`updated: ${summary.updated}`);
+  console.log(`enriched_internal: ${summary.enrichedInternal}`);
+  console.log(`already_with_images: ${summary.alreadyWithImages}`);
+  console.log(`collisions_without_source_images: ${summary.collisionsWithoutSourceImages}`);
   console.log(`skipped: ${summary.skipped}`);
   console.log(`errors: ${summary.errors}`);
   console.log(`con immagini: ${summary.withImages}`);
