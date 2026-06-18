@@ -61,6 +61,36 @@ const CATEGORY_MAP = new Map([
   ["strongman", "strength"],
 ]);
 
+const SPECIALIZED_KEYWORDS = [
+  "climbing",
+  "rock climbing",
+  "rope climbing",
+  "rope climb",
+  "strongman",
+  "sled",
+  "tire",
+  "atlas stone",
+  "log press",
+  "farmer walk",
+  "farmers walk",
+  "yoke",
+  "snatch",
+  "clean and jerk",
+  "split jerk",
+  "push jerk",
+];
+
+const SPECIALIZED_EQUIPMENT_KEYWORDS = [
+  "rope",
+  "tire",
+  "sled",
+  "stone",
+  "log",
+  "yoke",
+  "harness",
+  "peg board",
+];
+
 function parseArgs(argv) {
   let limit = DEFAULT_LIMIT;
   let importAll = false;
@@ -115,6 +145,14 @@ function normalizeArray(value) {
     : [];
 }
 
+function normalizeObject(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return {};
+  }
+
+  return value;
+}
+
 function mapEquipment(value) {
   const normalized = slugify(value).replace(/-/g, " ");
   return EQUIPMENT_MAP.get(normalized) ?? (normalizeText(value) || null);
@@ -156,6 +194,122 @@ function buildTags(exercise) {
   return uniqueStrings(tags.filter(Boolean));
 }
 
+function containsKeyword(value, keywords) {
+  const normalized = slugify(value).replace(/-/g, " ");
+  return keywords.some((keyword) => normalized.includes(keyword));
+}
+
+function inferQuestionnaireEnvironments(normalizedEquipment, mappedCategory) {
+  if (!normalizedEquipment || normalizedEquipment === "corpo libero") {
+    return ["casa", "palestra"];
+  }
+
+  if (
+    ["manubri", "elastico", "kettlebell", "fitball", "medball", "foam roller"].includes(
+      normalizedEquipment
+    )
+  ) {
+    return ["casa", "palestra"];
+  }
+
+  if (["macchina", "cavi", "bilanciere", "bilanciere ez"].includes(normalizedEquipment)) {
+    return ["palestra"];
+  }
+
+  if (mappedCategory === "cardio") {
+    return ["casa", "palestra"];
+  }
+
+  return ["da_verificare"];
+}
+
+function assessQuality(exercise, normalized) {
+  const rawCategory = normalizeText(exercise.category);
+  const rawEquipment = normalizeText(exercise.equipment);
+  const rawName = normalizeText(exercise.name);
+  const sourceFingerprint = [rawName, rawCategory, rawEquipment, normalizeText(exercise.force)]
+    .join(" ")
+    .toLowerCase();
+  const rawPrimaryMuscles = normalizeArray(exercise.primaryMuscles);
+  const normalizedPrimarySource = slugify(rawPrimaryMuscles[0]).replace(/-/g, " ");
+  const normalizedEquipmentSource = slugify(exercise.equipment).replace(/-/g, " ");
+  const normalizedCategorySource = slugify(exercise.category).replace(/-/g, " ");
+  const reviewWarnings = [];
+  const hasMappedPrimaryMuscle =
+    normalized.primaryMuscle !== "non specificato" && MUSCLE_MAP.has(normalizedPrimarySource);
+  const hasClearEquipment =
+    normalized.equipment !== null &&
+    normalized.equipment !== "altro" &&
+    EQUIPMENT_MAP.has(normalizedEquipmentSource);
+  const hasSourceInstructions = Boolean(normalized.instructions);
+  const hasImages = normalized.imageUrls.length > 0;
+  const specializedByKeyword =
+    containsKeyword(sourceFingerprint, SPECIALIZED_KEYWORDS) ||
+    SPECIALIZED_EQUIPMENT_KEYWORDS.some((keyword) =>
+      normalizedEquipmentSource.includes(keyword)
+    ) ||
+    normalizedCategorySource === "strongman";
+  const specializedOlympic =
+    normalizedCategorySource === "olympic weightlifting" &&
+    containsKeyword(rawName, SPECIALIZED_KEYWORDS);
+  const unclearCategory = !CATEGORY_MAP.has(normalizedCategorySource);
+  const equipmentIsOther = normalizedEquipmentSource === "other";
+  const equipmentUnmapped = Boolean(rawEquipment) && !EQUIPMENT_MAP.has(normalizedEquipmentSource);
+
+  if (normalized.primaryMuscle === "non specificato") {
+    reviewWarnings.push("Muscolo principale non mappato.");
+  }
+
+  if (!hasSourceInstructions) {
+    reviewWarnings.push("Istruzioni sorgente mancanti.");
+  }
+
+  if (!hasImages) {
+    reviewWarnings.push("Immagini mancanti.");
+  }
+
+  if (unclearCategory) {
+    reviewWarnings.push("Categoria sorgente non chiaramente mappata.");
+  }
+
+  if (equipmentIsOther) {
+    reviewWarnings.push('Attrezzatura sorgente impostata come "other".');
+  } else if (equipmentUnmapped) {
+    reviewWarnings.push("Attrezzatura sorgente non chiaramente mappata.");
+  }
+
+  if (specializedByKeyword || specializedOlympic) {
+    reviewWarnings.push("Richiede attrezzatura o contesto specialistico.");
+  }
+
+  let qualityStatus = "pending_review";
+
+  if (specializedByKeyword || specializedOlympic) {
+    qualityStatus = "specialized_equipment";
+  } else if (!hasMappedPrimaryMuscle || !hasClearEquipment || unclearCategory || !hasSourceInstructions) {
+    qualityStatus = "low_confidence";
+  } else if (!hasImages) {
+    qualityStatus = "missing_media";
+  } else if (hasMappedPrimaryMuscle && hasClearEquipment && hasSourceInstructions && hasImages) {
+    qualityStatus = "usable_candidate";
+  }
+
+  return {
+    needsTranslation: true,
+    hasImages,
+    imageCount: normalized.imageUrls.length,
+    qualityStatus,
+    reviewWarnings,
+    questionnaireContext: {
+      environments: inferQuestionnaireEnvironments(normalized.equipment, normalized.category),
+      equipment: normalized.equipment,
+      difficulty: normalized.difficulty,
+      limitations: reviewWarnings,
+      specialistWarning: qualityStatus === "specialized_equipment",
+    },
+  };
+}
+
 function normalizeExerciseRecord(exercise) {
   const externalId = normalizeText(exercise.id);
   const name = normalizeText(exercise.name);
@@ -164,24 +318,38 @@ function normalizeExerciseRecord(exercise) {
   const secondaryMuscles = normalizeArray(exercise.secondaryMuscles).map(mapMuscle);
   const imageUrls = buildImageUrls(exercise.images);
   const instructionSteps = normalizeArray(exercise.instructions);
+  const category = mapCategory(exercise.category);
+  const primaryMuscle = primaryMuscles[0] ?? "non specificato";
+  const equipment = mapEquipment(exercise.equipment);
+  const difficulty = mapDifficulty(exercise.level);
+  const instructions = instructionSteps.length > 0 ? instructionSteps.join("\n\n") : null;
+  const quality = assessQuality(exercise, {
+    primaryMuscle,
+    equipment,
+    category,
+    difficulty,
+    instructions,
+    imageUrls,
+  });
 
   return {
     externalId,
     name,
     slug,
-    category: mapCategory(exercise.category),
-    primaryMuscle: primaryMuscles[0] ?? "non specificato",
+    category,
+    primaryMuscle,
     secondaryMuscles,
-    equipment: mapEquipment(exercise.equipment),
-    difficulty: mapDifficulty(exercise.level),
+    equipment,
+    difficulty,
     movementPattern: null,
     environments: [PENDING_ENVIRONMENT],
     tags: buildTags(exercise),
     alternatives: [],
-    instructions: instructionSteps.length > 0 ? instructionSteps.join("\n\n") : null,
+    instructions,
     contraindications: [],
     imageUrls,
     sourceMetadata: {
+      ...quality,
       sourceImageBaseUrl: IMAGE_BASE_URL,
       rawCategory: exercise.category ?? null,
       rawEquipment: exercise.equipment ?? null,
@@ -223,6 +391,7 @@ async function main() {
       slug: true,
       externalSource: true,
       externalId: true,
+      sourceMetadata: true,
     },
   });
 
@@ -242,6 +411,11 @@ async function main() {
     updated: 0,
     skipped: 0,
     errors: 0,
+    withImages: 0,
+    withoutImages: 0,
+    usableCandidate: 0,
+    specializedEquipment: 0,
+    lowConfidence: 0,
   };
 
   for (const rawExercise of cappedDataset) {
@@ -296,12 +470,37 @@ async function main() {
         importedAt: new Date(),
       };
 
+      if (normalized.sourceMetadata.hasImages) {
+        summary.withImages += 1;
+      } else {
+        summary.withoutImages += 1;
+      }
+
+      if (normalized.sourceMetadata.qualityStatus === "usable_candidate") {
+        summary.usableCandidate += 1;
+      }
+
+      if (normalized.sourceMetadata.qualityStatus === "specialized_equipment") {
+        summary.specializedEquipment += 1;
+      }
+
+      if (normalized.sourceMetadata.qualityStatus === "low_confidence") {
+        summary.lowConfidence += 1;
+      }
+
       if (existingExternal) {
         const previousSlug = existingExternal.slug;
+        const mergedSourceMetadata = {
+          ...normalizeObject(existingExternal.sourceMetadata),
+          ...payload.sourceMetadata,
+        };
 
         await prisma.exercise.update({
           where: { id: existingExternal.id },
-          data: payload,
+          data: {
+            ...payload,
+            sourceMetadata: mergedSourceMetadata,
+          },
         });
 
         summary.updated += 1;
@@ -348,6 +547,11 @@ async function main() {
   console.log(`updated: ${summary.updated}`);
   console.log(`skipped: ${summary.skipped}`);
   console.log(`errors: ${summary.errors}`);
+  console.log(`con immagini: ${summary.withImages}`);
+  console.log(`senza immagini: ${summary.withoutImages}`);
+  console.log(`usable_candidate: ${summary.usableCandidate}`);
+  console.log(`specialized_equipment: ${summary.specializedEquipment}`);
+  console.log(`low_confidence: ${summary.lowConfidence}`);
 }
 
 main()

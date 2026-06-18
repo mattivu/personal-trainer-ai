@@ -231,6 +231,27 @@ export default async function DashboardPage() {
             </div>
           </div>
         </div>
+
+        <div className="mt-6 rounded-2xl border border-neutral-800 bg-neutral-900 p-6">
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-xl font-semibold">Libreria esercizi</h2>
+              <p className="mt-3 text-neutral-400">
+                Consulta gli esercizi interni e quelli importati con immagini,
+                dati tecnici e stato di revisione.
+              </p>
+            </div>
+
+            <div className="flex shrink-0 flex-col gap-3 sm:flex-row">
+              <Link
+                href="/exercise-library"
+                className="inline-flex justify-center rounded-xl border border-neutral-700 px-5 py-3 font-semibold text-neutral-100"
+              >
+                Apri libreria
+              </Link>
+            </div>
+          </div>
+        </div>
       </section>
 
       <AppBottomNav />
