@@ -15,6 +15,18 @@ type CreateDemoProgramButtonProps = {
   label?: string;
 };
 
+function getProgramCreationErrorMessage(message: string | undefined) {
+  if (!message) {
+    return "Errore durante la creazione del blocco di allenamento.";
+  }
+
+  if (message.toLowerCase().includes("programma incoerente")) {
+    return "Non sono riuscito a creare un blocco coerente con i giorni selezionati. Controlla il questionario o riprova.";
+  }
+
+  return message;
+}
+
 async function parseApiResponse(response: Response) {
   const contentType = response.headers.get("content-type") ?? "";
   const rawBody = await response.text();
@@ -88,7 +100,7 @@ export function CreateDemoProgramButton({
         }
 
         throw new Error(
-          message ?? "Errore durante la creazione del blocco di allenamento."
+          getProgramCreationErrorMessage(message)
         );
       }
 

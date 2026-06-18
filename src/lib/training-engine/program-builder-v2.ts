@@ -113,6 +113,10 @@ function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
 }
 
+function dedupeStrings(values: string[]) {
+  return [...new Set(values.filter(Boolean))];
+}
+
 function isLowRecoveryStrategy(strategy: TrainingStrategy) {
   return (
     strategy.intensity.defaultRir >= 3 ||
@@ -180,6 +184,105 @@ function getThemeMuscles(theme: SessionTheme) {
         MUSCLE_ALIASES[muscle].some((alias) => entry.includes(normalizeText(alias)))
       )
     );
+}
+
+function isLowerTheme(theme: SessionTheme) {
+  return getThemeMuscles(theme).some((muscle) => LOWER_MUSCLES.includes(muscle));
+}
+
+function isUpperTheme(theme: SessionTheme) {
+  const muscles = getThemeMuscles(theme);
+
+  return muscles.length > 0 && !muscles.every((muscle) => LOWER_MUSCLES.includes(muscle));
+}
+
+function mergeSessionThemes(baseTheme: SessionTheme, overflowTheme: SessionTheme): SessionTheme {
+  const overflowFocus = dedupeStrings([
+    ...overflowTheme.focus,
+    ...overflowTheme.secondaryFocus,
+  ]);
+  const mergedFocus = dedupeStrings([...baseTheme.focus, ...overflowTheme.focus]);
+  const mergedNotes = dedupeStrings([
+    ...baseTheme.notes,
+    ...overflowTheme.notes,
+    `Focus di ${overflowTheme.title} integrato nella seduta per restare entro i giorni selezionati.`,
+  ]);
+
+  return {
+    ...baseTheme,
+    focus: mergedFocus,
+    secondaryFocus: dedupeStrings([
+      ...baseTheme.secondaryFocus,
+      ...overflowFocus,
+    ]).filter((entry) => !mergedFocus.includes(entry)),
+    notes: mergedNotes,
+  };
+}
+
+function findThemeMergeTargetIndex(
+  keptThemes: SessionTheme[],
+  overflowTheme: SessionTheme
+) {
+  const overflowMuscles = getThemeMuscles(overflowTheme);
+  const overflowLower = overflowMuscles.some((muscle) => LOWER_MUSCLES.includes(muscle));
+  let bestIndex = keptThemes.length - 1;
+  let bestScore = Number.NEGATIVE_INFINITY;
+
+  for (const [index, candidate] of keptThemes.entries()) {
+    const candidateMuscles = getThemeMuscles(candidate);
+    const overlapScore = overflowMuscles.filter((muscle) =>
+      candidateMuscles.includes(muscle)
+    ).length;
+    const lowerCompatibility =
+      overflowLower === isLowerTheme(candidate)
+        ? 2
+        : overflowLower && !isUpperTheme(candidate)
+          ? 1
+          : 0;
+    const titleBonus =
+      normalizeText(candidate.title).includes("focus") ||
+      normalizeText(candidate.title).includes("special")
+        ? 1
+        : 0;
+    const score = overlapScore * 3 + lowerCompatibility + titleBonus;
+
+    if (score > bestScore) {
+      bestScore = score;
+      bestIndex = index;
+    }
+  }
+
+  return bestIndex;
+}
+
+function normalizeSessionThemesForVisibleDays(strategy: TrainingStrategy) {
+  const maxVisibleDays = clamp(strategy.weeklyTrainingDays || 3, 2, 6);
+  const plannedResistanceSessions = Math.min(
+    Math.max(strategy.split.weeklyResistanceSessions, 0),
+    strategy.split.sessionThemes.length
+  );
+  const plannedThemes = strategy.split.sessionThemes.slice(0, plannedResistanceSessions);
+
+  if (plannedThemes.length <= maxVisibleDays) {
+    return plannedThemes;
+  }
+
+  const keptThemes = plannedThemes
+    .slice(0, maxVisibleDays)
+    .map((theme) => ({
+      ...theme,
+      focus: [...theme.focus],
+      secondaryFocus: [...theme.secondaryFocus],
+      notes: [...theme.notes],
+    }));
+  const overflowThemes = plannedThemes.slice(maxVisibleDays);
+
+  for (const overflowTheme of overflowThemes) {
+    const targetIndex = findThemeMergeTargetIndex(keptThemes, overflowTheme);
+    keptThemes[targetIndex] = mergeSessionThemes(keptThemes[targetIndex], overflowTheme);
+  }
+
+  return keptThemes;
 }
 
 function getPrimaryThemeMuscles(theme: SessionTheme) {
@@ -1594,8 +1697,8 @@ export function buildProgramBlueprintV2(
   const focusedMuscles = getFocusedMuscles(strategy);
   const exposureCounts = new Map<StrategyMuscleKey, number>();
   const sessionBudget = getSessionSlotBudget(strategy, profile);
-  const resistanceWorkouts = strategy.split.sessionThemes
-    .slice(0, strategy.split.weeklyResistanceSessions)
+  const visibleSessionThemes = normalizeSessionThemesForVisibleDays(strategy);
+  const resistanceWorkouts = visibleSessionThemes
     .map((theme, index) => {
       const kind = getSessionKind(strategy.split.type, theme, index);
       const sessionId = theme.title.toLowerCase().replace(/[^a-z0-9]+/g, "_");
@@ -1620,8 +1723,12 @@ export function buildProgramBlueprintV2(
     strategy,
     resistanceWorkouts.length
   );
+  const visibleWorkouts = [...workoutsWithFinishers, ...dedicatedCardioWorkouts].slice(
+    0,
+    clamp(strategy.weeklyTrainingDays || 3, 2, 6)
+  );
 
-  return [...workoutsWithFinishers, ...dedicatedCardioWorkouts].map((workout) => ({
+  return visibleWorkouts.map((workout) => ({
     title: workout.title,
     focus: workout.focus,
     notes: workout.notes,

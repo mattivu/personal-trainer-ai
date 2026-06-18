@@ -966,16 +966,23 @@ export function getRecommendedSplit(
     );
   }
 
+  weeklyResistanceSessions = clamp(
+    weeklyResistanceSessions,
+    1,
+    weeklyTrainingDays
+  );
+  const sessionThemes = buildSessionThemes(
+    type,
+    weeklyResistanceSessions,
+    focusMuscles,
+    profile.goal.primary
+  ).slice(0, weeklyResistanceSessions);
+
   return {
     type,
     reason,
     weeklyResistanceSessions,
-    sessionThemes: buildSessionThemes(
-      type,
-      weeklyResistanceSessions,
-      focusMuscles,
-      profile.goal.primary
-    ),
+    sessionThemes,
   };
 }
 

@@ -20,6 +20,22 @@ import type { EngineExercise } from "@/lib/training-engine/types";
 export const runtime = "nodejs";
 const CURRENT_TRAINING_ENGINE_SOURCE = "rules_v2";
 
+function buildProgramConsistencyErrorMessage(report: {
+  expectedWeeklyTrainingDays: number;
+  actualWorkoutCount: number;
+  warnings: string[];
+}) {
+  if (report.warnings.includes("workout_count_exceeds_weekly_training_days")) {
+    return `Non sono riuscito a creare un blocco coerente con i giorni selezionati (${report.expectedWeeklyTrainingDays}). Il builder ha prodotto ${report.actualWorkoutCount} sedute. Controlla il questionario o riprova.`;
+  }
+
+  if (report.warnings.includes("cardio_missing_from_generated_program")) {
+    return "Non sono riuscito a integrare il cardio nel blocco senza rompere la struttura del programma. Controlla il questionario o riprova.";
+  }
+
+  return "Non sono riuscito a creare un blocco coerente con i giorni selezionati. Controlla il questionario o riprova.";
+}
+
 function resolveDemoExercise(
   exerciseMap: Map<string, { id: number; name: string }>,
   input: {
@@ -138,18 +154,14 @@ export async function POST() {
     if (
       consistencyReport.actualWorkoutCount > consistencyReport.expectedWeeklyTrainingDays
     ) {
-      throw new Error(
-        "Programma incoerente: numero di workout superiore ai giorni settimanali selezionati."
-      );
+      throw new Error(buildProgramConsistencyErrorMessage(consistencyReport));
     }
 
     if (
       trainingStrategy.cardio.weeklySessions > 0 &&
       consistencyReport.cardioSlotCount === 0
     ) {
-      throw new Error(
-        "Programma incoerente: la strategy prevede cardio ma il piano finale non contiene blocchi cardio visibili."
-      );
+      throw new Error(buildProgramConsistencyErrorMessage(consistencyReport));
     }
 
     const exerciseMap = new Map(

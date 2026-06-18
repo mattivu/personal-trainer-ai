@@ -15,6 +15,7 @@ export type ProgramConsistencyReport = {
   expectedWeeklyTrainingDays: number;
   actualWorkoutCount: number;
   cardioSlotCount: number;
+  dedicatedCardioWorkoutCount: number;
   splitType: TrainingStrategy["split"]["type"];
   focusMuscles: string[];
   warnings: string[];
@@ -123,6 +124,11 @@ export function validateGeneratedProgramConsistency(
     comparableGoal && goalSignals.includes(comparableGoal)
       ? comparableGoal
       : (goalSignals[0] ?? null);
+  const dedicatedCardioWorkoutCount = program.workouts.filter((workout) =>
+    normalizeText([workout.title, workout.focus, workout.notes].join(" ")).includes(
+      "cardio"
+    )
+  ).length;
   const cardioSlotCount = program.workouts.reduce((count, workout) => {
     const workoutSignals = detectGoalSignals(
       [workout.title, workout.focus, workout.notes].join(" ")
@@ -145,6 +151,14 @@ export function validateGeneratedProgramConsistency(
 
   if (program.workouts.length > strategy.weeklyTrainingDays) {
     warnings.push("workout_count_exceeds_weekly_training_days");
+  }
+
+  if (strategy.split.sessionThemes.length > strategy.weeklyTrainingDays) {
+    warnings.push("session_themes_exceed_weekly_training_days");
+  }
+
+  if (strategy.split.weeklyResistanceSessions > strategy.weeklyTrainingDays) {
+    warnings.push("weekly_resistance_sessions_exceed_weekly_training_days");
   }
 
   if (strategy.cardio.weeklySessions > 0 && cardioSlotCount === 0) {
@@ -171,6 +185,7 @@ export function validateGeneratedProgramConsistency(
     expectedWeeklyTrainingDays: strategy.weeklyTrainingDays,
     actualWorkoutCount: program.workouts.length,
     cardioSlotCount,
+    dedicatedCardioWorkoutCount,
     splitType: strategy.split.type,
     focusMuscles: [...strategy.volume.focusBoosts],
     warnings,
