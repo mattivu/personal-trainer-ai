@@ -4,10 +4,14 @@ import type { MealEntry } from "@prisma/client";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import {
-  MEAL_TYPE_OPTIONS,
+  formatNutritionNumber,
   getMealTypeLabel,
+  getQuantityLabel,
+  MEAL_TYPE_OPTIONS,
+  QUANTITY_UNIT_OPTIONS,
 } from "@/lib/nutrition/meals";
 import {
+  MEAL_BRAND_MAX_LENGTH,
   MEAL_NOTES_MAX_LENGTH,
   validateMealInput,
 } from "@/lib/nutrition/validation";
@@ -19,11 +23,15 @@ type MealEntryListProps = {
 type FormState = {
   mealType: string;
   name: string;
+  quantityValue: string;
+  quantityUnit: string;
+  brand: string;
   calories: string;
   protein: string;
   carbs: string;
   fat: string;
   notes: string;
+  nutritionSource: "manual" | "ai_estimate" | "";
 };
 
 type ApiErrorResponse = {
@@ -44,19 +52,23 @@ type DeleteApiResponse =
     }
   | ApiErrorResponse;
 
-function formatNumber(value: number) {
-  return new Intl.NumberFormat("it-IT").format(value);
-}
-
 function createFormState(meal: MealEntry): FormState {
   return {
     mealType: meal.mealType,
     name: meal.name,
+    quantityValue:
+      typeof meal.quantityValue === "number" ? String(meal.quantityValue) : "",
+    quantityUnit: meal.quantityUnit ?? "",
+    brand: meal.brand ?? "",
     calories: String(meal.calories),
     protein: String(meal.protein),
     carbs: String(meal.carbs),
     fat: String(meal.fat),
     notes: meal.notes ?? "",
+    nutritionSource:
+      meal.nutritionSource === "manual" || meal.nutritionSource === "ai_estimate"
+        ? meal.nutritionSource
+        : "",
   };
 }
 
@@ -91,6 +103,7 @@ export function MealEntryList({ meals: initialMeals }: MealEntryListProps) {
   const [message, setMessage] = useState<string | null>(null);
   const [pendingMealId, setPendingMealId] = useState<number | null>(null);
   const [pendingAction, setPendingAction] = useState<"save" | "delete" | null>(null);
+  const [showNutritionFields, setShowNutritionFields] = useState(false);
 
   useEffect(() => {
     setMeals(initialMeals);
@@ -105,6 +118,7 @@ export function MealEntryList({ meals: initialMeals }: MealEntryListProps) {
   function startEditing(meal: MealEntry) {
     setEditingMealId(meal.id);
     setForm(createFormState(meal));
+    setShowNutritionFields(false);
     setError(null);
     setMessage(null);
   }
@@ -112,6 +126,7 @@ export function MealEntryList({ meals: initialMeals }: MealEntryListProps) {
   function cancelEditing() {
     setEditingMealId(null);
     setForm(null);
+    setShowNutritionFields(false);
     setError(null);
   }
 
@@ -124,6 +139,7 @@ export function MealEntryList({ meals: initialMeals }: MealEntryListProps) {
 
     if (!mealInput.ok) {
       setError(mealInput.message);
+      setShowNutritionFields(true);
       return;
     }
 
@@ -138,7 +154,10 @@ export function MealEntryList({ meals: initialMeals }: MealEntryListProps) {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(mealInput.value),
+        body: JSON.stringify({
+          ...mealInput.value,
+          nutritionSource: mealInput.value.nutritionSource ?? "manual",
+        }),
       });
       const payload = await parseApiResponse<PatchApiResponse>(response);
 
@@ -156,6 +175,7 @@ export function MealEntryList({ meals: initialMeals }: MealEntryListProps) {
       );
       setEditingMealId(null);
       setForm(null);
+      setShowNutritionFields(false);
       setMessage("Pasto aggiornato.");
       refreshPage();
     } catch {
@@ -198,6 +218,7 @@ export function MealEntryList({ meals: initialMeals }: MealEntryListProps) {
       if (editingMealId === mealId) {
         setEditingMealId(null);
         setForm(null);
+        setShowNutritionFields(false);
       }
 
       setMessage("Pasto eliminato.");
@@ -230,6 +251,7 @@ export function MealEntryList({ meals: initialMeals }: MealEntryListProps) {
         meals.map((meal) => {
           const isEditing = editingMealId === meal.id && form !== null;
           const isPendingMeal = pendingMealId === meal.id;
+          const quantityLabel = getQuantityLabel(meal.quantityValue, meal.quantityUnit);
 
           return (
             <article
@@ -291,18 +313,18 @@ export function MealEntryList({ meals: initialMeals }: MealEntryListProps) {
                     </label>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                  <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_220px]">
                     <label className="space-y-2 text-sm text-neutral-200">
-                      <span>Calorie</span>
+                      <span>Quantità</span>
                       <input
-                        inputMode="numeric"
-                        value={form.calories}
+                        inputMode="decimal"
+                        value={form.quantityValue}
                         onChange={(event) =>
                           setForm((current) =>
                             current
                               ? {
                                   ...current,
-                                  calories: event.target.value,
+                                  quantityValue: event.target.value,
                                 }
                               : current
                           )
@@ -312,16 +334,43 @@ export function MealEntryList({ meals: initialMeals }: MealEntryListProps) {
                     </label>
 
                     <label className="space-y-2 text-sm text-neutral-200">
-                      <span>Proteine g</span>
-                      <input
-                        inputMode="numeric"
-                        value={form.protein}
+                      <span>Unità</span>
+                      <select
+                        value={form.quantityUnit}
                         onChange={(event) =>
                           setForm((current) =>
                             current
                               ? {
                                   ...current,
-                                  protein: event.target.value,
+                                  quantityUnit: event.target.value,
+                                }
+                              : current
+                          )
+                        }
+                        className="w-full rounded-xl border border-neutral-700 bg-neutral-950 px-4 py-3 text-white outline-none"
+                      >
+                        <option value="">Seleziona</option>
+                        {QUANTITY_UNIT_OPTIONS.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
+
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <label className="space-y-2 text-sm text-neutral-200">
+                      <span>Marca</span>
+                      <input
+                        value={form.brand}
+                        maxLength={MEAL_BRAND_MAX_LENGTH}
+                        onChange={(event) =>
+                          setForm((current) =>
+                            current
+                              ? {
+                                  ...current,
+                                  brand: event.target.value,
                                 }
                               : current
                           )
@@ -330,36 +379,18 @@ export function MealEntryList({ meals: initialMeals }: MealEntryListProps) {
                       />
                     </label>
 
-                    <label className="space-y-2 text-sm text-neutral-200">
-                      <span>Carboidrati g</span>
-                      <input
-                        inputMode="numeric"
-                        value={form.carbs}
+                    <label className="block space-y-2 text-sm text-neutral-200">
+                      <span>Note opzionali</span>
+                      <textarea
+                        rows={3}
+                        value={form.notes}
+                        maxLength={MEAL_NOTES_MAX_LENGTH}
                         onChange={(event) =>
                           setForm((current) =>
                             current
                               ? {
                                   ...current,
-                                  carbs: event.target.value,
-                                }
-                              : current
-                          )
-                        }
-                        className="w-full rounded-xl border border-neutral-700 bg-neutral-950 px-4 py-3 text-white outline-none"
-                      />
-                    </label>
-
-                    <label className="space-y-2 text-sm text-neutral-200">
-                      <span>Grassi g</span>
-                      <input
-                        inputMode="numeric"
-                        value={form.fat}
-                        onChange={(event) =>
-                          setForm((current) =>
-                            current
-                              ? {
-                                  ...current,
-                                  fat: event.target.value,
+                                  notes: event.target.value,
                                 }
                               : current
                           )
@@ -369,25 +400,109 @@ export function MealEntryList({ meals: initialMeals }: MealEntryListProps) {
                     </label>
                   </div>
 
-                  <label className="block space-y-2 text-sm text-neutral-200">
-                    <span>Note opzionali</span>
-                    <textarea
-                      rows={3}
-                      value={form.notes}
-                      maxLength={MEAL_NOTES_MAX_LENGTH}
-                      onChange={(event) =>
-                        setForm((current) =>
-                          current
-                            ? {
-                                ...current,
-                                notes: event.target.value,
-                              }
-                            : current
-                        )
-                      }
-                      className="w-full rounded-xl border border-neutral-700 bg-neutral-950 px-4 py-3 text-white outline-none"
-                    />
-                  </label>
+                  <div className="rounded-2xl border border-neutral-800 bg-neutral-950/60">
+                    <button
+                      type="button"
+                      onClick={() => setShowNutritionFields((current) => !current)}
+                      className="flex w-full items-center justify-between px-4 py-4 text-left"
+                    >
+                      <div>
+                        <p className="font-semibold text-white">
+                          Valori nutrizionali stimati
+                        </p>
+                        <p className="mt-1 text-sm text-neutral-400">
+                          Controlla e correggi i valori prima di salvare.
+                        </p>
+                      </div>
+                      <span className="text-sm text-neutral-400">
+                        {showNutritionFields ? "Chiudi" : "Apri"}
+                      </span>
+                    </button>
+
+                    {showNutritionFields ? (
+                      <div className="grid grid-cols-2 gap-4 border-t border-neutral-800 px-4 py-4 sm:grid-cols-4">
+                        <label className="space-y-2 text-sm text-neutral-200">
+                          <span>Calorie</span>
+                          <input
+                            inputMode="decimal"
+                            value={form.calories}
+                            onChange={(event) =>
+                              setForm((current) =>
+                                current
+                                  ? {
+                                      ...current,
+                                      calories: event.target.value,
+                                      nutritionSource: "manual",
+                                    }
+                                  : current
+                              )
+                            }
+                            className="w-full rounded-xl border border-neutral-700 bg-neutral-950 px-4 py-3 text-white outline-none"
+                          />
+                        </label>
+
+                        <label className="space-y-2 text-sm text-neutral-200">
+                          <span>Proteine g</span>
+                          <input
+                            inputMode="decimal"
+                            value={form.protein}
+                            onChange={(event) =>
+                              setForm((current) =>
+                                current
+                                  ? {
+                                      ...current,
+                                      protein: event.target.value,
+                                      nutritionSource: "manual",
+                                    }
+                                  : current
+                              )
+                            }
+                            className="w-full rounded-xl border border-neutral-700 bg-neutral-950 px-4 py-3 text-white outline-none"
+                          />
+                        </label>
+
+                        <label className="space-y-2 text-sm text-neutral-200">
+                          <span>Carboidrati g</span>
+                          <input
+                            inputMode="decimal"
+                            value={form.carbs}
+                            onChange={(event) =>
+                              setForm((current) =>
+                                current
+                                  ? {
+                                      ...current,
+                                      carbs: event.target.value,
+                                      nutritionSource: "manual",
+                                    }
+                                  : current
+                              )
+                            }
+                            className="w-full rounded-xl border border-neutral-700 bg-neutral-950 px-4 py-3 text-white outline-none"
+                          />
+                        </label>
+
+                        <label className="space-y-2 text-sm text-neutral-200">
+                          <span>Grassi g</span>
+                          <input
+                            inputMode="decimal"
+                            value={form.fat}
+                            onChange={(event) =>
+                              setForm((current) =>
+                                current
+                                  ? {
+                                      ...current,
+                                      fat: event.target.value,
+                                      nutritionSource: "manual",
+                                    }
+                                  : current
+                              )
+                            }
+                            className="w-full rounded-xl border border-neutral-700 bg-neutral-950 px-4 py-3 text-white outline-none"
+                          />
+                        </label>
+                      </div>
+                    ) : null}
+                  </div>
 
                   <div className="flex flex-col gap-3 sm:flex-row">
                     <button
@@ -421,14 +536,23 @@ export function MealEntryList({ meals: initialMeals }: MealEntryListProps) {
                       <h3 className="mt-2 font-semibold text-white">{meal.name}</h3>
                     </div>
                     <p className="text-sm font-semibold text-neutral-200">
-                      {formatNumber(meal.calories)} kcal
+                      {formatNutritionNumber(meal.calories)} kcal
                     </p>
                   </div>
 
+                  {quantityLabel ? (
+                    <p className="mt-3 text-sm text-neutral-400">Quantità: {quantityLabel}</p>
+                  ) : null}
+
                   <p className="mt-3 text-sm text-neutral-400">
-                    P {formatNumber(meal.protein)} g · C {formatNumber(meal.carbs)} g ·
-                    F {formatNumber(meal.fat)} g
+                    P {formatNutritionNumber(meal.protein)} g · C{" "}
+                    {formatNutritionNumber(meal.carbs)} g · F{" "}
+                    {formatNutritionNumber(meal.fat)} g
                   </p>
+
+                  {meal.brand ? (
+                    <p className="mt-3 text-sm text-neutral-400">Marca: {meal.brand}</p>
+                  ) : null}
 
                   {meal.notes ? (
                     <p className="mt-3 text-sm text-neutral-500">{meal.notes}</p>
