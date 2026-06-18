@@ -462,8 +462,7 @@ export function MealEntryList({ meals: initialMeals }: MealEntryListProps) {
         })
       ) : (
         <div className="rounded-2xl border border-dashed border-neutral-700 bg-neutral-950 p-5 text-sm text-neutral-400">
-          Nessun pasto registrato oggi. Inserisci il primo per vedere il
-          riepilogo della giornata.
+          Nessun pasto registrato per questo giorno.
         </div>
       )}
     </div>

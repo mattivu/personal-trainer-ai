@@ -3,7 +3,12 @@ import { redirect } from "next/navigation";
 import { AppBottomNav } from "@/components/app-bottom-nav";
 import { MealEntryForm } from "@/components/nutrition/meal-entry-form";
 import { MealEntryList } from "@/components/nutrition/meal-entry-list";
+import { NutritionDateControls } from "@/components/nutrition/nutrition-date-controls";
 import { calculateNutritionTargets } from "@/lib/nutrition/calculate-targets";
+import {
+  formatNutritionDateLabel,
+  parseNutritionDateQuery,
+} from "@/lib/nutrition/date";
 import {
   getDailyActivityCaloriesEstimate,
   getDailyNutritionData,
@@ -26,13 +31,6 @@ function formatNumber(value: number) {
   return new Intl.NumberFormat("it-IT").format(value);
 }
 
-function formatDate(dateKey: string) {
-  return new Intl.DateTimeFormat("it-IT", {
-    dateStyle: "full",
-    timeZone: "Europe/Rome",
-  }).format(new Date(`${dateKey}T12:00:00Z`));
-}
-
 function getConfidenceLabel(confidence: "low" | "medium" | "high") {
   switch (confidence) {
     case "high":
@@ -45,7 +43,13 @@ function getConfidenceLabel(confidence: "low" | "medium" | "high") {
   }
 }
 
-export default async function NutritionPage() {
+type NutritionPageProps = {
+  searchParams: Promise<{
+    date?: string | string[];
+  }>;
+};
+
+export default async function NutritionPage({ searchParams }: NutritionPageProps) {
   const user = await getCurrentUser();
 
   if (!user) {
@@ -56,6 +60,9 @@ export default async function NutritionPage() {
     redirect("/onboarding");
   }
 
+  const resolvedSearchParams = await searchParams;
+  const selectedDate = parseNutritionDateQuery(resolvedSearchParams.date);
+
   const [answers, userProfile, nutritionProfileResult, dailyData, activityEstimate] =
     await Promise.all([
       getMergedOnboardingAnswers(user.id),
@@ -65,8 +72,8 @@ export default async function NutritionPage() {
         },
       }),
       getOrCreateNutritionProfile(user.id),
-      getDailyNutritionData(user.id),
-      getDailyActivityCaloriesEstimate(user.id),
+      getDailyNutritionData(user.id, selectedDate.dateKey),
+      getDailyActivityCaloriesEstimate(user.id, selectedDate.dateKey),
     ]);
 
   const calculation = calculateNutritionTargets({
@@ -171,12 +178,31 @@ export default async function NutritionPage() {
               <p className="text-sm uppercase tracking-[0.2em] text-neutral-500">
                 Diario pasti
               </p>
-              <h2 className="mt-2 text-xl font-semibold">{formatDate(dailyData.date)}</h2>
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <h2 className="text-xl font-semibold">
+                  Diario del {formatNutritionDateLabel(dailyData.date)}
+                </h2>
+                {selectedDate.isToday ? (
+                  <span className="rounded-full border border-emerald-800 bg-emerald-950/40 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-emerald-200">
+                    Oggi
+                  </span>
+                ) : null}
+              </div>
             </div>
 
             <p className="text-sm text-neutral-500">
               Calorie registrate: {formatNumber(dailySummary.registered.calories)} kcal
             </p>
+          </div>
+
+          {selectedDate.message ? (
+            <div className="mt-4 rounded-2xl border border-amber-700/40 bg-amber-950/20 px-4 py-3 text-sm text-amber-100">
+              {selectedDate.message}
+            </div>
+          ) : null}
+
+          <div className="mt-5">
+            <NutritionDateControls selectedDate={dailyData.date} />
           </div>
 
           <div className="mt-6 grid gap-3 sm:grid-cols-2">
@@ -236,7 +262,7 @@ export default async function NutritionPage() {
           <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <p className="text-sm uppercase tracking-[0.2em] text-sky-200/70">
-                Attivita registrata oggi
+                Attivita del giorno
               </p>
               <h2 className="mt-2 text-xl font-semibold text-white">
                 {formatNumber(dailySummary.estimatedActivityCalories)} kcal stimate
@@ -256,7 +282,7 @@ export default async function NutritionPage() {
 
           {activityEstimate.activities.length === 0 ? (
             <div className="mt-5 rounded-2xl border border-sky-900/40 bg-neutral-950/60 p-4 text-sm text-neutral-300">
-              Nessuna attivita registrata oggi.
+              Nessuna attivita registrata per questo giorno.
             </div>
           ) : (
             <div className="mt-5 space-y-3">
@@ -297,7 +323,7 @@ export default async function NutritionPage() {
 
         <div className="mt-6 rounded-2xl border border-neutral-800 bg-neutral-900 p-6">
           <div className="flex items-center justify-between gap-4">
-            <h2 className="text-xl font-semibold">Pasti della giornata</h2>
+            <h2 className="text-xl font-semibold">Pasti del giorno</h2>
             <span className="text-sm text-neutral-500">
               {dailyData.meals.length} registrati
             </span>

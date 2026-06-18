@@ -1,6 +1,11 @@
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 import {
+  getSafeNutritionDate,
+  getTodayLocalDate,
+  isValidDateKey,
+} from "@/lib/nutrition/date";
+import {
   parseRequiredString,
   validateMealInput,
 } from "@/lib/nutrition/validation";
@@ -19,14 +24,6 @@ function isJsonSyntaxError(error: unknown) {
   return error instanceof SyntaxError;
 }
 
-function parseDateKey(value: string | null) {
-  if (!value) {
-    return null;
-  }
-
-  return /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : null;
-}
-
 export async function GET(request: Request) {
   try {
     const user = await getCurrentUser();
@@ -40,11 +37,18 @@ export async function GET(request: Request) {
 
     const { searchParams } = new URL(request.url);
     const rawDate = searchParams.get("date");
-    const dateKey = rawDate ? parseDateKey(rawDate) : undefined;
+    const dateKey = rawDate ? getSafeNutritionDate(rawDate) : undefined;
+
+    if (rawDate && !isValidDateKey(rawDate)) {
+      return NextResponse.json(
+        { ok: false, message: "date deve usare il formato YYYY-MM-DD." },
+        { status: 400 }
+      );
+    }
 
     if (rawDate && !dateKey) {
       return NextResponse.json(
-        { ok: false, message: "date deve usare il formato YYYY-MM-DD." },
+        { ok: false, message: "date non puo essere futura." },
         { status: 400 }
       );
     }
@@ -121,14 +125,21 @@ export async function POST(request: Request) {
       );
     }
 
-    if (rawDate && !parseDateKey(rawDate)) {
+    if (rawDate && !isValidDateKey(rawDate)) {
       return NextResponse.json(
         { ok: false, message: "date deve usare il formato YYYY-MM-DD." },
         { status: 400 }
       );
     }
 
-    const selectedDate = getDateRangeForLocalDay(rawDate ?? undefined);
+    if (rawDate && !getSafeNutritionDate(rawDate)) {
+      return NextResponse.json(
+        { ok: false, message: "Non puoi salvare pasti in una data futura." },
+        { status: 400 }
+      );
+    }
+
+    const selectedDate = getDateRangeForLocalDay(rawDate ?? getTodayLocalDate());
     const entryDate = new Date(selectedDate.start.getTime() + 12 * 60 * 60 * 1000);
 
     await prisma.mealEntry.create({

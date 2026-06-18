@@ -3,6 +3,11 @@ import type { MealEntry, NutritionProfile } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { mergeOnboardingAnswers } from "@/lib/training-engine/onboarding-profile";
 import {
+  getNutritionTimeZone,
+  getTodayLocalDate,
+  isValidDateKey,
+} from "./date";
+import {
   estimateDailyActivityCalories,
   type DailyActivityCaloriesEstimate,
 } from "./activity-calories";
@@ -34,13 +39,13 @@ export type DailyNutritionSummary = {
 
 function formatDateKey(date: Date) {
   return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Europe/Rome",
+    timeZone: getNutritionTimeZone(),
   }).format(date);
 }
 
 function getRomeOffset(date: Date) {
   const formatter = new Intl.DateTimeFormat("en-US", {
-    timeZone: "Europe/Rome",
+    timeZone: getNutritionTimeZone(),
     timeZoneName: "longOffset",
     hour: "2-digit",
   });
@@ -70,9 +75,10 @@ function getRomeOffset(date: Date) {
 }
 
 export function getDateRangeForLocalDay(dateKey?: string) {
-  const date = dateKey ? new Date(`${dateKey}T12:00:00Z`) : new Date();
+  const normalizedInput = dateKey && isValidDateKey(dateKey) ? dateKey : getTodayLocalDate();
+  const date = new Date(`${normalizedInput}T12:00:00Z`);
   const formatter = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Europe/Rome",
+    timeZone: getNutritionTimeZone(),
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
