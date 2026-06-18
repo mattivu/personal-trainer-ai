@@ -35,9 +35,15 @@ function resolveDemoExercise(
   const match = input.slugCandidates.find((slug) => exerciseMap.has(slug));
   const exercise = match ? exerciseMap.get(match) : null;
 
+  if (!exercise) {
+    throw new Error(
+      `Programma non persistibile: nessun Exercise reale trovato per "${input.nameFallback}".`
+    );
+  }
+
   return {
-    exerciseId: exercise?.id ?? null,
-    name: exercise?.name ?? input.nameFallback,
+    exerciseId: exercise.id,
+    name: exercise.name,
     sets: input.sets,
     reps: input.reps,
     restSeconds: input.restSeconds,

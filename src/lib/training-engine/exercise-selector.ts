@@ -72,6 +72,11 @@ type ScoredExercise = {
   reasons: string[];
 };
 
+type ExerciseWithInput = {
+  input: EngineExercise;
+  normalized: NormalizedExercise;
+};
+
 function normalizeText(value: string | null | undefined) {
   if (!value) {
     return "";
@@ -356,6 +361,88 @@ function buildReasonableFallbackCandidates(
   return [...fallbacks];
 }
 
+function buildExerciseCatalog(exercises: EngineExercise[]): ExerciseWithInput[] {
+  return exercises.map((exercise) => ({
+    input: exercise,
+    normalized: normalizeExercise(exercise),
+  }));
+}
+
+function selectRealFallbackExercise(
+  slot: ExerciseSlot,
+  onboardingProfile: NormalizedTrainingProfile | ExerciseAvailabilityProfile,
+  exercises: EngineExercise[],
+  context: SelectionContext
+) {
+  const profile =
+    "profile" in onboardingProfile ? onboardingProfile.profile : onboardingProfile;
+  const allowedCategories = slot.allowedCategories ?? [slot.category];
+  const catalog = buildExerciseCatalog(exercises);
+  const compatible = catalog.filter(({ input, normalized }) => {
+    const availability = getExerciseAvailabilityForUser(input, onboardingProfile);
+
+    if (!availability.eligible) {
+      return false;
+    }
+
+    if (!allowedCategories.includes(normalized.category)) {
+      return false;
+    }
+
+    if (
+      (profile.environment === "home" || profile.environment === "outdoor") &&
+      !matchesEnvironment(normalized, profile)
+    ) {
+      return false;
+    }
+
+    return true;
+  });
+
+  if (compatible.length === 0) {
+    return null;
+  }
+
+  const ranked = compatible
+    .map(({ normalized }) => {
+      let score = 0;
+
+      if (slot.fallbackSlugs?.includes(normalized.slug)) {
+        score += 80;
+      }
+
+      if (matchesEnvironment(normalized, profile)) {
+        score += 20;
+      }
+
+      if (slot.targetMuscles.includes(normalized.primaryMuscle)) {
+        score += 30;
+      } else if (hasAny(normalized.secondaryMuscles, slot.targetMuscles)) {
+        score += 12;
+      }
+
+      if (slot.movementPatterns.includes(normalized.movementPattern ?? "")) {
+        score += 18;
+      }
+
+      if (slot.preferredTags && hasAny(normalized.tags, slot.preferredTags)) {
+        score += 10;
+      }
+
+      if (context.selectedSlugs.has(normalized.slug)) {
+        score -= 15;
+      }
+
+      return {
+        exercise: normalized,
+        score,
+      };
+    })
+    .sort((left, right) => right.score - left.score);
+
+  return ranked[0]?.exercise ?? null;
+}
+
 export function scoreExerciseForSlot(
   exerciseInput: EngineExercise,
   slot: ExerciseSlot,
@@ -571,19 +658,35 @@ export function selectExerciseForSlot(
       : bestUnique ?? bestOverall;
 
   if (!selected) {
+    const realFallback = selectRealFallbackExercise(
+      slot,
+      onboardingProfile,
+      exercises,
+      context
+    );
+
+    if (!realFallback) {
+      throw new Error(
+        `No compatible Exercise record available for slot "${slot.slotId}" (${slot.label}).`
+      );
+    }
+
+    context.selectedSlugs.add(realFallback.slug);
+    context.slotSelections.set(slot.label, realFallback.slug);
+
     const prescription = {
       ...getPrescription(profile, slot.role),
       ...slot.prescriptionOverride,
     };
 
     return {
-      slugCandidates: slot.fallbackSlugs ?? [],
-      nameFallback: slot.label,
+      slugCandidates: [realFallback.slug, ...(slot.fallbackSlugs ?? [])],
+      nameFallback: realFallback.name,
       sets: prescription.sets,
       reps: prescription.reps,
       restSeconds: prescription.restSeconds,
       intensity: prescription.intensity,
-      notes: `${slot.notes} Selezione prudente: nessun esercizio perfetto trovato, usa una variante equivalente.`,
+      notes: `${slot.notes} Selezione prudente: nessun match perfetto trovato, usata una variante reale compatibile dal database.`,
     };
   }
 
