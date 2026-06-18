@@ -631,6 +631,32 @@ function getProgramTitle(profile: NormalizedTrainingProfile) {
   return `Programma ${getGoalLabel(profile.goal)} ${profile.daysPerWeek} giorni - ${getEnvironmentLabel(profile.environment)}`;
 }
 
+function getStrategyGoalLabel(goal: TrainingStrategy["goal"]) {
+  switch (goal) {
+    case "massa muscolare":
+      return "Massa muscolare";
+    case "forza":
+      return "Forza";
+    case "dimagrimento":
+      return "Dimagrimento";
+    case "ricomposizione":
+      return "Ricomposizione";
+    case "performance atletica":
+      return "Performance atletica";
+    case "mobilita/postura":
+      return "Mobilita/postura";
+    case "salute/mantenimento":
+      return "Salute/mantenimento";
+    case "altro":
+    default:
+      return "Obiettivo personalizzato";
+  }
+}
+
+function formatStrategySplitLabel(strategy: TrainingStrategy) {
+  return `${strategy.split.type.replaceAll("_", " ")} (${strategy.split.weeklyResistanceSessions} sedute pesi)`;
+}
+
 export function generateRuleBasedProgram(
   onboardingProfile: NormalizedTrainingProfile | ExerciseAvailabilityProfile,
   exercises: EngineExercise[],
@@ -640,7 +666,6 @@ export function generateRuleBasedProgram(
 ): GeneratedProgram {
   const profile =
     "profile" in onboardingProfile ? onboardingProfile.profile : onboardingProfile;
-  const split = getSplitDefinition(profile);
   const context = {
     selectedSlugs: new Set<string>(),
     slotSelections: new Map<string, string>(),
@@ -648,37 +673,54 @@ export function generateRuleBasedProgram(
   const workoutBlueprints = options?.trainingStrategy
     ? buildProgramBlueprintV2(options.trainingStrategy, profile)
     : buildWorkoutList(profile);
-  const workouts = workoutBlueprints.map((workout) => ({
-    title: workout.title,
-    focus: workout.focus,
-    estimatedMinutes:
-      profile.goal === "wellness"
-        ? Math.min(profile.sessionMinutes ?? 60, 55)
-        : profile.sessionMinutes ?? 60,
-    notes: workout.notes,
-    exercises: workout.slots.map((exerciseSlot) =>
-      selectExerciseForSlot(exerciseSlot, onboardingProfile, exercises, context)
-    ),
-  })) satisfies GeneratedWorkout[];
-  const notes = [
-    getProgramDisclaimer(profile).replace("Training Engine v1", "Training Engine v2"),
-    `Split scelta: ${split.label}.`,
-    profile.limitations.length > 0
-      ? `Limitazioni considerate: ${profile.limitations.join(", ")}.`
-      : "Limitazioni considerate: nessuna segnalazione specifica.",
-    options?.trainingStrategy
-      ? buildTrainingStrategySummary(options.trainingStrategy)
-      : null,
-    options?.trainingStrategy
-      ? `Indicazione cardio: ${options.trainingStrategy.cardio.weeklySessions}x ${options.trainingStrategy.cardio.minutesPerSession} min ${options.trainingStrategy.cardio.intensity}, da collocare ${options.trainingStrategy.cardio.placement.replaceAll("_", " ")} senza creare ancora sedute cardio dedicate.`
-      : null,
-  ]
-    .filter((note): note is string => Boolean(note))
-    .join("\n");
+  const workouts = workoutBlueprints.map((workout) => {
+    const workoutEstimatedMinutes =
+      "estimatedMinutes" in workout &&
+      typeof workout.estimatedMinutes === "number"
+        ? workout.estimatedMinutes
+        : undefined;
+
+    return {
+      title: workout.title,
+      focus: workout.focus,
+      estimatedMinutes:
+        workoutEstimatedMinutes ??
+        (profile.goal === "wellness"
+          ? Math.min(profile.sessionMinutes ?? 60, 55)
+          : profile.sessionMinutes ?? 60),
+      notes: workout.notes,
+      exercises: workout.slots.map((exerciseSlot) =>
+        selectExerciseForSlot(exerciseSlot, onboardingProfile, exercises, context)
+      ),
+    };
+  }) satisfies GeneratedWorkout[];
+  const notes = options?.trainingStrategy
+    ? [
+        "Programma creato con Training Engine v2 basato sul questionario v2 normalizzato.",
+        `Obiettivo usato: ${getStrategyGoalLabel(options.trainingStrategy.goal)}.`,
+        `Frequenza massima visibile: ${options.trainingStrategy.weeklyTrainingDays} sedute/settimana.`,
+        `Split reale: ${formatStrategySplitLabel(options.trainingStrategy)}.`,
+        profile.limitations.length > 0
+          ? `Limitazioni considerate: ${profile.limitations.join(", ")}.`
+          : "Limitazioni considerate: nessuna segnalazione specifica.",
+        buildTrainingStrategySummary(options.trainingStrategy),
+        `Cardio integrato nel piano: ${options.trainingStrategy.cardio.weeklySessions} sessioni da ${options.trainingStrategy.cardio.minutesPerSession} min ${options.trainingStrategy.cardio.intensity}, distribuite ${options.trainingStrategy.cardio.placement.replaceAll("_", " ")} senza superare i giorni visibili scelti.`,
+      ].join("\n")
+    : [
+        getProgramDisclaimer(profile).replace("Training Engine v1", "Training Engine v2"),
+        `Split scelta: ${getSplitDefinition(profile).label}.`,
+        profile.limitations.length > 0
+          ? `Limitazioni considerate: ${profile.limitations.join(", ")}.`
+          : "Limitazioni considerate: nessuna segnalazione specifica.",
+      ].join("\n");
 
   return {
-    title: getProgramTitle(profile),
-    goal: getGoalLabel(profile.goal),
+    title: options?.trainingStrategy
+      ? `Programma ${getStrategyGoalLabel(options.trainingStrategy.goal)} ${options.trainingStrategy.weeklyTrainingDays} giorni - ${getEnvironmentLabel(profile.environment)}`
+      : getProgramTitle(profile),
+    goal: options?.trainingStrategy
+      ? getStrategyGoalLabel(options.trainingStrategy.goal)
+      : getGoalLabel(profile.goal),
     notes,
     workouts,
   };

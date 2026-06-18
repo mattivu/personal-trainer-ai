@@ -12,7 +12,13 @@ import type { GeneratedExercise } from "./types";
 
 type ExerciseDifficulty = "beginner" | "intermediate" | "advanced";
 type ExerciseCategory = "strength" | "core" | "mobility" | "prehab" | "cardio";
-type SlotPriority = "main" | "secondary" | "accessory" | "isolation" | "core";
+type SlotPriority =
+  | "main"
+  | "secondary"
+  | "accessory"
+  | "isolation"
+  | "core"
+  | "cardio";
 
 export type ExercisePrescriptionOverride = {
   sets?: number;
@@ -377,14 +383,6 @@ export function scoreExerciseForSlot(
       exercise,
       score: Number.NEGATIVE_INFINITY,
       reasons: ["category_mismatch"],
-    } satisfies ScoredExercise;
-  }
-
-  if (exercise.category === "cardio" && profile.goal === "hypertrophy") {
-    return {
-      exercise,
-      score: Number.NEGATIVE_INFINITY,
-      reasons: ["cardio_not_allowed"],
     } satisfies ScoredExercise;
   }
 

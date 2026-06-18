@@ -33,8 +33,25 @@ function valueToString(value: unknown) {
   return null;
 }
 
-function getText(values: Array<string | null | undefined>) {
-  return normalizeText(values.filter(Boolean).join(" "));
+function collectTextValues(value: unknown): string[] {
+  if (
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean"
+  ) {
+    const normalized = normalizeText(String(value));
+    return normalized ? [normalized] : [];
+  }
+
+  if (Array.isArray(value)) {
+    return value.flatMap((entry) => collectTextValues(entry));
+  }
+
+  return [];
+}
+
+function getText(values: unknown[]) {
+  return normalizeText(values.flatMap((entry) => collectTextValues(entry)).join(" "));
 }
 
 function includesAny(text: string, matches: string[]) {
@@ -278,38 +295,50 @@ export function normalizeOnboardingAnswers(
 ): NormalizedTrainingProfile {
   const answers = isPlainObject(answersJson) ? answersJson : {};
   const goalText = getText([
+    answers.obiettivoTraining,
     valueToString(answers.obiettivo),
     valueToString(answers.interesseNutrizione),
     valueToString(answers.risultatoDesiderato),
     valueToString(answers.perche),
+    answers.obiettivoCardio,
   ]);
   const experienceText = getText([
+    answers.livelloEsperienza,
     valueToString(answers.esperienza),
     valueToString(answers.tempoEsperienza),
     valueToString(answers.schedaStrutturata),
   ]);
   const environmentText = getText([
-    valueToString(answers.luogo),
-    valueToString(answers.attrezzatura),
-    valueToString(answers.accessoAttrezzatura),
+    answers.luogo,
+    answers.attrezzaturaDettagliata,
+    answers.attrezzatura,
+    answers.accessoAttrezzatura,
+    answers.attrezzaturaCardioDisponibile,
   ]);
   const equipmentText = getText([
-    valueToString(answers.attrezzatura),
-    valueToString(answers.accessoAttrezzatura),
-    valueToString(answers.limitiLogistici),
+    answers.attrezzaturaDettagliata,
+    answers.attrezzaturaCardioDisponibile,
+    answers.attrezzatura,
+    answers.accessoAttrezzatura,
+    answers.limitiLogistici,
   ]);
   const limitationsText = getText([
-    valueToString(answers.doloriInfortuni),
-    valueToString(answers.movimentiDaEvitare),
-    valueToString(answers.infortuniLimitazioni),
-    valueToString(answers.eserciziDaEvitare),
-    valueToString(answers.limitiLogistici),
+    answers.condizioniMedicheRilevanti,
+    answers.doloriInfortuni,
+    answers.movimentiDaEvitare,
+    answers.infortuniLimitazioni,
+    answers.eserciziDaEvitare,
+    answers.eserciziCheDannoFastidio,
+    answers.limitiLogistici,
+    answers.tolleranzaCardio,
   ]);
   const preferenceText = getText([
-    valueToString(answers.tipoAllenamentoPreferito),
-    valueToString(answers.attivitaPiacciono),
-    valueToString(answers.attivitaNonPiacciono),
-    valueToString(answers.allenamentiRipetitiviVariati),
+    answers.tipoAllenamentoPreferito,
+    answers.preferenzaSplit,
+    answers.preferenzeCardio,
+    answers.attivitaPiacciono,
+    answers.attivitaNonPiacciono,
+    answers.allenamentiRipetitiviVariati,
   ]);
 
   return {

@@ -10,6 +10,7 @@ export type ProgramWorkoutBlueprintV2 = {
   title: string;
   focus: string;
   notes: string;
+  estimatedMinutes?: number;
   slots: ExerciseSlot[];
 };
 
@@ -51,6 +52,27 @@ type SlotRecipeInput = {
   fallbackSlugs?: string[];
   volumeMuscle?: StrategyMuscleKey;
   repsBias?: "main" | "secondary" | "pump" | "core" | "mobility";
+  prescriptionOverride?: ExerciseSlot["prescriptionOverride"];
+};
+
+type DraftWorkoutBlueprint = {
+  title: string;
+  focus: string;
+  notes: string;
+  kind: SessionKind;
+  sessionId: string;
+  estimatedMinutes?: number;
+  recipes: SlotRecipeInput[];
+};
+
+type CardioBlueprintMode = {
+  label: string;
+  workoutTitle: string;
+  focus: string;
+  fallbackSlugs: string[];
+  preferredTags: string[];
+  avoidTags: string[];
+  highImpact: boolean;
 };
 
 const LOWER_MUSCLES: StrategyMuscleKey[] = [
@@ -462,6 +484,7 @@ function createSlot(
       reps: getRepsByRole(input.role, strategy, input.repsBias, profile),
       intensity: getIntensityForRole(input.role, strategy, input.repsBias),
       restSeconds: getRestSeconds(input.role),
+      ...input.prescriptionOverride,
     },
   };
 }
@@ -775,6 +798,334 @@ function addMobility(sessionId: string, note: string): SlotRecipeInput {
   };
 }
 
+function isLowerSessionKind(kind: SessionKind) {
+  return kind === "lower_a" || kind === "lower_b" || kind === "legs" || kind === "lower_focus";
+}
+
+function isUpperBiasedSessionKind(kind: SessionKind) {
+  return (
+    kind === "upper_a" ||
+    kind === "upper_b" ||
+    kind === "push" ||
+    kind === "pull" ||
+    kind === "upper_focus" ||
+    kind === "chest" ||
+    kind === "back" ||
+    kind === "shoulders" ||
+    kind === "arms" ||
+    kind === "specialization"
+  );
+}
+
+function getCardioPriority(strategy: TrainingStrategy): NonNullable<ExerciseSlot["priority"]> {
+  switch (strategy.goal) {
+    case "dimagrimento":
+      return "secondary";
+    case "ricomposizione":
+    case "salute/mantenimento":
+    case "performance atletica":
+      return "accessory";
+    case "massa muscolare":
+    case "forza":
+    default:
+      return "cardio";
+  }
+}
+
+function getDefaultLowImpactCardioMode(
+  strategy: TrainingStrategy
+): CardioBlueprintMode {
+  switch (strategy.goal) {
+    case "massa muscolare":
+    case "forza":
+      return {
+        label: "Bike Zone 2",
+        workoutTitle: "Cardio Zone 2",
+        focus: "Base aerobica leggera e recupero",
+        fallbackSlugs: ["bike-cyclette", "camminata-treadmill", "ellittica"],
+        preferredTags: ["low_impact", "cardio", "beginner_friendly"],
+        avoidTags: ["high_impact"],
+        highImpact: false,
+      };
+    case "salute/mantenimento":
+    case "mobilita/postura":
+      return {
+        label: "Camminata attiva",
+        workoutTitle: "Camminata attiva",
+        focus: "Cardio sostenibile e salute generale",
+        fallbackSlugs: [
+          "camminata-treadmill",
+          "camminata-veloce-outdoor",
+          "bike-cyclette",
+        ],
+        preferredTags: ["low_impact", "cardio", "beginner_friendly"],
+        avoidTags: ["high_impact"],
+        highImpact: false,
+      };
+    case "dimagrimento":
+    case "ricomposizione":
+    case "performance atletica":
+    default:
+      return {
+        label: "Camminata inclinata",
+        workoutTitle: "Cardio Zone 2",
+        focus: "Dispendio sostenibile e base aerobica",
+        fallbackSlugs: ["camminata-inclinata", "bike-cyclette", "camminata-treadmill"],
+        preferredTags: ["low_impact", "conditioning", "cardio"],
+        avoidTags: ["high_impact"],
+        highImpact: false,
+      };
+  }
+}
+
+function getCardioMode(
+  strategy: TrainingStrategy,
+  options?: {
+    preferLowImpact?: boolean;
+  }
+): CardioBlueprintMode {
+  const requested = strategy.cardio.preferredModalities
+    .map((entry) => normalizeText(entry))
+    .filter(Boolean);
+  const fallback = getDefaultLowImpactCardioMode(strategy);
+
+  for (const modality of requested) {
+    if (modality.includes("camminata") && modality.includes("inclin")) {
+      return {
+        label: "Camminata inclinata",
+        workoutTitle: "Cardio Zone 2",
+        focus: "Cardio low impact e costanza aerobica",
+        fallbackSlugs: ["camminata-inclinata", "camminata-treadmill", "stair-climber"],
+        preferredTags: ["low_impact", "conditioning", "cardio"],
+        avoidTags: ["high_impact"],
+        highImpact: false,
+      };
+    }
+
+    if (modality.includes("camminata")) {
+      return {
+        label: "Camminata attiva",
+        workoutTitle: "Camminata attiva",
+        focus: "Cardio leggero, passi e recupero",
+        fallbackSlugs: [
+          "camminata-treadmill",
+          "camminata-veloce-outdoor",
+          "camminata-inclinata",
+        ],
+        preferredTags: ["low_impact", "cardio", "beginner_friendly"],
+        avoidTags: ["high_impact"],
+        highImpact: false,
+      };
+    }
+
+    if (modality.includes("bike") || modality.includes("cyclette")) {
+      return {
+        label: "Bike Zone 2",
+        workoutTitle: "Cardio Zone 2",
+        focus: "Bike/cyclette a impatto basso",
+        fallbackSlugs: ["bike-cyclette", "assault-bike", "ellittica"],
+        preferredTags: ["low_impact", "cardio", "conditioning"],
+        avoidTags: ["high_impact"],
+        highImpact: false,
+      };
+    }
+
+    if (modality.includes("vogatore")) {
+      return {
+        label: "Vogatore moderato",
+        workoutTitle: "Cardio vogatore",
+        focus: "Base aerobica su vogatore",
+        fallbackSlugs: ["vogatore", "bike-cyclette", "ellittica"],
+        preferredTags: ["low_impact", "conditioning", "cardio"],
+        avoidTags: ["high_impact"],
+        highImpact: false,
+      };
+    }
+
+    if (modality.includes("stair")) {
+      return {
+        label: "Stair climber leggero",
+        workoutTitle: "Cardio stair climber",
+        focus: "Condizionamento controllato a basso impatto",
+        fallbackSlugs: ["stair-climber", "camminata-inclinata", "ellittica"],
+        preferredTags: ["conditioning", "cardio"],
+        avoidTags: ["high_impact", "knee_caution"],
+        highImpact: false,
+      };
+    }
+
+    if (modality.includes("corsa")) {
+      const mode = {
+        label: "Corsa facile",
+        workoutTitle: "Corsa facile",
+        focus: "Cardio aerobico in ritmo controllato",
+        fallbackSlugs: ["camminata-veloce-outdoor", "camminata-treadmill", "assault-bike"],
+        preferredTags: ["cardio"],
+        avoidTags: ["knee_caution"],
+        highImpact: true,
+      };
+      return options?.preferLowImpact ? fallback : mode;
+    }
+
+    if (modality.includes("hiit")) {
+      const mode = {
+        label: "Conditioning breve",
+        workoutTitle: "Conditioning breve",
+        focus: "Conditioning breve e controllato",
+        fallbackSlugs: ["assault-bike", "battle-rope", "mountain-climber"],
+        preferredTags: ["conditioning", "cardio"],
+        avoidTags: ["knee_caution"],
+        highImpact: true,
+      };
+      return options?.preferLowImpact ? fallback : mode;
+    }
+
+    if (modality.includes("circuit")) {
+      return {
+        label: "Circuito breve a basso impatto",
+        workoutTitle: "Conditioning leggero",
+        focus: "Circuito metabolico breve e sostenibile",
+        fallbackSlugs: ["farmer-walk", "battle-rope", "assault-bike"],
+        preferredTags: ["conditioning", "cardio", "low_impact"],
+        avoidTags: ["high_impact"],
+        highImpact: false,
+      };
+    }
+
+    if (modality.includes("sport") || modality.includes("outdoor")) {
+      return {
+        label: "Outdoor cardio leggero",
+        workoutTitle: "Outdoor cardio",
+        focus: "Cardio sostenibile fuori sala pesi",
+        fallbackSlugs: [
+          "camminata-veloce-outdoor",
+          "camminata-treadmill",
+          "bike-cyclette",
+        ],
+        preferredTags: ["low_impact", "cardio"],
+        avoidTags: ["high_impact"],
+        highImpact: false,
+      };
+    }
+  }
+
+  return fallback;
+}
+
+function getCardioMinutes(
+  strategy: TrainingStrategy,
+  options: {
+    dedicated: boolean;
+    lowerDay: boolean;
+  }
+) {
+  const base = strategy.cardio.minutesPerSession;
+
+  if (options.dedicated) {
+    if (strategy.goal === "dimagrimento") {
+      return clamp(base, 20, 35);
+    }
+
+    if (strategy.goal === "massa muscolare" || strategy.goal === "forza") {
+      return clamp(base, 15, 25);
+    }
+
+    return clamp(base, 20, 35);
+  }
+
+  if (options.lowerDay) {
+    if (strategy.goal === "dimagrimento") {
+      return clamp(base - 5, 15, 25);
+    }
+
+    return clamp(base - 5, 10, 15);
+  }
+
+  if (strategy.goal === "dimagrimento") {
+    return clamp(base, 20, 35);
+  }
+
+  if (strategy.goal === "massa muscolare" || strategy.goal === "forza") {
+    return clamp(base, 10, 25);
+  }
+
+  return clamp(base, 15, 30);
+}
+
+function getCardioPrescriptionText(
+  strategy: TrainingStrategy,
+  minutes: number,
+  mode: CardioBlueprintMode,
+  dedicated: boolean
+) {
+  const zoneHint =
+    strategy.cardio.intensity === "low" || mode.highImpact
+      ? "ritmo conversazionale"
+      : strategy.cardio.intensity === "mixed"
+        ? "base aerobica o intervalli brevi controllati"
+        : "ritmo continuo moderato";
+  const locationHint = dedicated
+    ? "meglio in giorno separato o lontano dal lower pesante"
+    : "come chiusura senza rubare qualita al lavoro pesi";
+
+  return `${minutes} min totali, ${zoneHint}; ${locationHint}.`;
+}
+
+function createCardioRecipe(
+  sessionId: string,
+  strategy: TrainingStrategy,
+  options: {
+    key: string;
+    dedicated: boolean;
+    lowerDay: boolean;
+    notePrefix: string;
+    forceLowImpact?: boolean;
+  }
+): SlotRecipeInput {
+  const mode = getCardioMode(strategy, {
+    preferLowImpact: options.forceLowImpact || options.lowerDay,
+  });
+  const minutes = getCardioMinutes(strategy, {
+    dedicated: options.dedicated,
+    lowerDay: options.lowerDay,
+  });
+  const intensityLabel =
+    strategy.cardio.intensity === "mixed" && !mode.highImpact
+      ? "Zone 2 o moderato"
+      : strategy.cardio.intensity === "low"
+        ? "Zone 2 / facile"
+        : strategy.cardio.intensity === "moderate"
+          ? "Moderato sostenibile"
+          : "Breve e brillante";
+
+  return {
+    sessionId,
+    key: options.key,
+    label: mode.label,
+    role: "cardio",
+    priority: getCardioPriority(strategy),
+    category: "cardio",
+    allowedCategories: ["cardio"],
+    targetMuscles: ["cardio", "quadricipiti", "glutei", "core"],
+    movementPatterns: ["cardio", "carry"],
+    preferredTags: mode.preferredTags,
+    avoidTags: mode.avoidTags,
+    notes: `${options.notePrefix} ${getCardioPrescriptionText(
+      strategy,
+      minutes,
+      mode,
+      options.dedicated
+    )}`,
+    fallbackSlugs: mode.fallbackSlugs,
+    prescriptionOverride: {
+      sets: 1,
+      reps: `${minutes} min`,
+      intensity: intensityLabel,
+      restSeconds: 0,
+    },
+  };
+}
+
 function getFocusSlot(
   sessionId: string,
   focusMuscle: StrategyMuscleKey
@@ -867,7 +1218,7 @@ function buildRecipesForSession(
         addBiceps(sessionId, "Accessorio breve per migliorare qualita e completare il richiamo upper."),
         getThemeMuscles(theme).includes("core")
           ? addCore(sessionId, "Core o controllo posturale a fine seduta.")
-          : addMobility(sessionId, "Chiusura tecnica leggera, lasciando il cardio solo come indicazione generale nelle note programma.")
+          : addMobility(sessionId, "Chiusura tecnica leggera per postura e controllo, lasciando spazio a eventuale cardio integrato nella seduta.")
       );
       break;
     case "upper_a":
@@ -1028,23 +1379,184 @@ function trimRecipes(
     main: 0,
     secondary: 1,
     accessory: 2,
+    cardio: 3,
     isolation: 3,
     core: 4,
   };
+  const rankedRecipes = recipes
+    .map((recipe, index) => ({ recipe, index }))
+    .sort(
+      (left, right) =>
+        priorities[left.recipe.priority] - priorities[right.recipe.priority] ||
+        left.index - right.index
+    );
+  const keptRecipes = rankedRecipes.slice(0, maxSlots);
 
   const keepKeys = new Set(
-    recipes
-      .map((recipe, index) => ({ recipe, index }))
-      .sort(
-        (left, right) =>
-          priorities[left.recipe.priority] - priorities[right.recipe.priority] ||
-          left.index - right.index
-      )
-      .slice(0, maxSlots)
-      .map(({ recipe }) => recipe.key)
+    keptRecipes.map(({ recipe }) => recipe.key)
   );
+  const cardioRecipe = recipes.find((recipe) => recipe.role === "cardio");
+
+  if (cardioRecipe && !keepKeys.has(cardioRecipe.key)) {
+    const replacement =
+      [...keptRecipes]
+        .reverse()
+        .find(
+          ({ recipe }) => recipe.priority === "core" || recipe.priority === "isolation"
+        ) ??
+      [...keptRecipes]
+        .reverse()
+        .find(({ recipe }) => recipe.priority === "accessory") ??
+      keptRecipes[keptRecipes.length - 1];
+
+    if (replacement) {
+      keepKeys.delete(replacement.recipe.key);
+      keepKeys.add(cardioRecipe.key);
+    }
+  }
 
   return recipes.filter((recipe) => keepKeys.has(recipe.key));
+}
+
+function getDedicatedCardioSessionsCount(
+  strategy: TrainingStrategy,
+  resistanceWorkoutCount: number
+) {
+  const availableSeparateDays = Math.max(
+    strategy.weeklyTrainingDays - resistanceWorkoutCount,
+    0
+  );
+
+  if (availableSeparateDays === 0) {
+    return 0;
+  }
+
+  if (strategy.cardio.placement === "separate_days") {
+    return Math.min(strategy.cardio.weeklySessions, availableSeparateDays);
+  }
+
+  if (strategy.cardio.placement === "mixed") {
+    return Math.min(
+      availableSeparateDays,
+      Math.max(1, Math.floor(strategy.cardio.weeklySessions / 2))
+    );
+  }
+
+  return 0;
+}
+
+function getCardioFinisherCandidates(workouts: DraftWorkoutBlueprint[]) {
+  return [...workouts].sort((left, right) => {
+    const leftUpper = isUpperBiasedSessionKind(left.kind) ? 1 : 0;
+    const rightUpper = isUpperBiasedSessionKind(right.kind) ? 1 : 0;
+    const leftLower = isLowerSessionKind(left.kind) ? 1 : 0;
+    const rightLower = isLowerSessionKind(right.kind) ? 1 : 0;
+
+    if (leftUpper !== rightUpper) {
+      return rightUpper - leftUpper;
+    }
+
+    if (leftLower !== rightLower) {
+      return leftLower - rightLower;
+    }
+
+    return left.recipes.length - right.recipes.length;
+  });
+}
+
+function attachCardioFinishers(
+  workouts: DraftWorkoutBlueprint[],
+  strategy: TrainingStrategy
+) {
+  const finisherCount = Math.max(
+    0,
+    strategy.cardio.weeklySessions -
+      getDedicatedCardioSessionsCount(strategy, workouts.length)
+  );
+
+  if (finisherCount === 0) {
+    return workouts;
+  }
+
+  const candidates = getCardioFinisherCandidates(workouts);
+
+  for (let index = 0; index < finisherCount && index < candidates.length; index += 1) {
+    const workout = candidates[index];
+    const lowerDay = isLowerSessionKind(workout.kind);
+    const notePrefix = lowerDay
+      ? "Blocco cardio breve e leggero per aumentare il dispendio senza appesantire troppo il lower day."
+      : "Blocco cardio finale inserito per dare volume aerobico senza togliere priorita al lavoro pesi.";
+
+    workout.recipes.push(
+      createCardioRecipe(workout.sessionId, strategy, {
+        key: `cardio_${index + 1}`,
+        dedicated: false,
+        lowerDay,
+        forceLowImpact: lowerDay || strategy.goal === "massa muscolare" || strategy.goal === "forza",
+        notePrefix,
+      })
+    );
+    workout.notes = `${workout.notes} Cardio finale: ${getCardioMinutes(strategy, {
+      dedicated: false,
+      lowerDay,
+    })} min ${lowerDay ? "leggero" : strategy.cardio.intensity}.`;
+  }
+
+  return workouts;
+}
+
+function createDedicatedCardioWorkouts(
+  strategy: TrainingStrategy,
+  resistanceWorkoutCount: number
+) {
+  const dedicatedCount = getDedicatedCardioSessionsCount(
+    strategy,
+    resistanceWorkoutCount
+  );
+
+  if (dedicatedCount === 0) {
+    return [] as DraftWorkoutBlueprint[];
+  }
+
+  return Array.from({ length: dedicatedCount }, (_, index) => {
+    const sessionId = `cardio_${index + 1}`;
+    const mode = getCardioMode(strategy, {
+      preferLowImpact:
+        strategy.goal === "massa muscolare" ||
+        strategy.goal === "forza" ||
+        isLowRecoveryStrategy(strategy),
+    });
+    const minutes = getCardioMinutes(strategy, {
+      dedicated: true,
+      lowerDay: false,
+    });
+
+    return {
+      title: dedicatedCount > 1 ? `${mode.workoutTitle} ${index + 1}` : mode.workoutTitle,
+      focus: mode.focus,
+      notes:
+        "Seduta cardio dedicata inserita per rispettare frequenza e recupero della strategy. " +
+        getCardioPrescriptionText(strategy, minutes, mode, true),
+      kind: "specialization",
+      sessionId,
+      estimatedMinutes: minutes,
+      recipes: [
+        createCardioRecipe(sessionId, strategy, {
+          key: "dedicated_cardio",
+          dedicated: true,
+          lowerDay: false,
+          forceLowImpact:
+            strategy.goal === "massa muscolare" ||
+            strategy.goal === "forza" ||
+            isLowRecoveryStrategy(strategy),
+          notePrefix:
+            strategy.cardio.placement === "separate_days"
+              ? "Seduta separata di cardio/conditioning, utile per tenere piu pulito il lavoro con i pesi."
+              : "Seduta cardio dedicata per distribuire meglio il conditioning nella settimana.",
+        }),
+      ],
+    };
+  });
 }
 
 function buildWorkoutFocus(theme: SessionTheme, focusMuscle: StrategyMuscleKey | null) {
@@ -1082,17 +1594,13 @@ export function buildProgramBlueprintV2(
   const focusedMuscles = getFocusedMuscles(strategy);
   const exposureCounts = new Map<StrategyMuscleKey, number>();
   const sessionBudget = getSessionSlotBudget(strategy, profile);
-
-  return strategy.split.sessionThemes
+  const resistanceWorkouts = strategy.split.sessionThemes
     .slice(0, strategy.split.weeklyResistanceSessions)
     .map((theme, index) => {
       const kind = getSessionKind(strategy.split.type, theme, index);
       const sessionId = theme.title.toLowerCase().replace(/[^a-z0-9]+/g, "_");
       const focusMuscle = getFocusMuscleForSession(theme, focusedMuscles, exposureCounts);
-      const recipes = trimRecipes(
-        buildRecipesForSession(kind, sessionId, theme, focusMuscle, strategy),
-        sessionBudget
-      );
+      const recipes = buildRecipesForSession(kind, sessionId, theme, focusMuscle, strategy);
 
       if (focusMuscle) {
         exposureCounts.set(focusMuscle, (exposureCounts.get(focusMuscle) ?? 0) + 1);
@@ -1102,7 +1610,24 @@ export function buildProgramBlueprintV2(
         title: theme.title,
         focus: buildWorkoutFocus(theme, focusMuscle),
         notes: buildWorkoutNotes(strategy, theme, focusMuscle),
-        slots: recipes.map((recipe) => createSlot(recipe, strategy, profile)),
-      } satisfies ProgramWorkoutBlueprintV2;
+        kind,
+        sessionId,
+        recipes,
+      } satisfies DraftWorkoutBlueprint;
     });
+  const workoutsWithFinishers = attachCardioFinishers(resistanceWorkouts, strategy);
+  const dedicatedCardioWorkouts = createDedicatedCardioWorkouts(
+    strategy,
+    resistanceWorkouts.length
+  );
+
+  return [...workoutsWithFinishers, ...dedicatedCardioWorkouts].map((workout) => ({
+    title: workout.title,
+    focus: workout.focus,
+    notes: workout.notes,
+    estimatedMinutes: workout.estimatedMinutes,
+    slots: trimRecipes(workout.recipes, sessionBudget).map((recipe) =>
+      createSlot(recipe, strategy, profile)
+    ),
+  })) satisfies ProgramWorkoutBlueprintV2[];
 }

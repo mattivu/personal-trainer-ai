@@ -5,6 +5,11 @@ import { getCurrentUser } from "@/lib/session";
 import { buildQuestionnaireProfile } from "@/lib/onboarding/questionnaire-profile";
 import { generateRuleBasedProgram } from "@/lib/training-engine/generate-program";
 import { buildNormalizedOnboardingProfile } from "@/lib/training-engine/onboarding-profile";
+import { validateGeneratedProgramConsistency } from "@/lib/training-engine/program-consistency";
+import {
+  buildProgramGenerationProfile,
+  mapQuestionnaireGoalToTrainingGoal,
+} from "@/lib/training-engine/program-generation-profile";
 import {
   getTrainingBlockDates,
   getTrainingBlockDurationWeeks,
@@ -81,7 +86,15 @@ export async function POST() {
       onboardingProfile.mergedAnswers
     );
     const trainingStrategy = buildTrainingStrategy(questionnaireProfile);
-    const { profile, snapshotHash } = onboardingProfile;
+    const generationProfile = buildProgramGenerationProfile(
+      questionnaireProfile,
+      onboardingProfile.profile
+    );
+    const generationAvailabilityProfile = {
+      profile: generationProfile,
+      mergedAnswers: onboardingProfile.mergedAnswers,
+    };
+    const { snapshotHash } = onboardingProfile;
     const exercises = await prisma.exercise.findMany({
       select: {
         id: true,
@@ -105,12 +118,33 @@ export async function POST() {
       },
     });
     const programBlueprint = generateRuleBasedProgram(
-      onboardingProfile,
+      generationAvailabilityProfile,
       exercises as EngineExercise[],
       {
         trainingStrategy,
       }
     );
+    const consistencyReport = validateGeneratedProgramConsistency(
+      programBlueprint,
+      trainingStrategy
+    );
+
+    if (
+      consistencyReport.actualWorkoutCount > consistencyReport.expectedWeeklyTrainingDays
+    ) {
+      throw new Error(
+        "Programma incoerente: numero di workout superiore ai giorni settimanali selezionati."
+      );
+    }
+
+    if (
+      trainingStrategy.cardio.weeklySessions > 0 &&
+      consistencyReport.cardioSlotCount === 0
+    ) {
+      throw new Error(
+        "Programma incoerente: la strategy prevede cardio ma il piano finale non contiene blocchi cardio visibili."
+      );
+    }
 
     const exerciseMap = new Map(
       exercises.map((exercise) => [
@@ -157,7 +191,9 @@ export async function POST() {
 
     const program = await prisma.$transaction(async (tx) => {
       const now = new Date();
-      const durationWeeks = getTrainingBlockDurationWeeks(profile.goal);
+      const durationWeeks = getTrainingBlockDurationWeeks(
+        mapQuestionnaireGoalToTrainingGoal(questionnaireProfile.goal.primary)
+      );
       const blockDates = getTrainingBlockDates(now, durationWeeks);
 
       if (currentActiveProgram) {
