@@ -253,7 +253,7 @@ export default async function ExerciseLibraryPage(props: ExerciseLibraryPageProp
             <h1 className="mt-3 text-3xl font-bold">Libreria esercizi</h1>
             <p className="mt-3 max-w-3xl text-sm text-neutral-400">
               Vista di sola revisione degli esercizi interni e di quelli importati da
-              free-exercise-db prima del loro eventuale utilizzo operativo.
+              free-exercise-db con stato motore v1 e stato di revisione separati.
             </p>
           </div>
 
@@ -288,16 +288,27 @@ export default async function ExerciseLibraryPage(props: ExerciseLibraryPageProp
 
         <section className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           <div className="rounded-2xl border border-neutral-800 bg-neutral-900 p-4">
+            <p className="text-sm text-neutral-500">Candidati attivi</p>
+            <p className="mt-2 text-3xl font-bold">{library.counts.activeCandidates}</p>
+          </div>
+          <div className="rounded-2xl border border-neutral-800 bg-neutral-900 p-4">
+            <p className="text-sm text-neutral-500">Candidati condizionali</p>
+            <p className="mt-2 text-3xl font-bold">{library.counts.conditionalCandidates}</p>
+          </div>
+          <div className="rounded-2xl border border-neutral-800 bg-neutral-900 p-4">
+            <p className="text-sm text-neutral-500">Esclusi</p>
+            <p className="mt-2 text-3xl font-bold">{library.counts.excluded}</p>
+          </div>
+        </section>
+
+        <section className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-2">
+          <div className="rounded-2xl border border-neutral-800 bg-neutral-900 p-4">
             <p className="text-sm text-neutral-500">Importati con immagini</p>
             <p className="mt-2 text-3xl font-bold">{library.counts.importedWithImages}</p>
           </div>
           <div className="rounded-2xl border border-neutral-800 bg-neutral-900 p-4">
             <p className="text-sm text-neutral-500">Importati senza immagini</p>
             <p className="mt-2 text-3xl font-bold">{library.counts.importedWithoutImages}</p>
-          </div>
-          <div className="rounded-2xl border border-neutral-800 bg-neutral-900 p-4">
-            <p className="text-sm text-neutral-500">Specialistici / da revisionare</p>
-            <p className="mt-2 text-3xl font-bold">{library.counts.specializedOrReview}</p>
           </div>
         </section>
 
@@ -332,6 +343,8 @@ export default async function ExerciseLibraryPage(props: ExerciseLibraryPageProp
                 <option value="all">Tutti</option>
                 <option value="pending">Importati in revisione</option>
                 <option value="active">Attivi</option>
+                <option value="conditional">Condizionali</option>
+                <option value="excluded">Esclusi</option>
               </select>
             </div>
 

@@ -10,6 +10,7 @@
     "lint": "eslint",
     "seed:exercises": "node scripts/seed-exercises.mjs",
     "import:exercises:free-db": "node scripts/import-free-exercise-db.mjs --limit=50",
+    "activate:exercises:imported": "node scripts/activate-imported-exercises.mjs",
     "enrich:exercises:media": "node scripts/import-free-exercise-db.mjs --enrich-media-only",
     "postinstall": "prisma generate"
   },

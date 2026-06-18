@@ -6,7 +6,12 @@ const REVIEW_ENVIRONMENT = "external_import_pending";
 const PAGE_SIZE = 25;
 
 export type ExerciseLibrarySourceFilter = "all" | "internal" | "free_exercise_db";
-export type ExerciseLibraryStatusFilter = "all" | "pending" | "active";
+export type ExerciseLibraryStatusFilter =
+  | "all"
+  | "pending"
+  | "active"
+  | "conditional"
+  | "excluded";
 
 type SearchParamsValue = string | string[] | undefined;
 
@@ -50,6 +55,10 @@ type ExerciseSourceMetadata = {
     | "specialized_equipment"
     | "missing_media"
     | "low_confidence";
+  engineStatus?: "active_candidate" | "conditional_candidate" | "excluded_v1";
+  activatedAt?: string;
+  activatedBy?: string;
+  activationWarning?: string;
   reviewWarnings?: string[];
   sourceImageBaseUrl?: string;
   rawCategory?: string | null;
@@ -110,9 +119,11 @@ export type ExerciseLibraryResult = {
     internal: number;
     imported: number;
     pending: number;
+    activeCandidates: number;
+    conditionalCandidates: number;
+    excluded: number;
     importedWithImages: number;
     importedWithoutImages: number;
-    specializedOrReview: number;
   };
   filters: ExerciseLibraryFilters;
   pagination: {
@@ -196,6 +207,16 @@ function parseSourceMetadata(value: unknown): ExerciseSourceMetadata | null {
       metadata.qualityStatus === "low_confidence"
         ? metadata.qualityStatus
         : undefined,
+    engineStatus:
+      metadata.engineStatus === "active_candidate" ||
+      metadata.engineStatus === "conditional_candidate" ||
+      metadata.engineStatus === "excluded_v1"
+        ? metadata.engineStatus
+        : undefined,
+    activatedAt: typeof metadata.activatedAt === "string" ? metadata.activatedAt : undefined,
+    activatedBy: typeof metadata.activatedBy === "string" ? metadata.activatedBy : undefined,
+    activationWarning:
+      typeof metadata.activationWarning === "string" ? metadata.activationWarning : undefined,
     reviewWarnings: normalizeArray(metadata.reviewWarnings),
     sourceImageBaseUrl:
       typeof metadata.sourceImageBaseUrl === "string" ? metadata.sourceImageBaseUrl : undefined,
@@ -243,7 +264,12 @@ function parseSourceFilter(value: SearchParamsValue): ExerciseLibrarySourceFilte
 function parseStatusFilter(value: SearchParamsValue): ExerciseLibraryStatusFilter {
   const normalized = normalizeString(value);
 
-  if (normalized === "pending" || normalized === "active") {
+  if (
+    normalized === "pending" ||
+    normalized === "active" ||
+    normalized === "conditional" ||
+    normalized === "excluded"
+  ) {
     return normalized;
   }
 
@@ -273,13 +299,35 @@ function isPendingExercise(record: ExerciseSummaryRecord) {
   return normalizeArray(record.environments).includes(REVIEW_ENVIRONMENT);
 }
 
+function isExcludedExercise(record: ExerciseSummaryRecord) {
+  const metadata = parseSourceMetadata(record.sourceMetadata);
+
+  return (
+    metadata?.engineStatus === "excluded_v1" ||
+    metadata?.qualityStatus === "low_confidence" ||
+    metadata?.qualityStatus === "missing_media"
+  );
+}
+
 function getReviewStatus(record: ExerciseSummaryRecord) {
+  const metadata = parseSourceMetadata(record.sourceMetadata);
+
   if (!record.externalSource) {
     return "internal" as const;
   }
 
   if (isPendingExercise(record)) {
     return "pending" as const;
+  }
+
+  if (metadata?.engineStatus === "conditional_candidate") {
+    return "conditional" as const;
+  }
+
+  if (
+    isExcludedExercise(record)
+  ) {
+    return "excluded" as const;
   }
 
   return "active" as const;
@@ -293,6 +341,10 @@ function formatReviewStatusLabel(status: ReturnType<typeof getReviewStatus>) {
       return "Importato in revisione";
     case "active":
       return "Importato attivo";
+    case "conditional":
+      return "Importato condizionale";
+    case "excluded":
+      return "Importato escluso";
   }
 }
 
@@ -336,17 +388,22 @@ function buildInstructionsPreview(instructions: string | null) {
 function getAvailabilityNote(
   sourceMetadata: ExerciseSourceMetadata | null
 ) {
-  switch (sourceMetadata?.qualityStatus) {
-    case "usable_candidate":
+  switch (sourceMetadata?.engineStatus) {
+    case "active_candidate":
       return "Disponibile nel motore solo se compatibile con questionario, ambiente, attrezzatura e limitazioni.";
-    case "specialized_equipment":
+    case "conditional_candidate":
       return "Disponibile solo con attrezzatura o contesto specifico indicato dall'utente.";
-    case "low_confidence":
-    case "missing_media":
-    case "pending_review":
+    case "excluded_v1":
       return "Escluso dal motore in v1.";
     default:
-      return null;
+      switch (sourceMetadata?.qualityStatus) {
+        case "low_confidence":
+        case "missing_media":
+        case "pending_review":
+          return "Escluso dal motore in v1.";
+        default:
+          return null;
+      }
   }
 }
 
@@ -355,17 +412,15 @@ function getEngineStatusLabel(record: ExerciseLibraryRecord, sourceMetadata: Exe
     return "Disponibile come esercizio interno";
   }
 
-  switch (sourceMetadata?.qualityStatus) {
-    case "usable_candidate":
-      return "Disponibilita condizionata dal questionario";
-    case "specialized_equipment":
-      return "Disponibilita specialistica condizionata";
-    case "low_confidence":
-    case "missing_media":
-    case "pending_review":
-      return "Escluso dal motore in v1";
+  switch (sourceMetadata?.engineStatus) {
+    case "active_candidate":
+      return "Candidato attivo";
+    case "conditional_candidate":
+      return "Candidato condizionale";
+    case "excluded_v1":
+      return "Escluso in v1";
     default:
-      return "In attesa di classificazione";
+      return "In revisione";
   }
 }
 
@@ -405,12 +460,25 @@ function matchesStatusFilter(
   }
 
   const reviewStatus = getReviewStatus(record);
+  const metadata = parseSourceMetadata(record.sourceMetadata);
 
   if (status === "pending") {
     return reviewStatus === "pending";
   }
 
-  return reviewStatus === "internal" || reviewStatus === "active";
+  if (status === "active") {
+    return !record.externalSource || metadata?.engineStatus === "active_candidate";
+  }
+
+  if (status === "conditional") {
+    return metadata?.engineStatus === "conditional_candidate";
+  }
+
+  if (status === "excluded") {
+    return isExcludedExercise(record);
+  }
+
+  return true;
 }
 
 function matchesSearchFilters(record: ExerciseLibraryRecord, filters: ExerciseLibraryFilters) {
@@ -549,13 +617,16 @@ export async function getExerciseLibrary(
           summary.importedWithoutImages += 1;
         }
 
-        if (
-          metadata?.qualityStatus === "specialized_equipment" ||
-          metadata?.qualityStatus === "low_confidence" ||
-          metadata?.qualityStatus === "pending_review" ||
-          metadata?.qualityStatus === "missing_media"
-        ) {
-          summary.specializedOrReview += 1;
+        if (metadata?.engineStatus === "active_candidate") {
+          summary.activeCandidates += 1;
+        }
+
+        if (metadata?.engineStatus === "conditional_candidate") {
+          summary.conditionalCandidates += 1;
+        }
+
+        if (isExcludedExercise(exercise)) {
+          summary.excluded += 1;
         }
       }
 
@@ -566,9 +637,11 @@ export async function getExerciseLibrary(
       internal: 0,
       imported: 0,
       pending: 0,
+      activeCandidates: 0,
+      conditionalCandidates: 0,
+      excluded: 0,
       importedWithImages: 0,
       importedWithoutImages: 0,
-      specializedOrReview: 0,
     }
   );
 

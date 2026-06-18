@@ -7,8 +7,17 @@ type ExerciseQualityStatus =
   | "missing_media"
   | "low_confidence";
 
+type ExerciseEngineStatus =
+  | "active_candidate"
+  | "conditional_candidate"
+  | "excluded_v1";
+
 type ExerciseSourceMetadata = {
   qualityStatus?: ExerciseQualityStatus;
+  engineStatus?: ExerciseEngineStatus;
+  activatedAt?: string;
+  activatedBy?: string;
+  activationWarning?: string;
   reviewWarnings?: string[];
   questionnaireContext?: {
     environments?: string[];
@@ -91,6 +100,16 @@ function parseSourceMetadata(value: unknown): ExerciseSourceMetadata | null {
       record.qualityStatus === "low_confidence"
         ? record.qualityStatus
         : undefined,
+    engineStatus:
+      record.engineStatus === "active_candidate" ||
+      record.engineStatus === "conditional_candidate" ||
+      record.engineStatus === "excluded_v1"
+        ? record.engineStatus
+        : undefined,
+    activatedAt: typeof record.activatedAt === "string" ? record.activatedAt : undefined,
+    activatedBy: typeof record.activatedBy === "string" ? record.activatedBy : undefined,
+    activationWarning:
+      typeof record.activationWarning === "string" ? record.activationWarning : undefined,
     reviewWarnings: normalizeStringArray(record.reviewWarnings),
     questionnaireContext: questionnaireContext
       ? {
@@ -598,6 +617,7 @@ export function getExerciseAvailabilityForUser(
 ): ExerciseAvailabilityResult {
   const context = normalizeAvailabilityProfile(onboardingProfile);
   const metadata = parseSourceMetadata(exercise.sourceMetadata);
+  const environments = normalizeStringArray(exercise.environments);
 
   if (!exercise.externalSource) {
     return {
@@ -609,12 +629,26 @@ export function getExerciseAvailabilityForUser(
   }
 
   const qualityStatus = metadata?.qualityStatus;
+  const engineStatus = metadata?.engineStatus;
 
-  if (qualityStatus === "low_confidence" || qualityStatus === "missing_media") {
+  if (environments.includes("external_import_pending")) {
     return {
       eligible: false,
       status: "excluded",
-      reasons: [`quality_status_${qualityStatus}`],
+      reasons: ["external_import_pending"],
+      warnings: ["excluded_from_engine_v1"],
+    };
+  }
+
+  if (
+    qualityStatus === "low_confidence" ||
+    qualityStatus === "missing_media" ||
+    engineStatus === "excluded_v1"
+  ) {
+    return {
+      eligible: false,
+      status: "excluded",
+      reasons: [engineStatus === "excluded_v1" ? "engine_status_excluded_v1" : `quality_status_${qualityStatus}`],
       warnings: ["excluded_from_engine_v1"],
     };
   }
@@ -624,6 +658,27 @@ export function getExerciseAvailabilityForUser(
       eligible: false,
       status: "excluded",
       reasons: ["quality_status_pending_review"],
+      warnings: ["excluded_from_engine_v1"],
+    };
+  }
+
+  if (qualityStatus === "usable_candidate" && engineStatus !== "active_candidate") {
+    return {
+      eligible: false,
+      status: "excluded",
+      reasons: ["engine_status_not_activated"],
+      warnings: ["excluded_from_engine_v1"],
+    };
+  }
+
+  if (
+    qualityStatus === "specialized_equipment" &&
+    engineStatus !== "conditional_candidate"
+  ) {
+    return {
+      eligible: false,
+      status: "excluded",
+      reasons: ["engine_status_not_conditional"],
       warnings: ["excluded_from_engine_v1"],
     };
   }
