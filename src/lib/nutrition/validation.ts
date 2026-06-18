@@ -1,6 +1,9 @@
 import type { MealType } from "@prisma/client";
+import { QUANTITY_UNIT_VALUES } from "./meals";
 
 export const MEAL_NOTES_MAX_LENGTH = 500;
+export const MEAL_BRAND_MAX_LENGTH = 100;
+export const MEAL_QUANTITY_MAX_VALUE = 10000;
 
 export const MEAL_TYPES = [
   "breakfast",
@@ -10,9 +13,16 @@ export const MEAL_TYPES = [
   "other",
 ] as const satisfies readonly MealType[];
 
+type QuantityUnit = (typeof QUANTITY_UNIT_VALUES)[number];
+type NutritionSource = "manual" | "ai_estimate";
+
 type MealInput = {
   mealType?: unknown;
   name?: unknown;
+  quantityValue?: unknown;
+  quantityUnit?: unknown;
+  brand?: unknown;
+  nutritionSource?: unknown;
   calories?: unknown;
   protein?: unknown;
   carbs?: unknown;
@@ -26,6 +36,10 @@ type ValidatedMealInput =
       value: {
         mealType: MealType;
         name: string;
+        quantityValue: number | null;
+        quantityUnit: QuantityUnit | null;
+        brand: string | null;
+        nutritionSource: NutritionSource | null;
         calories: number;
         protein: number;
         carbs: number;
@@ -38,7 +52,7 @@ type ValidatedMealInput =
       message: string;
     };
 
-type NormalizedMealNotesResult =
+type NormalizedStringResult =
   | {
       ok: true;
       value: string | null;
@@ -48,7 +62,10 @@ type NormalizedMealNotesResult =
       error: "invalid_type" | "too_long";
     };
 
-export function normalizeMealNotes(value: unknown): NormalizedMealNotesResult {
+function normalizeOptionalString(
+  value: unknown,
+  maxLength: number
+): NormalizedStringResult {
   if (value === undefined || value === null) {
     return {
       ok: true,
@@ -72,7 +89,7 @@ export function normalizeMealNotes(value: unknown): NormalizedMealNotesResult {
     };
   }
 
-  if (normalized.length > MEAL_NOTES_MAX_LENGTH) {
+  if (normalized.length > maxLength) {
     return {
       ok: false,
       error: "too_long",
@@ -85,6 +102,14 @@ export function normalizeMealNotes(value: unknown): NormalizedMealNotesResult {
   };
 }
 
+export function normalizeMealNotes(value: unknown): NormalizedStringResult {
+  return normalizeOptionalString(value, MEAL_NOTES_MAX_LENGTH);
+}
+
+export function normalizeMealBrand(value: unknown): NormalizedStringResult {
+  return normalizeOptionalString(value, MEAL_BRAND_MAX_LENGTH);
+}
+
 export function parseRequiredString(value: unknown) {
   if (typeof value !== "string") {
     return null;
@@ -94,23 +119,111 @@ export function parseRequiredString(value: unknown) {
   return normalized ? normalized : null;
 }
 
-export function parseNonNegativeInteger(value: unknown) {
+function parseNonNegativeNumber(value: unknown) {
   if (typeof value === "number" && Number.isFinite(value)) {
-    return Number.isInteger(value) && value >= 0 ? value : null;
+    return value >= 0 ? value : null;
   }
 
   if (typeof value !== "string") {
     return null;
   }
 
-  const normalized = value.trim();
+  const normalized = value.trim().replace(",", ".");
 
   if (!normalized) {
     return null;
   }
 
   const parsed = Number(normalized);
-  return Number.isInteger(parsed) && parsed >= 0 ? parsed : null;
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+}
+
+function parseOptionalPositiveQuantity(value: unknown) {
+  if (value === undefined || value === null || value === "") {
+    return {
+      ok: true as const,
+      value: null,
+    };
+  }
+
+  const parsed = parseNonNegativeNumber(value);
+
+  if (parsed === null || parsed <= 0) {
+    return {
+      ok: false as const,
+      message: "La quantità deve essere maggiore di 0.",
+    };
+  }
+
+  if (parsed > MEAL_QUANTITY_MAX_VALUE) {
+    return {
+      ok: false as const,
+      message: `La quantità deve essere inferiore o uguale a ${MEAL_QUANTITY_MAX_VALUE}.`,
+    };
+  }
+
+  return {
+    ok: true as const,
+    value: parsed,
+  };
+}
+
+function parseOptionalQuantityUnit(value: unknown) {
+  if (value === undefined || value === null || value === "") {
+    return {
+      ok: true as const,
+      value: null,
+    };
+  }
+
+  if (typeof value !== "string") {
+    return {
+      ok: false as const,
+      message: "L'unità non è valida.",
+    };
+  }
+
+  const normalized = value.trim() as QuantityUnit;
+
+  if (!normalized) {
+    return {
+      ok: true as const,
+      value: null,
+    };
+  }
+
+  if (!QUANTITY_UNIT_VALUES.includes(normalized)) {
+    return {
+      ok: false as const,
+      message: "Seleziona un'unità valida.",
+    };
+  }
+
+  return {
+    ok: true as const,
+    value: normalized,
+  };
+}
+
+function parseOptionalNutritionSource(value: unknown) {
+  if (value === undefined || value === null || value === "") {
+    return {
+      ok: true as const,
+      value: null,
+    };
+  }
+
+  if (value === "manual" || value === "ai_estimate") {
+    return {
+      ok: true as const,
+      value: value as NutritionSource,
+    };
+  }
+
+  return {
+    ok: false as const,
+    message: "Origine dei valori nutrizionali non valida.",
+  };
 }
 
 export function isMealType(value: unknown): value is MealType {
@@ -120,10 +233,14 @@ export function isMealType(value: unknown): value is MealType {
 export function validateMealInput(input: MealInput): ValidatedMealInput {
   const mealType = input.mealType;
   const name = parseRequiredString(input.name);
-  const calories = parseNonNegativeInteger(input.calories);
-  const protein = parseNonNegativeInteger(input.protein);
-  const carbs = parseNonNegativeInteger(input.carbs);
-  const fat = parseNonNegativeInteger(input.fat);
+  const quantityValue = parseOptionalPositiveQuantity(input.quantityValue);
+  const quantityUnit = parseOptionalQuantityUnit(input.quantityUnit);
+  const brand = normalizeMealBrand(input.brand);
+  const nutritionSource = parseOptionalNutritionSource(input.nutritionSource);
+  const calories = parseNonNegativeNumber(input.calories);
+  const protein = parseNonNegativeNumber(input.protein);
+  const carbs = parseNonNegativeNumber(input.carbs);
+  const fat = parseNonNegativeNumber(input.fat);
   const notes = normalizeMealNotes(input.notes);
 
   if (!isMealType(mealType)) {
@@ -140,11 +257,41 @@ export function validateMealInput(input: MealInput): ValidatedMealInput {
     };
   }
 
-  if (calories === null || protein === null || carbs === null || fat === null) {
+  if (!quantityValue.ok) {
+    return {
+      ok: false,
+      message: quantityValue.message,
+    };
+  }
+
+  if (!quantityUnit.ok) {
+    return {
+      ok: false,
+      message: quantityUnit.message,
+    };
+  }
+
+  if (!brand.ok) {
     return {
       ok: false,
       message:
-        "Calorie, proteine, carboidrati e grassi devono essere numeri interi maggiori o uguali a 0.",
+        brand.error === "too_long"
+          ? `La marca può contenere al massimo ${MEAL_BRAND_MAX_LENGTH} caratteri.`
+          : "La marca non è valida.",
+    };
+  }
+
+  if (!nutritionSource.ok) {
+    return {
+      ok: false,
+      message: nutritionSource.message,
+    };
+  }
+
+  if (calories === null || protein === null || carbs === null || fat === null) {
+    return {
+      ok: false,
+      message: "Stima o inserisci i valori nutrizionali prima di salvare.",
     };
   }
 
@@ -163,6 +310,10 @@ export function validateMealInput(input: MealInput): ValidatedMealInput {
     value: {
       mealType,
       name,
+      quantityValue: quantityValue.value,
+      quantityUnit: quantityUnit.value,
+      brand: brand.value,
+      nutritionSource: nutritionSource.value,
       calories,
       protein,
       carbs,
