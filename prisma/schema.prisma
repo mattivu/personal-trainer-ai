@@ -177,11 +177,17 @@ model Exercise {
   alternatives       Json?
   instructions       String?           @db.Text
   contraindications  Json?
+  externalSource     String?
+  externalId         String?
+  imageUrls          Json?
+  sourceMetadata     Json?
+  importedAt         DateTime?
   createdAt          DateTime          @default(now())
   updatedAt          DateTime          @updatedAt
 
   programExercises   ProgramExercise[]
 
+  @@unique([externalSource, externalId])
   @@map("exercises")
 }
 
