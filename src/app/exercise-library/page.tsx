@@ -84,6 +84,9 @@ function ExerciseCard({ exercise }: { exercise: ExerciseLibraryItem }) {
             <span className="rounded-full border border-neutral-700 px-2.5 py-1 text-neutral-400">
               Fonte: {exercise.sourceLabel}
             </span>
+            <span className="rounded-full border border-sky-800/60 bg-sky-500/10 px-2.5 py-1 text-sky-100">
+              Motore: {exercise.engineStatusLabel}
+            </span>
             {exercise.qualityStatusLabel ? (
               <span className="rounded-full border border-amber-700/60 bg-amber-500/10 px-2.5 py-1 text-amber-200">
                 Revisione: {exercise.qualityStatusLabel}
@@ -131,6 +134,12 @@ function ExerciseCard({ exercise }: { exercise: ExerciseLibraryItem }) {
             <dd className="mt-1 text-neutral-100">
               {exercise.reviewStatusLabel}
               {exercise.qualityStatusLabel ? ` · ${exercise.qualityStatusLabel}` : ""}
+            </dd>
+          </div>
+          <div className="sm:col-span-2 xl:col-span-3">
+            <dt className="text-neutral-500">Disponibilita motore v1</dt>
+            <dd className="mt-1 text-neutral-100">
+              {exercise.availabilityNote ?? exercise.engineStatusLabel}
             </dd>
           </div>
         </dl>

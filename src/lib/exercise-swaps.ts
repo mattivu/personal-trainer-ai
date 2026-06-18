@@ -2,6 +2,7 @@ import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getCurrentWeekBounds } from "@/lib/workout-execution";
 import { buildNormalizedOnboardingProfile } from "@/lib/training-engine/onboarding-profile";
+import { getExerciseAvailabilityForUser } from "@/lib/training-engine/exercise-availability";
 import type {
   EngineExercise,
   NormalizedTrainingProfile,
@@ -388,7 +389,7 @@ async function getNormalizedProfileForUser(userId: number) {
 
   return buildNormalizedOnboardingProfile(
     onboardingAnswers.map((answer) => answer.answersJson)
-  ).profile;
+  );
 }
 
 export async function getAuthorizedProgramExerciseForUser(
@@ -491,7 +492,7 @@ export async function getExerciseAlternativesForUser(
   const currentDifficultyRank = getDifficultyRank(
     normalizeDifficulty(currentExercise.difficulty)
   );
-  const allowedDifficultyRank = getDifficultyRank(profile.experience);
+  const allowedDifficultyRank = getDifficultyRank(profile.profile.experience);
   const explicitAlternativeSlugs = new Set(
     normalizeStringArray(currentExercise.alternatives)
   );
@@ -505,9 +506,7 @@ export async function getExerciseAlternativesForUser(
   const alternatives = allExercises
     .filter((candidate) => candidate.id !== currentExercise.id)
     .filter((candidate) => !excludedExerciseIds.has(candidate.id))
-    .filter((candidate) => matchesEnvironment(candidate as SwapExercise, profile))
-    .filter((candidate) => matchesEquipment(candidate as SwapExercise, profile))
-    .filter((candidate) => !isContraindicatedForProfile(candidate as SwapExercise, profile))
+    .filter((candidate) => getExerciseAvailabilityForUser(candidate as SwapExercise, profile).eligible)
     .filter(
       (candidate) =>
         getDifficultyRank(normalizeDifficulty(candidate.difficulty)) <=

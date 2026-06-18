@@ -1,4 +1,8 @@
 import { getPrescription } from "./training-rules";
+import {
+  getExerciseAvailabilityForUser,
+  type ExerciseAvailabilityProfile,
+} from "./exercise-availability";
 import type {
   EngineExercise,
   ExerciseRole,
@@ -339,13 +343,24 @@ function buildReasonableFallbackCandidates(
 export function scoreExerciseForSlot(
   exerciseInput: EngineExercise,
   slot: ExerciseSlot,
-  profile: NormalizedTrainingProfile,
+  onboardingProfile: NormalizedTrainingProfile | ExerciseAvailabilityProfile,
   context: SelectionContext
 ) {
+  const profile =
+    "profile" in onboardingProfile ? onboardingProfile.profile : onboardingProfile;
   const exercise = normalizeExercise(exerciseInput);
   const reasons: string[] = [];
   let score = 0;
   const allowedCategories = slot.allowedCategories ?? [slot.category];
+  const availability = getExerciseAvailabilityForUser(exerciseInput, onboardingProfile);
+
+  if (!availability.eligible) {
+    return {
+      exercise,
+      score: Number.NEGATIVE_INFINITY,
+      reasons: availability.reasons,
+    } satisfies ScoredExercise;
+  }
 
   if (!allowedCategories.includes(exercise.category)) {
     return {
@@ -525,14 +540,16 @@ export function selectAlternativeExercise(
 
 export function selectExerciseForSlot(
   slot: ExerciseSlot,
-  profile: NormalizedTrainingProfile,
+  onboardingProfile: NormalizedTrainingProfile | ExerciseAvailabilityProfile,
   exercises: EngineExercise[],
   context: SelectionContext
 ): GeneratedExercise {
   const scored = exercises
-    .map((exercise) => scoreExerciseForSlot(exercise, slot, profile, context))
+    .map((exercise) => scoreExerciseForSlot(exercise, slot, onboardingProfile, context))
     .filter((candidate) => Number.isFinite(candidate.score))
     .sort((left, right) => right.score - left.score);
+  const profile =
+    "profile" in onboardingProfile ? onboardingProfile.profile : onboardingProfile;
 
   const deduped = avoidDuplicateExercises(scored, context);
   const bestOverall = scored[0] ?? null;

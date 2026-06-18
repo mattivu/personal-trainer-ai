@@ -72,9 +72,10 @@ export async function POST() {
       },
     });
 
-    const { profile, snapshotHash } = buildNormalizedOnboardingProfile(
+    const onboardingProfile = buildNormalizedOnboardingProfile(
       onboardingAnswers.map((answer) => answer.answersJson)
     );
+    const { profile, snapshotHash } = onboardingProfile;
     const exercises = await prisma.exercise.findMany({
       select: {
         id: true,
@@ -90,10 +91,15 @@ export async function POST() {
         tags: true,
         alternatives: true,
         contraindications: true,
+        externalSource: true,
+        externalId: true,
+        imageUrls: true,
+        sourceMetadata: true,
+        importedAt: true,
       },
     });
     const programBlueprint = generateRuleBasedProgram(
-      profile,
+      onboardingProfile,
       exercises as EngineExercise[]
     );
 

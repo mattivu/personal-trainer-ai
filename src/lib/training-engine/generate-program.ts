@@ -8,6 +8,7 @@ import {
   selectExerciseForSlot,
   type ExerciseSlot,
 } from "./exercise-selector";
+import type { ExerciseAvailabilityProfile } from "./exercise-availability";
 import type {
   EngineExercise,
   GeneratedProgram,
@@ -626,9 +627,11 @@ function getProgramTitle(profile: NormalizedTrainingProfile) {
 }
 
 export function generateRuleBasedProgram(
-  profile: NormalizedTrainingProfile,
+  onboardingProfile: NormalizedTrainingProfile | ExerciseAvailabilityProfile,
   exercises: EngineExercise[]
 ): GeneratedProgram {
+  const profile =
+    "profile" in onboardingProfile ? onboardingProfile.profile : onboardingProfile;
   const split = getSplitDefinition(profile);
   const context = {
     selectedSlugs: new Set<string>(),
@@ -643,7 +646,7 @@ export function generateRuleBasedProgram(
         : profile.sessionMinutes ?? 60,
     notes: workout.notes,
     exercises: workout.slots.map((exerciseSlot) =>
-      selectExerciseForSlot(exerciseSlot, profile, exercises, context)
+      selectExerciseForSlot(exerciseSlot, onboardingProfile, exercises, context)
     ),
   })) satisfies GeneratedWorkout[];
   const notes = [

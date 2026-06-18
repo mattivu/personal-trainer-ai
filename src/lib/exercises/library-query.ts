@@ -86,6 +86,8 @@ export type ExerciseLibraryItem = {
   reviewStatusLabel: string;
   imageUrls: string[];
   qualityStatusLabel: string | null;
+  availabilityNote: string | null;
+  engineStatusLabel: string;
   reviewWarnings: string[];
   hasImages: boolean;
   hasMediaEnrichment: boolean;
@@ -331,6 +333,42 @@ function buildInstructionsPreview(instructions: string | null) {
   return `${normalized.slice(0, 180).trimEnd()}...`;
 }
 
+function getAvailabilityNote(
+  sourceMetadata: ExerciseSourceMetadata | null
+) {
+  switch (sourceMetadata?.qualityStatus) {
+    case "usable_candidate":
+      return "Disponibile nel motore solo se compatibile con questionario, ambiente, attrezzatura e limitazioni.";
+    case "specialized_equipment":
+      return "Disponibile solo con attrezzatura o contesto specifico indicato dall'utente.";
+    case "low_confidence":
+    case "missing_media":
+    case "pending_review":
+      return "Escluso dal motore in v1.";
+    default:
+      return null;
+  }
+}
+
+function getEngineStatusLabel(record: ExerciseLibraryRecord, sourceMetadata: ExerciseSourceMetadata | null) {
+  if (!record.externalSource) {
+    return "Disponibile come esercizio interno";
+  }
+
+  switch (sourceMetadata?.qualityStatus) {
+    case "usable_candidate":
+      return "Disponibilita condizionata dal questionario";
+    case "specialized_equipment":
+      return "Disponibilita specialistica condizionata";
+    case "low_confidence":
+    case "missing_media":
+    case "pending_review":
+      return "Escluso dal motore in v1";
+    default:
+      return "In attesa di classificazione";
+  }
+}
+
 function buildDisplayInstructions(
   record: Pick<ExerciseLibraryRecord, "instructions" | "externalSource" | "sourceMetadata">
 ) {
@@ -568,6 +606,8 @@ export async function getExerciseLibrary(
         reviewStatusLabel: formatReviewStatusLabel(reviewStatus),
         imageUrls: normalizeArray(exercise.imageUrls).slice(0, 2),
         qualityStatusLabel: formatQualityStatusLabel(sourceMetadata?.qualityStatus),
+        availabilityNote: getAvailabilityNote(sourceMetadata),
+        engineStatusLabel: getEngineStatusLabel(exercise, sourceMetadata),
         reviewWarnings: sourceMetadata?.reviewWarnings ?? [],
         hasImages:
           sourceMetadata?.hasImages === true || normalizeArray(exercise.imageUrls).length > 0,

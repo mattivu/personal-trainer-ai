@@ -40,6 +40,11 @@ export type EngineExercise = {
   tags?: unknown;
   alternatives?: unknown;
   contraindications?: unknown;
+  externalSource?: string | null;
+  externalId?: string | null;
+  imageUrls?: unknown;
+  sourceMetadata?: unknown;
+  importedAt?: Date | null;
 };
 
 export type GeneratedExercise = {
