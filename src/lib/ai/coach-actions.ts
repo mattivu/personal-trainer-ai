@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getBlockReviewForUser } from "@/lib/block-review";
 import type { CoachContext } from "@/lib/ai/coach-context";
 import type { CoachAction } from "@/lib/ai/coach-action-types";
+import { getNutritionWeeklyReviewForUser } from "@/lib/nutrition/weekly-review";
 import { getWeeklyReviewForUser } from "@/lib/weekly-review";
 import {
   getFlexibleWorkoutState,
@@ -154,8 +155,9 @@ export async function generateCoachActions({
   context,
 }: GenerateCoachActionsInput): Promise<CoachAction[]> {
   const normalizedMessage = normalizeText(latestUserMessage);
-  const [weeklyReview, blockReview, scheduledWorkouts] = await Promise.all([
+  const [weeklyReview, nutritionWeeklyReview, blockReview, scheduledWorkouts] = await Promise.all([
     getWeeklyReviewForUser(userId),
+    getNutritionWeeklyReviewForUser(userId),
     getBlockReviewForUser(userId),
     getScheduledWorkoutSignals(userId, context),
   ]);
@@ -239,6 +241,14 @@ export async function generateCoachActions({
     /\bmacro\b/,
     /\bnutrizion/,
   ]);
+  const asksForNutritionWeeklyReview = matchesAny(normalizedMessage, [
+    /\bcome sto mangiando\b/,
+    /\bcalorie settimana\b/,
+    /\bmacro settimana\b/,
+    /\balimentazione settimana\b/,
+    /\bsto rispettando la dieta\b/,
+    /\bpeso e calorie\b/,
+  ]);
   const asksForBodyWeight = matchesAny(normalizedMessage, [
     /\bpeso\b/,
     /\bpesat/,
@@ -248,6 +258,19 @@ export async function generateCoachActions({
     /\bmassa\b/,
     /\bbilancia\b/,
   ]);
+
+  if (asksForNutritionWeeklyReview) {
+    addAction(
+      actions,
+      createAction(
+        "open-nutrition-weekly-review",
+        "Apri revisione nutrizionale",
+        "/nutrition/weekly-review",
+        "navigation",
+        `Apri la revisione rule-based di calorie, macro, attivita stimata e trend peso. Stato attuale: ${nutritionWeeklyReview.status}.`
+      )
+    );
+  }
 
   if (asksForNutrition) {
     addAction(

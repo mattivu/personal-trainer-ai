@@ -5,6 +5,7 @@ import { MealEntryForm } from "@/components/nutrition/meal-entry-form";
 import { MealEntryList } from "@/components/nutrition/meal-entry-list";
 import { NutritionDateControls } from "@/components/nutrition/nutrition-date-controls";
 import { calculateNutritionTargets } from "@/lib/nutrition/calculate-targets";
+import { formatNutritionNumber } from "@/lib/nutrition/meals";
 import {
   formatNutritionDateLabel,
   parseNutritionDateQuery,
@@ -117,6 +118,12 @@ export default async function NutritionPage({ searchParams }: NutritionPageProps
           >
             Apri peso corporeo
           </Link>
+          <Link
+            href="/nutrition/weekly-review"
+            className="inline-flex justify-center rounded-xl border border-neutral-700 px-4 py-3 text-sm font-semibold text-neutral-100"
+          >
+            Apri revisione nutrizionale
+          </Link>
         </div>
 
         <div className="rounded-2xl border border-neutral-800 bg-neutral-900 p-6">
@@ -200,7 +207,7 @@ export default async function NutritionPage({ searchParams }: NutritionPageProps
             </div>
 
             <p className="text-sm text-neutral-500">
-              Calorie registrate: {formatNumber(dailySummary.registered.calories)} kcal
+              Calorie registrate: {formatNutritionNumber(dailySummary.registered.calories)} kcal
             </p>
           </div>
 
@@ -218,7 +225,7 @@ export default async function NutritionPage({ searchParams }: NutritionPageProps
             <div className="rounded-2xl border border-neutral-800 bg-neutral-950 p-4">
               <p className="text-sm text-neutral-500">Calorie registrate</p>
               <p className="mt-2 text-2xl font-semibold">
-                {formatNumber(dailySummary.caloriesConsumed)} kcal
+                {formatNutritionNumber(dailySummary.caloriesConsumed)} kcal
               </p>
             </div>
 
@@ -247,21 +254,21 @@ export default async function NutritionPage({ searchParams }: NutritionPageProps
             <div className="rounded-2xl border border-neutral-800 bg-neutral-950 p-4">
               <p className="text-sm text-neutral-500">Proteine registrate</p>
               <p className="mt-2 text-xl font-semibold">
-                {formatNumber(dailySummary.registered.protein)} g
+                {formatNutritionNumber(dailySummary.registered.protein)} g
               </p>
             </div>
 
             <div className="rounded-2xl border border-neutral-800 bg-neutral-950 p-4">
               <p className="text-sm text-neutral-500">Carboidrati registrati</p>
               <p className="mt-2 text-xl font-semibold">
-                {formatNumber(dailySummary.registered.carbs)} g
+                {formatNutritionNumber(dailySummary.registered.carbs)} g
               </p>
             </div>
 
             <div className="rounded-2xl border border-neutral-800 bg-neutral-950 p-4">
               <p className="text-sm text-neutral-500">Grassi registrati</p>
               <p className="mt-2 text-xl font-semibold">
-                {formatNumber(dailySummary.registered.fat)} g
+                {formatNutritionNumber(dailySummary.registered.fat)} g
               </p>
             </div>
           </div>
@@ -346,7 +353,7 @@ export default async function NutritionPage({ searchParams }: NutritionPageProps
         <div className="mt-6 rounded-2xl border border-neutral-800 bg-neutral-900 p-6">
           <h2 className="text-xl font-semibold">Aggiungi pasto</h2>
           <p className="mt-3 text-sm text-neutral-400">
-            Inserisci manualmente stime orientative di calorie e macro.
+            Inserisci alimento o pasto, quantità e usa la stima AI. I valori nutrizionali restano modificabili nella sezione secondaria.
           </p>
           <div className="mt-5">
             <MealEntryForm date={dailyData.date} />

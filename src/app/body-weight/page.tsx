@@ -129,12 +129,20 @@ export default async function BodyWeightPage() {
               <h2 className="mt-2 text-xl font-semibold">Ultimi 90 giorni</h2>
             </div>
 
-            <Link
-              href="/nutrition"
-              className="inline-flex justify-center rounded-xl border border-neutral-700 px-4 py-3 text-sm font-semibold text-neutral-100"
-            >
-              Vai a nutrizione
-            </Link>
+            <div className="flex flex-wrap gap-3">
+              <Link
+                href="/nutrition"
+                className="inline-flex justify-center rounded-xl border border-neutral-700 px-4 py-3 text-sm font-semibold text-neutral-100"
+              >
+                Vai a nutrizione
+              </Link>
+              <Link
+                href="/nutrition/weekly-review"
+                className="inline-flex justify-center rounded-xl border border-neutral-700 px-4 py-3 text-sm font-semibold text-neutral-100"
+              >
+                Apri revisione nutrizionale
+              </Link>
+            </div>
           </div>
 
           <div className="mt-5">
