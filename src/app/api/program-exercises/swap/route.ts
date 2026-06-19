@@ -20,6 +20,20 @@ function parseOptionalString(value: unknown) {
   return normalizedValue ? normalizedValue : null;
 }
 
+function normalizeStringArray(value: unknown) {
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === "string" && item.trim().length > 0)
+    : [];
+}
+
+function parseNeedsTranslation(value: unknown) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return false;
+  }
+
+  return (value as { needsTranslation?: unknown }).needsTranslation === true;
+}
+
 export async function POST(request: Request) {
   try {
     const user = await getCurrentUser();
@@ -111,7 +125,14 @@ export async function POST(request: Request) {
       select: {
         id: true,
         name: true,
+        category: true,
         primaryMuscle: true,
+        secondaryMuscles: true,
+        equipment: true,
+        difficulty: true,
+        instructions: true,
+        imageUrls: true,
+        sourceMetadata: true,
       },
     });
 
@@ -160,7 +181,14 @@ export async function POST(request: Request) {
             exerciseId: true,
             exercise: {
               select: {
+                category: true,
                 primaryMuscle: true,
+                secondaryMuscles: true,
+                equipment: true,
+                difficulty: true,
+                instructions: true,
+                imageUrls: true,
+                sourceMetadata: true,
               },
             },
           },
@@ -216,7 +244,14 @@ export async function POST(request: Request) {
           exerciseId: true,
           exercise: {
             select: {
+              category: true,
               primaryMuscle: true,
+              secondaryMuscles: true,
+              equipment: true,
+              difficulty: true,
+              instructions: true,
+              imageUrls: true,
+              sourceMetadata: true,
             },
           },
         },
@@ -237,9 +272,18 @@ export async function POST(request: Request) {
         exerciseId: updatedProgramExercise.exerciseId,
         name: updatedProgramExercise.name,
         notes: parseOptionalString(updatedProgramExercise.notes),
+        category: parseOptionalString(updatedProgramExercise.exercise?.category),
         primaryMuscle: parseOptionalString(
           updatedProgramExercise.exercise?.primaryMuscle
         ),
+        secondaryMuscles: normalizeStringArray(
+          updatedProgramExercise.exercise?.secondaryMuscles
+        ),
+        equipment: parseOptionalString(updatedProgramExercise.exercise?.equipment),
+        difficulty: parseOptionalString(updatedProgramExercise.exercise?.difficulty),
+        instructions: parseOptionalString(updatedProgramExercise.exercise?.instructions),
+        imageUrls: normalizeStringArray(updatedProgramExercise.exercise?.imageUrls).slice(0, 2),
+        needsTranslation: parseNeedsTranslation(updatedProgramExercise.exercise?.sourceMetadata),
       },
     });
   } catch (error) {

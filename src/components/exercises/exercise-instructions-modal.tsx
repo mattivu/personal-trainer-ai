@@ -1,58 +1,19 @@
 "use client";
 
 import { useEffect, useId, useState } from "react";
+import { getExerciseDisplayData } from "@/lib/exercises/exercise-display";
 
 type ExerciseInstructionsModalProps = {
   name: string;
   imageUrls: string[];
-  instructions: string | null;
+  instructions: string | string[] | null;
   primaryMuscle: string | null;
   secondaryMuscles: string[];
   equipment: string | null;
   difficulty: string | null;
+  category?: string | null;
   needsTranslation: boolean;
 };
-
-function formatDifficulty(value: string | null) {
-  if (!value) {
-    return null;
-  }
-
-  switch (value.toLowerCase()) {
-    case "beginner":
-      return "Base";
-    case "intermediate":
-      return "Intermedia";
-    case "advanced":
-      return "Avanzata";
-    default:
-      return `${value.charAt(0).toUpperCase()}${value.slice(1)}`;
-  }
-}
-
-function splitInstructions(value: string | null) {
-  const normalized = (value ?? "").replace(/\r/g, "").trim();
-
-  if (!normalized) {
-    return [];
-  }
-
-  const lines = normalized
-    .split(/\n+/)
-    .map((line) => line.trim())
-    .filter(Boolean);
-
-  if (lines.length > 1) {
-    return lines.map((line) => line.replace(/^[-*•]\s*/, ""));
-  }
-
-  const segments = normalized
-    .split(/(?:(?<=\.)\s+(?=\d+\.)|(?<=\.)\s+(?=[A-ZÀ-ÖØ-Ý]))|(?<=;)\s+/)
-    .map((segment) => segment.trim())
-    .filter(Boolean);
-
-  return segments.length > 1 ? segments : [normalized];
-}
 
 export function ExerciseInstructionsModal({
   name,
@@ -62,19 +23,29 @@ export function ExerciseInstructionsModal({
   secondaryMuscles,
   equipment,
   difficulty,
+  category,
   needsTranslation,
 }: ExerciseInstructionsModalProps) {
   const [isOpen, setIsOpen] = useState(false);
   const titleId = useId();
-  const instructionItems = splitInstructions(instructions);
-  const difficultyLabel = formatDifficulty(difficulty);
+  const displayData = getExerciseDisplayData({
+    name,
+    instructions,
+    primaryMuscle,
+    secondaryMuscles,
+    equipment,
+    difficulty,
+    category,
+    needsTranslation,
+  });
   const hasAnyDetails =
     imageUrls.length > 0 ||
-    instructionItems.length > 0 ||
-    Boolean(primaryMuscle) ||
-    secondaryMuscles.length > 0 ||
-    Boolean(equipment) ||
-    Boolean(difficultyLabel);
+    displayData.instructions.length > 0 ||
+    displayData.primaryMuscles.length > 0 ||
+    displayData.secondaryMuscles.length > 0 ||
+    displayData.equipment.length > 0 ||
+    Boolean(displayData.difficulty) ||
+    Boolean(displayData.category);
 
   useEffect(() => {
     if (!isOpen) {
@@ -128,7 +99,7 @@ export function ExerciseInstructionsModal({
                   Guida esercizio
                 </p>
                 <h3 id={titleId} className="mt-2 text-2xl font-semibold">
-                  {name}
+                  {displayData.name}
                 </h3>
               </div>
 
@@ -146,9 +117,9 @@ export function ExerciseInstructionsModal({
                 <div className="grid gap-3 sm:grid-cols-2">
                   {imageUrls.slice(0, 2).map((imageUrl, index) => (
                     <img
-                      key={`${name}-${imageUrl}`}
+                      key={`${displayData.name}-${imageUrl}`}
                       src={imageUrl}
-                      alt={`Esecuzione esercizio: ${name}`}
+                      alt={`Esecuzione esercizio: ${displayData.name}`}
                       className="h-56 w-full rounded-2xl border border-neutral-800 object-cover"
                       loading={index === 0 ? "eager" : "lazy"}
                     />
@@ -165,37 +136,45 @@ export function ExerciseInstructionsModal({
               <div className="rounded-2xl border border-neutral-800 bg-neutral-900 p-4">
                 <p className="text-sm text-neutral-500">Muscoli principali</p>
                 <p className="mt-2 text-sm text-neutral-100">
-                  {primaryMuscle ?? "Non indicati"}
+                  {displayData.primaryMuscles.join(", ") || "Non indicati"}
                 </p>
               </div>
-              {secondaryMuscles.length > 0 ? (
+              {displayData.secondaryMuscles.length > 0 ? (
                 <div className="rounded-2xl border border-neutral-800 bg-neutral-900 p-4">
                   <p className="text-sm text-neutral-500">Muscoli secondari</p>
                   <p className="mt-2 text-sm text-neutral-100">
-                    {secondaryMuscles.join(", ")}
+                    {displayData.secondaryMuscles.join(", ")}
                   </p>
                 </div>
               ) : null}
-              {equipment ? (
+              {displayData.equipment.length > 0 ? (
                 <div className="rounded-2xl border border-neutral-800 bg-neutral-900 p-4">
                   <p className="text-sm text-neutral-500">Attrezzatura richiesta</p>
-                  <p className="mt-2 text-sm text-neutral-100">{equipment}</p>
+                  <p className="mt-2 text-sm text-neutral-100">
+                    {displayData.equipment.join(", ")}
+                  </p>
                 </div>
               ) : null}
-              {difficultyLabel ? (
+              {displayData.difficulty ? (
                 <div className="rounded-2xl border border-neutral-800 bg-neutral-900 p-4">
                   <p className="text-sm text-neutral-500">Difficoltà</p>
-                  <p className="mt-2 text-sm text-neutral-100">{difficultyLabel}</p>
+                  <p className="mt-2 text-sm text-neutral-100">{displayData.difficulty}</p>
+                </div>
+              ) : null}
+              {displayData.category ? (
+                <div className="rounded-2xl border border-neutral-800 bg-neutral-900 p-4">
+                  <p className="text-sm text-neutral-500">Categoria</p>
+                  <p className="mt-2 text-sm text-neutral-100">{displayData.category}</p>
                 </div>
               ) : null}
             </div>
 
             <div className="mt-5 rounded-2xl border border-neutral-800 bg-neutral-900 p-4">
               <p className="text-sm text-neutral-500">Istruzioni</p>
-              {instructionItems.length > 0 ? (
+              {displayData.instructions.length > 0 ? (
                 <ul className="mt-3 list-disc space-y-2 pl-5 text-sm leading-6 text-neutral-100">
-                  {instructionItems.map((item, index) => (
-                    <li key={`${name}-instruction-${index}`}>{item}</li>
+                  {displayData.instructions.map((item, index) => (
+                    <li key={`${displayData.name}-instruction-${index}`}>{item}</li>
                   ))}
                 </ul>
               ) : (
@@ -203,7 +182,7 @@ export function ExerciseInstructionsModal({
                   Istruzioni non disponibili per questo esercizio.
                 </p>
               )}
-              {needsTranslation ? (
+              {displayData.needsTranslationReview ? (
                 <p className="mt-3 text-xs text-amber-200">
                   Istruzioni originali da revisionare.
                 </p>

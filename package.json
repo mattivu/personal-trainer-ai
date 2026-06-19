@@ -13,6 +13,7 @@
     "activate:exercises:imported": "node scripts/activate-imported-exercises.mjs",
     "enrich:exercises:media": "node scripts/import-free-exercise-db.mjs --enrich-media-only",
     "audit:exercises:media": "node scripts/audit-exercise-media-coverage.mjs",
+    "audit:exercises:display": "node scripts/audit-exercise-display-quality.mjs",
     "enrich:exercises:missing-media": "node scripts/enrich-missing-exercise-media.mjs --limit=30",
     "postinstall": "prisma generate"
   },

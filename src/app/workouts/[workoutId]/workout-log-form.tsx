@@ -3,6 +3,13 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ExerciseInstructionsModal } from "@/components/exercises/exercise-instructions-modal";
+import {
+  getExerciseDifficultyForDisplay,
+  getExerciseDisplayData,
+  getExerciseDisplayName,
+  getExerciseEquipmentForDisplay,
+  getExerciseMusclesForDisplay,
+} from "@/lib/exercises/exercise-display";
 import type {
   WorkoutFormExercise,
   WorkoutFormLog,
@@ -39,6 +46,7 @@ type ExerciseState = {
   id: number;
   exerciseId: number | null;
   name: string;
+  category: string | null;
   primaryMuscle: string | null;
   secondaryMuscles: string[];
   equipment: string | null;
@@ -67,9 +75,14 @@ type WorkoutLogApiResponse = {
 type ExerciseAlternative = {
   exerciseId: number;
   name: string;
+  category: string | null;
   primaryMuscle: string | null;
+  secondaryMuscles: string[];
   equipment: string | null;
   difficulty: string | null;
+  instructions: string | null;
+  imageUrls: string[];
+  needsTranslation: boolean;
   movementPattern: string | null;
   score: number;
   matchReasons: string[];
@@ -92,7 +105,14 @@ type ExerciseSwapApiResponse = {
     exerciseId: number | null;
     name: string;
     notes: string | null;
+    category: string | null;
     primaryMuscle: string | null;
+    secondaryMuscles: string[];
+    equipment: string | null;
+    difficulty: string | null;
+    instructions: string | null;
+    imageUrls: string[];
+    needsTranslation: boolean;
   };
 };
 
@@ -175,6 +195,7 @@ function buildExerciseState(exercise: WorkoutFormExercise): ExerciseState {
     id: exercise.id,
     exerciseId: exercise.exerciseId,
     name: exercise.name,
+    category: exercise.category,
     primaryMuscle: exercise.primaryMuscle,
     secondaryMuscles: exercise.secondaryMuscles,
     equipment: exercise.equipment,
@@ -219,20 +240,13 @@ function parseNumberInput(value: string) {
 }
 
 function formatDifficultyLabel(value: string | null) {
-  if (!value) {
+  const label = getExerciseDifficultyForDisplay({ difficulty: value });
+
+  if (!label) {
     return "Difficolta n/d";
   }
 
-  switch (value.toLowerCase()) {
-    case "beginner":
-      return "Difficolta: base";
-    case "intermediate":
-      return "Difficolta: intermedia";
-    case "advanced":
-      return "Difficolta: avanzata";
-    default:
-      return `Difficolta: ${value}`;
-  }
+  return `Difficolta: ${label}`;
 }
 
 function ExercisePreviewImage({
@@ -554,15 +568,18 @@ export function WorkoutLogForm({
                 id: payload.programExercise?.id ?? exercise.id,
                 exerciseId: payload.programExercise?.exerciseId ?? null,
                 name: payload.programExercise?.name ?? exercise.name,
+                category: payload.programExercise?.category ?? exercise.category,
                 primaryMuscle:
                   payload.programExercise?.primaryMuscle ?? exercise.primaryMuscle,
                 notes: payload.programExercise?.notes ?? exercise.notes,
-                secondaryMuscles: [],
-                equipment: null,
-                difficulty: null,
-                instructions: null,
-                needsTranslation: false,
-                imageUrls: [],
+                secondaryMuscles:
+                  payload.programExercise?.secondaryMuscles ?? exercise.secondaryMuscles,
+                equipment: payload.programExercise?.equipment ?? exercise.equipment,
+                difficulty: payload.programExercise?.difficulty ?? exercise.difficulty,
+                instructions: payload.programExercise?.instructions ?? exercise.instructions,
+                needsTranslation:
+                  payload.programExercise?.needsTranslation ?? exercise.needsTranslation,
+                imageUrls: payload.programExercise?.imageUrls ?? exercise.imageUrls,
                 setLogs: buildEmptySetLogs(exercise.setLogs.length),
                 previousPerformance: null,
                 todaySummary: [],
@@ -770,48 +787,57 @@ export function WorkoutLogForm({
             </p>
           </div>
 
-          {exerciseStates.map((exercise) => (
-            <section
-              key={exercise.id}
-              className="rounded-2xl border border-neutral-800 bg-neutral-900 p-5"
-            >
-              <h4 className="text-lg font-semibold text-white">{exercise.name}</h4>
-              {exercise.primaryMuscle ? (
-                <p className="mt-2 text-sm text-neutral-400">
-                  Muscolo principale: {exercise.primaryMuscle}
-                </p>
-              ) : null}
-              <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-start">
-                <ExercisePreviewImage name={exercise.name} imageUrls={exercise.imageUrls} />
-                <ExerciseInstructionsModal
-                  name={exercise.name}
-                  imageUrls={exercise.imageUrls}
-                  instructions={exercise.instructions}
-                  primaryMuscle={exercise.primaryMuscle}
-                  secondaryMuscles={exercise.secondaryMuscles}
-                  equipment={exercise.equipment}
-                  difficulty={exercise.difficulty}
-                  needsTranslation={exercise.needsTranslation}
-                />
-              </div>
-              <div className="mt-4 rounded-xl border border-neutral-800 bg-neutral-950 p-4">
-                <p className="text-sm font-semibold text-white">Dati registrati</p>
-                {exercise.todaySummary.length > 0 ? (
-                  <div className="mt-3 space-y-2 text-sm text-neutral-300">
-                    {exercise.todaySummary.map((setLog) => (
-                      <p key={`${exercise.id}-summary-${setLog.setNumber}`}>
-                        {formatSetSummary(setLog)}
-                      </p>
-                    ))}
-                  </div>
-                ) : (
+          {exerciseStates.map((exercise) => {
+            const displayData = getExerciseDisplayData(exercise);
+            const primaryMuscleLabel = displayData.primaryMuscles[0] ?? null;
+
+            return (
+              <section
+                key={exercise.id}
+                className="rounded-2xl border border-neutral-800 bg-neutral-900 p-5"
+              >
+                <h4 className="text-lg font-semibold text-white">{displayData.name}</h4>
+                {primaryMuscleLabel ? (
                   <p className="mt-2 text-sm text-neutral-400">
-                    Nessun dato registrato per questo esercizio.
+                    Muscolo principale: {primaryMuscleLabel}
                   </p>
-                )}
-              </div>
-            </section>
-          ))}
+                ) : null}
+                <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-start">
+                  <ExercisePreviewImage
+                    name={displayData.name}
+                    imageUrls={exercise.imageUrls}
+                  />
+                  <ExerciseInstructionsModal
+                    name={exercise.name}
+                    imageUrls={exercise.imageUrls}
+                    instructions={exercise.instructions}
+                    primaryMuscle={exercise.primaryMuscle}
+                    secondaryMuscles={exercise.secondaryMuscles}
+                    equipment={exercise.equipment}
+                    difficulty={exercise.difficulty}
+                    category={exercise.category}
+                    needsTranslation={exercise.needsTranslation}
+                  />
+                </div>
+                <div className="mt-4 rounded-xl border border-neutral-800 bg-neutral-950 p-4">
+                  <p className="text-sm font-semibold text-white">Dati registrati</p>
+                  {exercise.todaySummary.length > 0 ? (
+                    <div className="mt-3 space-y-2 text-sm text-neutral-300">
+                      {exercise.todaySummary.map((setLog) => (
+                        <p key={`${exercise.id}-summary-${setLog.setNumber}`}>
+                          {formatSetSummary(setLog)}
+                        </p>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="mt-2 text-sm text-neutral-400">
+                      Nessun dato registrato per questo esercizio.
+                    </p>
+                  )}
+                </div>
+              </section>
+            );
+          })}
 
           {!hasTodaySummary ? (
             <p className="rounded-xl border border-neutral-800 bg-neutral-900 px-4 py-3 text-sm text-neutral-300">
@@ -841,6 +867,8 @@ export function WorkoutLogForm({
               const totalSets = exercise.setLogs.length;
               const isCollapsed = collapsedExerciseIds.has(exercise.id);
               const canCollapseManually = hasExerciseData(exercise.setLogs);
+              const displayData = getExerciseDisplayData(exercise);
+              const primaryMuscleLabel = displayData.primaryMuscles[0] ?? null;
 
               return (
                 <section
@@ -857,7 +885,7 @@ export function WorkoutLogForm({
                         <div className="flex flex-col gap-4 rounded-2xl border border-neutral-800 bg-neutral-950 p-4 sm:flex-row sm:items-start sm:justify-between">
                           <div className="max-w-3xl">
                             <h3 className="text-xl font-semibold text-white">
-                              {exercise.name}
+                              {displayData.name}
                             </h3>
                             <p className="mt-2 text-sm font-medium text-emerald-300">
                               Esercizio completato
@@ -886,6 +914,7 @@ export function WorkoutLogForm({
                         secondaryMuscles={exercise.secondaryMuscles}
                         equipment={exercise.equipment}
                         difficulty={exercise.difficulty}
+                        category={exercise.category}
                         needsTranslation={exercise.needsTranslation}
                       />
                     </div>
@@ -893,15 +922,15 @@ export function WorkoutLogForm({
                     <>
                       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                         <div className="max-w-2xl">
-                          <h3 className="text-xl font-semibold">{exercise.name}</h3>
-                          {exercise.primaryMuscle ? (
+                          <h3 className="text-xl font-semibold">{displayData.name}</h3>
+                          {primaryMuscleLabel ? (
                             <p className="mt-2 text-sm text-neutral-400">
-                              Muscolo principale: {exercise.primaryMuscle}
+                              Muscolo principale: {primaryMuscleLabel}
                             </p>
                           ) : null}
                           <div className="mt-4 flex flex-col gap-4">
                             <ExercisePreviewImage
-                              name={exercise.name}
+                              name={displayData.name}
                               imageUrls={exercise.imageUrls}
                             />
                             <div>
@@ -913,6 +942,7 @@ export function WorkoutLogForm({
                                 secondaryMuscles={exercise.secondaryMuscles}
                                 equipment={exercise.equipment}
                                 difficulty={exercise.difficulty}
+                                category={exercise.category}
                                 needsTranslation={exercise.needsTranslation}
                               />
                             </div>
@@ -1043,54 +1073,64 @@ export function WorkoutLogForm({
                             ) : null}
 
                             <div className="mt-3 space-y-3">
-                              {swapAlternatives.map((alternative) => (
-                                <button
-                                  key={alternative.exerciseId}
-                                  type="button"
-                                  onClick={() =>
-                                    setSelectedAlternativeId(alternative.exerciseId)
-                                  }
-                                  className={`w-full rounded-xl border p-4 text-left transition ${
-                                    selectedAlternativeId === alternative.exerciseId
-                                      ? "border-white bg-white/10"
-                                      : "border-neutral-800 bg-neutral-950 hover:border-neutral-600"
-                                  }`}
-                                >
-                                  <div className="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
-                                    <div>
-                                      <p className="text-sm font-semibold text-white">
-                                        {alternative.name}
-                                      </p>
-                                      <p className="mt-1 text-sm text-neutral-400">
-                                        {alternative.primaryMuscle
-                                          ? `Muscolo principale: ${alternative.primaryMuscle}`
-                                          : "Muscolo principale non indicato"}
+                              {swapAlternatives.map((alternative) => {
+                                const alternativeName = getExerciseDisplayName(alternative);
+                                const alternativePrimaryMuscle =
+                                  getExerciseMusclesForDisplay(alternative).primaryMuscles[0] ??
+                                  null;
+                                const alternativeEquipment =
+                                  getExerciseEquipmentForDisplay(alternative);
+
+                                return (
+                                  <button
+                                    key={alternative.exerciseId}
+                                    type="button"
+                                    onClick={() =>
+                                      setSelectedAlternativeId(alternative.exerciseId)
+                                    }
+                                    className={`w-full rounded-xl border p-4 text-left transition ${
+                                      selectedAlternativeId === alternative.exerciseId
+                                        ? "border-white bg-white/10"
+                                        : "border-neutral-800 bg-neutral-950 hover:border-neutral-600"
+                                    }`}
+                                  >
+                                    <div className="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
+                                      <div>
+                                        <p className="text-sm font-semibold text-white">
+                                          {alternativeName}
+                                        </p>
+                                        <p className="mt-1 text-sm text-neutral-400">
+                                          {alternativePrimaryMuscle
+                                            ? `Muscolo principale: ${alternativePrimaryMuscle}`
+                                            : "Muscolo principale non indicato"}
+                                        </p>
+                                      </div>
+                                      <p className="text-xs uppercase tracking-[0.18em] text-neutral-500">
+                                        Punteggio {alternative.score}
                                       </p>
                                     </div>
-                                    <p className="text-xs uppercase tracking-[0.18em] text-neutral-500">
-                                      Punteggio {alternative.score}
-                                    </p>
-                                  </div>
 
-                                  <div className="mt-3 flex flex-wrap gap-2 text-xs text-neutral-300">
-                                    <span className="rounded-full border border-neutral-700 px-2.5 py-1">
-                                      {alternative.equipment ?? "Attrezzatura n/d"}
-                                    </span>
-                                    <span className="rounded-full border border-neutral-700 px-2.5 py-1">
-                                      {alternative.movementPattern ?? "Pattern n/d"}
-                                    </span>
-                                    <span className="rounded-full border border-neutral-700 px-2.5 py-1">
-                                      {formatDifficultyLabel(alternative.difficulty)}
-                                    </span>
-                                  </div>
+                                    <div className="mt-3 flex flex-wrap gap-2 text-xs text-neutral-300">
+                                      <span className="rounded-full border border-neutral-700 px-2.5 py-1">
+                                        {alternativeEquipment.join(", ") ||
+                                          "Attrezzatura n/d"}
+                                      </span>
+                                      <span className="rounded-full border border-neutral-700 px-2.5 py-1">
+                                        {alternative.movementPattern ?? "Pattern n/d"}
+                                      </span>
+                                      <span className="rounded-full border border-neutral-700 px-2.5 py-1">
+                                        {formatDifficultyLabel(alternative.difficulty)}
+                                      </span>
+                                    </div>
 
-                                  {alternative.matchReasons.length > 0 ? (
-                                    <p className="mt-3 text-sm text-neutral-300">
-                                      {alternative.matchReasons.join(" · ")}
-                                    </p>
-                                  ) : null}
-                                </button>
-                              ))}
+                                    {alternative.matchReasons.length > 0 ? (
+                                      <p className="mt-3 text-sm text-neutral-300">
+                                        {alternative.matchReasons.join(" · ")}
+                                      </p>
+                                    ) : null}
+                                  </button>
+                                );
+                              })}
                             </div>
 
                             <div className="mt-5 flex flex-col gap-3 sm:flex-row">

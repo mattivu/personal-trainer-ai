@@ -33,6 +33,7 @@ export type WorkoutFormExercise = {
   id: number;
   exerciseId: number | null;
   name: string;
+  category: string | null;
   primaryMuscle: string | null;
   secondaryMuscles: string[];
   equipment: string | null;
@@ -288,6 +289,7 @@ export async function getWorkoutPageDataForUser(
         include: {
           exercise: {
             select: {
+              category: true,
               primaryMuscle: true,
               secondaryMuscles: true,
               equipment: true,
@@ -389,6 +391,7 @@ export async function getWorkoutPageDataForUser(
         id: exercise.id,
         exerciseId: exercise.exerciseId ?? null,
         name: exercise.name,
+        category: exercise.exercise?.category ?? null,
         primaryMuscle: exercise.exercise?.primaryMuscle ?? null,
         secondaryMuscles: normalizeStringArray(exercise.exercise?.secondaryMuscles),
         equipment: exercise.exercise?.equipment ?? null,

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { getExerciseDisplayName } from "@/lib/exercises/exercise-display";
 import { SkipWorkoutButton } from "./skip-workout-button";
 
 type WorkoutExerciseItem = {
@@ -106,7 +107,9 @@ export function ProgramWorkoutCard({
               key={exercise.id}
               className="rounded-xl border border-neutral-800 bg-neutral-950 p-4"
             >
-              <h4 className="text-sm font-semibold text-white">{exercise.name}</h4>
+              <h4 className="text-sm font-semibold text-white">
+                {getExerciseDisplayName(exercise)}
+              </h4>
             </article>
           ))}
         </div>
