@@ -1,4 +1,5 @@
 import type { ExerciseSlot } from "./exercise-selector";
+import { getAdvancedTechniqueAssignments } from "./advanced-techniques";
 import type { NormalizedTrainingProfile } from "./types";
 import type {
   StrategyMuscleKey,
@@ -1728,7 +1729,7 @@ export function buildProgramBlueprintV2(
     clamp(strategy.weeklyTrainingDays || 3, 2, 6)
   );
 
-  return visibleWorkouts.map((workout) => ({
+  const blueprints = visibleWorkouts.map((workout) => ({
     title: workout.title,
     focus: workout.focus,
     notes: workout.notes,
@@ -1736,5 +1737,25 @@ export function buildProgramBlueprintV2(
     slots: trimRecipes(workout.recipes, sessionBudget).map((recipe) =>
       createSlot(recipe, strategy, profile)
     ),
+  })) satisfies ProgramWorkoutBlueprintV2[];
+  const assignments = getAdvancedTechniqueAssignments(strategy, blueprints);
+  const assignmentBySlotId = new Map(
+    assignments.map((assignment) => [assignment.slotId, assignment.note])
+  );
+
+  return blueprints.map((workout) => ({
+    ...workout,
+    slots: workout.slots.map((slot) => {
+      const techniqueNote = assignmentBySlotId.get(slot.slotId);
+
+      if (!techniqueNote) {
+        return slot;
+      }
+
+      return {
+        ...slot,
+        notes: `${slot.notes}\n${techniqueNote}`,
+      };
+    }),
   })) satisfies ProgramWorkoutBlueprintV2[];
 }

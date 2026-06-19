@@ -1279,7 +1279,22 @@ export function getAdvancedTechniquePolicy(
   if (profile.advancedTechniques.preference.includes("Non voglio tecniche avanzate")) {
     return {
       allowed: [],
-      excluded: [...excluded, "Superserie", "Top set + back-off", "Tempo controllato"],
+      excluded: [
+        ...excluded,
+        "Superserie",
+        "Superserie leggere",
+        "Superserie antagoniste",
+        "Top set + back-off",
+        "Tempo controllato",
+        "Pause semplici",
+        "Pausa in allungamento/contrazione",
+        "Doppia progressione",
+        "Back-off set",
+        "Ramping controllato",
+        "Rest-pause controllato",
+        "Myo-reps leggere",
+        "Set di specializzazione su isolamento",
+      ],
       reason: "Preferenza esplicita dell'utente: niente tecniche avanzate.",
     };
   }
@@ -1289,11 +1304,20 @@ export function getAdvancedTechniquePolicy(
       reason =
         "Principiante assoluto: priorita a tecnica, stabilita e lettura dello sforzo. Tecniche avanzate escluse.";
       return {
-        allowed: [],
+        allowed: ["Tempo controllato"],
         excluded: [
           "Superserie",
+          "Superserie leggere",
+          "Superserie antagoniste",
           "Top set + back-off",
-          "Tempo controllato",
+          "Pause semplici",
+          "Pausa in allungamento/contrazione",
+          "Doppia progressione",
+          "Back-off set",
+          "Ramping controllato",
+          "Rest-pause controllato",
+          "Myo-reps leggere",
+          "Set di specializzazione su isolamento",
           ...excluded,
         ],
         reason,
@@ -1301,16 +1325,23 @@ export function getAdvancedTechniquePolicy(
     case "principiante con esperienza":
       allowed.add("Tempo controllato");
       allowed.add("Pause semplici");
+      allowed.add("Pausa in allungamento/contrazione");
+      allowed.add("Doppia progressione");
       excluded.add("Superserie");
+      excluded.add("Superserie leggere");
       reason =
         "Principiante con esperienza: ammesse solo tecniche semplici e controllate, non tecniche ad alta fatica locale.";
       break;
     case "intermedio":
       allowed.add("Tempo controllato");
       allowed.add("Top set + back-off");
+      allowed.add("Back-off set");
+      allowed.add("Doppia progressione");
+      allowed.add("Ramping controllato");
       allowed.add("Superserie leggere");
       if (preferenceText.includes("rest-pause") && recoveryStatus === "high") {
         allowed.add("Rest-pause limitato");
+        allowed.add("Rest-pause controllato");
         excluded.delete("Rest-pause");
       }
       reason =
@@ -1321,6 +1352,14 @@ export function getAdvancedTechniquePolicy(
       allowed.add("Tempo controllato");
       allowed.add("Top set + back-off");
       allowed.add("Superserie");
+      allowed.add("Superserie antagoniste");
+      allowed.add("Superserie leggere");
+      allowed.add("Back-off set");
+      allowed.add("Doppia progressione");
+      allowed.add("Ramping controllato");
+      allowed.add("Rest-pause controllato");
+      allowed.add("Myo-reps leggere");
+      allowed.add("Set di specializzazione su isolamento");
       allowed.add("Drop set");
       allowed.add("Rest-pause");
       allowed.add("Myo-reps");
@@ -1339,20 +1378,32 @@ export function getAdvancedTechniquePolicy(
   if (recoveryStatus === "low" || aggressiveDeficit) {
     allowed.delete("Drop set");
     allowed.delete("Rest-pause");
+    allowed.delete("Rest-pause controllato");
     allowed.delete("Myo-reps");
+    allowed.delete("Myo-reps leggere");
     allowed.delete("Cluster");
     allowed.delete("Stripping/metaboliche");
+    allowed.delete("Superserie");
+    allowed.delete("Superserie antagoniste");
     excluded.add("Drop set");
     excluded.add("Rest-pause");
+    excluded.add("Rest-pause controllato");
     excluded.add("Myo-reps");
+    excluded.add("Myo-reps leggere");
     excluded.add("Cluster");
     excluded.add("Stripping/metaboliche");
+    excluded.add("Superserie");
+    excluded.add("Superserie antagoniste");
     reason = `${reason} Recupero o deficit richiedono di ridurre le tecniche piu tassanti.`;
   }
 
   if (limitationsPresent) {
     excluded.add("Cluster");
     excluded.add("Rest-pause");
+    excluded.add("Rest-pause controllato");
+    excluded.add("Drop set");
+    excluded.add("Myo-reps");
+    excluded.add("Myo-reps leggere");
     reason = `${reason} Limitazioni fisiche: evitare tecniche aggressive su esercizi piu rischiosi.`;
   }
 
