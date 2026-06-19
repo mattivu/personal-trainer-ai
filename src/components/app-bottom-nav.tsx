@@ -118,37 +118,39 @@ export function AppBottomNav() {
   return (
     <nav
       aria-label="Navigazione principale app"
-      className="pointer-events-none fixed inset-x-0 bottom-0 z-50 px-4 pb-[calc(14px+env(safe-area-inset-bottom,0px))]"
+      className="pointer-events-none fixed inset-x-0 bottom-0 z-50 px-2 pb-[calc(8px+env(safe-area-inset-bottom,0px))]"
     >
-      <div className="pointer-events-auto mx-auto w-full max-w-[520px] rounded-[28px] border border-white/8 bg-[rgba(10,13,13,0.84)] p-2 shadow-[0_18px_60px_rgba(0,0,0,0.42)] backdrop-blur-xl">
-        <div className="grid grid-cols-5 gap-1">
-        {navItems.map((item) => {
-          const active = item.isActive(pathname);
-          const Icon = item.icon;
+      <div className="app-shell-nav pointer-events-auto mx-auto rounded-[24px] border border-white/8 bg-[rgba(10,13,13,0.82)] px-2 py-1.5 shadow-[0_18px_44px_rgba(0,0,0,0.34)] backdrop-blur-[18px]">
+        <div className="grid grid-cols-5 gap-0.5">
+          {navItems.map((item) => {
+            const active = item.isActive(pathname);
+            const Icon = item.icon;
 
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`flex min-h-[64px] flex-col items-center justify-center rounded-[22px] px-2 py-2 text-center text-[11px] font-semibold tracking-[0.01em] transition ${
-                active
-                  ? "bg-[var(--app-primary-soft)] text-[var(--app-primary)]"
-                  : "text-white/45 hover:bg-white/5 hover:text-white"
-              }`}
-              aria-current={active ? "page" : undefined}
-            >
-              <span
-                className={`flex h-9 w-9 items-center justify-center rounded-full ${
-                  active ? "bg-[var(--app-primary)] text-[var(--app-bg)]" : "bg-transparent"
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`flex min-h-[56px] flex-col items-center justify-center rounded-[18px] px-1 py-1.5 text-center text-[10px] font-semibold transition ${
+                  active
+                    ? "text-[var(--app-primary)]"
+                    : "text-white/45 hover:text-white/70"
                 }`}
-                aria-hidden="true"
+                aria-current={active ? "page" : undefined}
               >
-                <Icon />
-              </span>
-              <span className="mt-1">{item.label}</span>
-            </Link>
-          );
-        })}
+                <span
+                  className={`flex h-7 w-7 items-center justify-center rounded-full transition ${
+                    active
+                      ? "bg-[var(--app-primary-soft)] text-[var(--app-primary)]"
+                      : "bg-transparent"
+                  }`}
+                  aria-hidden="true"
+                >
+                  <Icon />
+                </span>
+                <span className="mt-1">{item.label}</span>
+              </Link>
+            );
+          })}
         </div>
       </div>
     </nav>
