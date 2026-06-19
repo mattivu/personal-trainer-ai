@@ -120,23 +120,29 @@ export function ProgramWorkoutCard({
   recommendedBadgeLabel = "OGGI · CONSIGLIATA",
 }: ProgramWorkoutCardProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const isRecommended = variant === "recommended";
+  const isRecommendedCard = variant === "recommended";
 
   return (
     <AppCard
       soft
+      style={{
+        borderColor: isRecommendedCard ? "#D0D82B" : undefined,
+        boxShadow: isRecommendedCard
+          ? "0 0 0 1px rgba(208, 216, 43, 0.18), 0 20px 60px rgba(208, 216, 43, 0.08)"
+          : undefined,
+      }}
       className={[
+        "border",
         "shadow-none",
-        isRecommended
-          ? "rounded-[24px] border-[var(--app-primary-border)] bg-[var(--app-surface)] px-4 py-4"
-          : `rounded-[22px] bg-[var(--app-surface)] px-4 py-3.5 ${
-              status === "todo" ? "border-[#D0D82B]" : "border-white/8"
-            }`,
+        "border-white/8",
+        isRecommendedCard
+          ? "rounded-[24px] bg-[var(--app-surface)] px-4 py-4 shadow-[0_0_0_1px_rgba(208,216,43,0.06)]"
+          : "rounded-[22px] bg-[var(--app-surface)] px-4 py-3.5",
       ].join(" ")}
     >
       <div className="space-y-3">
         <div className="flex items-start justify-between gap-3">
-          {isRecommended ? (
+          {isRecommendedCard ? (
             <span className="inline-flex min-h-[28px] items-center rounded-full border border-[var(--app-primary-border)] bg-[var(--app-primary-soft)] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--app-primary)]">
               {recommendedBadgeLabel}
             </span>
@@ -156,7 +162,7 @@ export function ProgramWorkoutCard({
           <Link href={ctaHref} className="block">
             <h3
               className={
-                isRecommended
+                isRecommendedCard
                   ? "text-[19px] font-semibold leading-[1.08] tracking-[-0.02em] text-[var(--app-text)]"
                   : "text-[16px] font-semibold leading-[1.15] tracking-[-0.02em] text-[var(--app-text)]"
               }
@@ -166,16 +172,16 @@ export function ProgramWorkoutCard({
           </Link>
           <p
             className={
-              isRecommended
+              isRecommendedCard
                 ? "text-[14px] leading-6 text-[var(--app-muted)]"
                 : "text-[13px] leading-5 text-[var(--app-muted)]"
             }
           >
-            {isRecommended
+            {isRecommendedCard
               ? getSummaryLine(focus, estimatedMinutes, exerciseCount)
               : `${focus} · ${dayLabel}`}
           </p>
-          {!isRecommended && lastSessionLabel ? (
+          {!isRecommendedCard && lastSessionLabel ? (
             <p className="text-[12px] leading-5 text-[var(--app-muted-2)]">
               {lastSessionLabel}
             </p>
@@ -197,7 +203,7 @@ export function ProgramWorkoutCard({
             href={ctaHref}
             className={[
               "inline-flex items-center gap-2 rounded-full px-3.5 py-2 text-[12px] font-semibold transition",
-              isRecommended
+              isRecommendedCard
                 ? "border border-[var(--app-primary-border)] bg-[var(--app-primary-soft)] text-[var(--app-primary)] hover:brightness-110"
                 : "border border-white/10 bg-white/[0.035] text-[var(--app-text)] hover:border-white/16 hover:bg-white/[0.05]",
             ].join(" ")}
@@ -209,7 +215,7 @@ export function ProgramWorkoutCard({
 
         {isOpen ? (
           <div className="space-y-3 border-t border-white/8 pt-3">
-            {isRecommended ? (
+            {isRecommendedCard ? (
               <div className="flex flex-wrap gap-2 text-[12px] text-[var(--app-muted)]">
                 {estimatedMinutes ? (
                   <span className="app-pill">
