@@ -18,6 +18,7 @@ import {
   getWorkoutScheduleForProgram,
   type FlexibleWorkoutState,
 } from "@/lib/workout-schedule";
+import { sanitizeUserFacingNotes, sanitizeUserFacingText } from "@/lib/user-facing-copy";
 import type { CoachMode } from "@/lib/ai/coach-prompts";
 
 const RECENT_WORKOUT_LIMIT = 4;
@@ -503,7 +504,7 @@ async function getActiveProgramSummary(userId: number) {
   if (!activeProgram) {
     throw new CoachContextError(
       404,
-      "Nessun programma attivo disponibile per il Coach AI."
+      "Nessun programma attivo disponibile per il coach."
     );
   }
 
@@ -518,14 +519,14 @@ async function getActiveProgramSummary(userId: number) {
       activeProgram.startedAt ?? activeProgram.startDate ?? activeProgram.createdAt
     ),
     plannedReviewAt: toIsoString(activeProgram.plannedReviewAt),
-    notes: compactText(activeProgram.notes),
+    notes: compactText(sanitizeUserFacingNotes(activeProgram.notes)),
     workouts: activeProgram.workouts.map((workout) => ({
       id: workout.id,
       title: workout.title,
       dayLabel: workout.dayLabel,
-      focus: workout.focus,
+      focus: sanitizeUserFacingText(workout.focus),
       estimatedMinutes: workout.estimatedMinutes,
-      notes: compactText(workout.notes, 180),
+      notes: compactText(sanitizeUserFacingNotes(workout.notes), 180),
       exercises: workout.exercises.map((exercise) => ({
         id: exercise.id,
         name: exercise.name,
@@ -533,7 +534,7 @@ async function getActiveProgramSummary(userId: number) {
         reps: exercise.reps,
         restSeconds: exercise.restSeconds,
         intensity: exercise.intensity,
-        notes: compactText(exercise.notes, 120),
+        notes: compactText(sanitizeUserFacingNotes(exercise.notes), 120),
         category: exercise.exercise?.category ?? null,
         primaryMuscle: exercise.exercise?.primaryMuscle ?? null,
       })),
@@ -616,8 +617,8 @@ async function getWorkoutGuidanceContext(userId: number, workoutId: number) {
     id: workoutData.workout.id,
     title: workoutData.workout.title,
     dayLabel: workoutData.workout.dayLabel,
-    focus: workoutData.workout.focus,
-    notes: compactText(workoutData.workout.notes, 220),
+    focus: sanitizeUserFacingText(workoutData.workout.focus),
+    notes: compactText(sanitizeUserFacingNotes(workoutData.workout.notes), 220),
     state: workoutData.workoutState,
     plannedDateLabel: workoutData.plannedDateLabel,
     existingLog: workoutData.existingLog
@@ -639,7 +640,7 @@ async function getWorkoutGuidanceContext(userId: number, workoutId: number) {
       reps: exercise.reps,
       restSeconds: exercise.restSeconds,
       intensity: exercise.intensity,
-      notes: compactText(exercise.notes, 120),
+      notes: compactText(sanitizeUserFacingNotes(exercise.notes), 120),
       previousPerformance: exercise.previousPerformance
         ? {
             performedAt: exercise.previousPerformance.performedAt,

@@ -9,6 +9,7 @@ import {
   type TrainingStrategy,
 } from "./training-strategy";
 import { buildProgramBlueprintV2 } from "./program-builder-v2";
+import { formatUserFacingSplitLabel } from "@/lib/user-facing-copy";
 import {
   selectExerciseForSlot,
   type ExerciseSlot,
@@ -654,7 +655,7 @@ function getStrategyGoalLabel(goal: TrainingStrategy["goal"]) {
 }
 
 function formatStrategySplitLabel(strategy: TrainingStrategy) {
-  return `${strategy.split.type.replaceAll("_", " ")} (${strategy.split.weeklyResistanceSessions} sedute pesi)`;
+  return `${formatUserFacingSplitLabel(strategy.split.type) ?? "personalizzata"} (${strategy.split.weeklyResistanceSessions} sedute con i pesi)`;
 }
 
 export function generateRuleBasedProgram(
@@ -696,19 +697,20 @@ export function generateRuleBasedProgram(
   }) satisfies GeneratedWorkout[];
   const notes = options?.trainingStrategy
     ? [
-        "Programma creato con Training Engine v2 basato sul questionario v2 normalizzato.",
-        `Obiettivo usato: ${getStrategyGoalLabel(options.trainingStrategy.goal)}.`,
-        `Frequenza massima visibile: ${options.trainingStrategy.weeklyTrainingDays} sedute/settimana.`,
-        `Split reale: ${formatStrategySplitLabel(options.trainingStrategy)}.`,
+        "Programma creato sulla base delle tue risposte, del tuo obiettivo e della tua disponibilita.",
+        `Obiettivo: ${getStrategyGoalLabel(options.trainingStrategy.goal)}.`,
+        `Frequenza prevista: ${options.trainingStrategy.weeklyTrainingDays} sedute/settimana.`,
+        `Distribuzione settimanale: ${formatStrategySplitLabel(options.trainingStrategy)}.`,
         profile.limitations.length > 0
           ? `Limitazioni considerate: ${profile.limitations.join(", ")}.`
           : "Limitazioni considerate: nessuna segnalazione specifica.",
+        "Il lavoro e distribuito per mantenere equilibrio tra stimolo, recupero e continuita.",
+        `Cardio previsto nel programma: ${options.trainingStrategy.cardio.weeklySessions} sessioni da ${options.trainingStrategy.cardio.minutesPerSession} minuti, distribuite ${options.trainingStrategy.cardio.placement === "separate_days" ? "su giorni separati" : "in modo misto"}.`,
         buildTrainingStrategySummary(options.trainingStrategy),
-        `Cardio integrato nel piano: ${options.trainingStrategy.cardio.weeklySessions} sessioni da ${options.trainingStrategy.cardio.minutesPerSession} min ${options.trainingStrategy.cardio.intensity}, distribuite ${options.trainingStrategy.cardio.placement.replaceAll("_", " ")} senza superare i giorni visibili scelti.`,
       ].join("\n")
     : [
-        getProgramDisclaimer(profile).replace("Training Engine v1", "Training Engine v2"),
-        `Split scelta: ${getSplitDefinition(profile).label}.`,
+        getProgramDisclaimer(profile),
+        `Distribuzione settimanale: ${getSplitDefinition(profile).label}.`,
         profile.limitations.length > 0
           ? `Limitazioni considerate: ${profile.limitations.join(", ")}.`
           : "Limitazioni considerate: nessuna segnalazione specifica.",

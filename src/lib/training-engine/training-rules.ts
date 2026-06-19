@@ -339,15 +339,15 @@ export function getProgramDisclaimer(profile: NormalizedTrainingProfile) {
   const volume = getVolumeGuideline(profile);
 
   return [
-    "Programma creato con Training Engine v1 basato su regole tecniche, non ancora con AI adattiva.",
-    `Obiettivo usato: ${getGoalLabel(profile.goal)}.`,
-    `Frequenza usata: ${profile.daysPerWeek} giorni a settimana.`,
-    `Linee guida volume: ${volume.weeklySets}.`,
+    "Programma creato sulla base delle tue risposte, del tuo obiettivo e della tua disponibilita.",
+    `Obiettivo: ${getGoalLabel(profile.goal)}.`,
+    `Frequenza prevista: ${profile.daysPerWeek} giorni a settimana.`,
+    `Volume orientativo: ${volume.weeklySets}.`,
     `Intensita di riferimento: ${volume.rir}.`,
     "Usa una doppia progressione: quando completi il range alto di ripetizioni in tutte le serie con tecnica buona e il RIR previsto, aumenta leggermente il carico.",
     "Se non completi le ripetizioni o la tecnica peggiora, mantieni o riduci il carico.",
-    `Cedimento: ${volume.failure}.`,
+    `Intensita: ${volume.failure}.`,
     "Recuperi: 120-180 sec sui multiarticolari pesanti, 90-120 sec sui complementari, 60-90 sec sugli isolamenti, 30-60 sec su core e mobilita.",
-    "I futuri log useranno reps, kg e RIR/RPE per aggiornare il piano in modo piu preciso.",
+    "I progressi registrati aiuteranno a leggere meglio l'andamento del percorso.",
   ].join("\n");
 }

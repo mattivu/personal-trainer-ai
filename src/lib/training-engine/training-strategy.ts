@@ -1,4 +1,5 @@
 import type { QuestionnaireProfile } from "@/lib/onboarding/questionnaire-profile";
+import { formatUserFacingSplitLabel } from "@/lib/user-facing-copy";
 
 export type StrategySplitType =
   | "full_body"
@@ -1565,21 +1566,23 @@ export function buildTrainingStrategySummary(strategy: TrainingStrategy) {
     strategy.volume.focusBoosts.length > 0
       ? strategy.volume.focusBoosts.join(" | ")
       : "Nessun boost specifico.";
+  const splitLabel = formatUserFacingSplitLabel(strategy.split.type) ?? "personalizzata";
+  const cardioPlacement =
+    strategy.cardio.placement === "separate_days" ? "su giorni separati" : "in modo misto";
 
   return [
-    "Strategia Training Engine v2",
-    `Goal reale: ${strategy.goal}.`,
+    `Obiettivo: ${strategy.goal}.`,
     `Livello: ${strategy.experienceLevel}.`,
-    `Split: ${strategy.split.type} (${strategy.split.weeklyResistanceSessions} sedute pesi).`,
-    `Motivo split: ${strategy.split.reason}`,
+    `Distribuzione settimanale: ${splitLabel} (${strategy.split.weeklyResistanceSessions} sedute con i pesi).`,
+    "La distribuzione delle sedute e stata scelta per mantenere equilibrio, recupero e continuita.",
     `RIR base: ${strategy.intensity.defaultRir} (range ${strategy.intensity.rirRange[0]}-${strategy.intensity.rirRange[1]}).`,
-    `Cedimento: ${strategy.intensity.failureAllowed ? "ammesso in modo selettivo" : "non previsto di default"}.`,
-    `Cardio: ${strategy.cardio.weeklySessions}x${strategy.cardio.minutesPerSession}' ${strategy.cardio.intensity}, placement ${strategy.cardio.placement}.`,
-    `Tecniche ammesse: ${strategy.techniques.allowed.length > 0 ? strategy.techniques.allowed.join(", ") : "nessuna"}.`,
-    `Boost focus: ${focusBoosts}`,
+    `Intensita: ${strategy.intensity.failureAllowed ? "cedimento ammesso in modo selettivo" : "cedimento non previsto come base di lavoro"}.`,
+    `Cardio previsto: ${strategy.cardio.weeklySessions} sessioni da ${strategy.cardio.minutesPerSession} minuti, con distribuzione ${cardioPlacement}.`,
+    `Tecniche previste: ${strategy.techniques.allowed.length > 0 ? strategy.techniques.allowed.join(", ") : "nessuna"}.`,
+    `Focus aggiuntivo: ${focusBoosts}`,
     strategy.warnings.length > 0
-      ? `Warning: ${strategy.warnings.join(" | ")}`
-      : "Warning: nessuno rilevante.",
+      ? `Attenzioni: ${strategy.warnings.join(" | ")}`
+      : "Attenzioni: nessuna rilevante.",
   ].join("\n");
 }
 

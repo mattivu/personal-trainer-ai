@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { sanitizeUserFacingNotes } from "@/lib/user-facing-copy";
 
 type ProgramNotesToggleProps = {
   fullText: string;
@@ -8,6 +9,7 @@ type ProgramNotesToggleProps = {
 
 export function ProgramNotesToggle({ fullText }: ProgramNotesToggleProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const sanitizedText = sanitizeUserFacingNotes(fullText);
 
   return (
     <div className="rounded-xl border border-neutral-800 bg-neutral-950 p-4">
@@ -24,7 +26,7 @@ export function ProgramNotesToggle({ fullText }: ProgramNotesToggleProps) {
 
       {isOpen ? (
         <p className="mt-3 whitespace-pre-line text-sm leading-6 text-neutral-300">
-          {fullText}
+          {sanitizedText}
         </p>
       ) : null}
     </div>

@@ -1,5 +1,6 @@
 import "server-only";
 import type { CoachContext } from "@/lib/ai/coach-context";
+import { sanitizeUserFacingText } from "@/lib/user-facing-copy";
 
 export type CoachMode =
   | "program_overview"
@@ -40,13 +41,13 @@ Fornisci consigli pratici e conservativi su esecuzione, progressione, recupero, 
 Se emergono segnali di rischio, invita alla cautela e al confronto con un professionista qualificato.
 Non suggerire di ignorare dolore, limitazioni o sintomi.
 Non consigliare cedimento sistematico sugli esercizi multiarticolari.
-Usa tono chiaro, concreto, motivante e non prolisso.
-Rispondi solo nel formato JSON richiesto.
+Usa tono chiaro, concreto, incoraggiante e non prolisso.
+Rispondi solo nel formato strutturato richiesto.
 `.trim();
 
 export const COACH_CHAT_SYSTEM_PROMPT = `
 Sei un coach fitness digitale prudente per Personal Trainer AI.
-Parli in italiano con tono pratico, diretto e tecnico.
+Parli in italiano con tono pratico, diretto e naturale.
 Non sei un medico.
 Non diagnosticare e non sostituire professionisti sanitari.
 Usa solo i dati presenti nel contesto ricevuto e nella conversazione recente.
@@ -57,26 +58,26 @@ Non dire mai che hai modificato, aggiornato o applicato qualcosa.
 Puoi suggerire azioni utili dentro l'app, ma non applicarle mai direttamente.
 Se suggerisci un'azione, usa formulazioni come "Ti consiglio di aprire la revisione settimanale" oppure "Puoi aprire la seduta e usare Sostituisci esercizio".
 Non dire mai "Ho modificato", "Ho aggiornato", "Ho sostituito" o "Ho cambiato la scheda".
-Se suggerisci una variazione di calorie o macro, rimanda alla review nutrizionale o all'adaptive engine e chiarisci che serve conferma utente.
+Se suggerisci una variazione di calorie o macro, rimanda alla revisione nutrizionale e chiarisci che serve conferma utente.
 Se ci sono pochi pasti registrati o poche pesate, dillo chiaramente e non proporre tagli calorici.
 Se il trend peso e insufficiente, dillo chiaramente.
 Se il contesto mostra cardio programmato ma poca aderenza, distingui tra previsto e completato.
 Se il contesto mostra progressioni recenti o RIR alti, puoi proporre una piccola progressione prudente per la prossima seduta, senza applicarla.
 Se suggerisci una variazione, presentala come ipotesi conservativa non applicata.
 Non proporre cambi radicali al programma attivo.
-Quando utile, spiega in modo semplice RIR, carichi, reps, recuperi e logica della progressione.
+Quando utile, spiega in modo semplice RIR, carichi, ripetizioni, recuperi e logica della progressione.
 Se compaiono dolore, trauma, sintomi importanti o condizioni mediche, invita alla cautela e al confronto con un professionista qualificato.
 Non incoraggiare a ignorare dolore o sintomi.
 Se compaiono dolore, trauma, capogiri, dolore toracico o sintomi importanti, evita progressioni aggressive e non spingere ad allenarsi.
 Se emergono segnali delicati da note, peso o alimentazione, mantieni un tono prudente e orienta a un professionista.
-Rispondi in testo semplice, senza JSON.
+Rispondi in testo semplice.
 `.trim();
 
 export const COACH_RESPONSE_FORMAT = {
   type: "json_schema" as const,
   name: "coach_response",
   strict: true,
-  description: "Risposta strutturata del Coach AI per Personal Trainer AI.",
+  description: "Risposta strutturata del coach per Personal Trainer AI.",
   schema: {
     type: "object",
     additionalProperties: false,
@@ -127,8 +128,8 @@ function getModeInstruction(mode: CoachMode) {
   switch (mode) {
     case "program_overview":
       return [
-        "Spiega la logica del blocco attivo senza generare una nuova scheda.",
-        "Chiarisci come seguire il blocco, cosa aspettarsi, come leggere RIR/progressione e cosa evitare.",
+        "Spiega la logica della fase attuale del programma senza generare una nuova scheda.",
+        "Chiarisci come seguire il programma, cosa aspettarsi, come leggere RIR/progressione e cosa evitare.",
         "Resta adeso alla struttura del programma esistente.",
       ].join("\n");
     case "workout_guidance":
@@ -157,7 +158,7 @@ export function buildCoachUserPrompt(mode: CoachMode, context: CoachContext) {
   return [
     `Modalita: ${mode}`,
     getModeInstruction(mode),
-    "Restituisci JSON valido conforme allo schema.",
+    "Restituisci il formato strutturato richiesto.",
     "Il testo deve essere in italiano.",
     "Usa prima i summary trainingContext, nutritionContext, weightContext e activityContext; usa i dettagli estesi solo se servono.",
     "Contesto strutturato:",
@@ -194,7 +195,7 @@ function sanitizeString(value: unknown, fallback: string) {
     return fallback;
   }
 
-  const normalized = value.trim();
+  const normalized = sanitizeUserFacingText(value)?.trim() ?? "";
   return normalized || fallback;
 }
 
@@ -205,7 +206,7 @@ function sanitizeStringArray(value: unknown, maxItems: number) {
 
   return value
     .filter((entry): entry is string => typeof entry === "string")
-    .map((entry) => entry.trim())
+    .map((entry) => sanitizeUserFacingText(entry)?.trim() ?? "")
     .filter(Boolean)
     .slice(0, maxItems);
 }
@@ -218,7 +219,7 @@ export function parseCoachResult(value: unknown): CoachResult {
   const payload = value as Record<string, unknown>;
 
   return {
-    title: sanitizeString(payload.title, "Coach AI"),
+    title: sanitizeString(payload.title, "Coach"),
     summary: sanitizeString(
       payload.summary,
       "Dati insufficienti per produrre un commento affidabile."

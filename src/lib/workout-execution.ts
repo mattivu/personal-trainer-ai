@@ -10,6 +10,7 @@ import {
   getWorkoutScheduleForProgram,
   type FlexibleWorkoutState,
 } from "@/lib/workout-schedule";
+import { sanitizeUserFacingNotes, sanitizeUserFacingText } from "@/lib/user-facing-copy";
 
 export type WorkoutFormSetLog = {
   setNumber: number;
@@ -378,8 +379,8 @@ export async function getWorkoutPageDataForUser(
       id: workout.id,
       title: workout.title,
       dayLabel: workout.dayLabel,
-      focus: workout.focus,
-      notes: workout.notes,
+      focus: sanitizeUserFacingText(workout.focus),
+      notes: sanitizeUserFacingNotes(workout.notes),
     },
     exercises: workout.exercises.map((exercise) => {
       const matchingSetLogs = currentWeekLog?.setLogs.filter(
@@ -403,7 +404,7 @@ export async function getWorkoutPageDataForUser(
         reps: exercise.reps,
         restSeconds: exercise.restSeconds,
         intensity: exercise.intensity,
-        notes: exercise.notes,
+        notes: sanitizeUserFacingNotes(exercise.notes),
         initialSetLogs:
           matchingSetLogs?.map((setLog) => ({
             setNumber: setLog.setNumber,

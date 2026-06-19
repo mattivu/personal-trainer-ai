@@ -15,6 +15,7 @@ import {
   getCurrentBlockWeek,
   getTrainingBlockDurationWeeks,
 } from "@/lib/training-engine/program-block";
+import { sanitizeUserFacingNotes, sanitizeUserFacingText } from "@/lib/user-facing-copy";
 import { CreateDemoProgramButton } from "./create-demo-program-button";
 import { ProgramNotesToggle } from "./program-notes-toggle";
 import { ProgramWorkoutCard } from "./program-workout-card";
@@ -191,11 +192,11 @@ function getNotePreview(note: string, maxLength = 160) {
 function getTrainingEngineLabel(source: string | null) {
   switch (source) {
     case "rules_v2":
-      return "Generato da Training Engine v2";
+      return "Creato in base alle tue risposte piu recenti";
     case "rules_v1":
-      return "Generato da Training Engine v1";
+      return "Creato in base alle tue risposte iniziali";
     default:
-      return "Generato da Training Engine";
+      return "Creato in base al tuo profilo attuale";
   }
 }
 
@@ -337,6 +338,10 @@ export default async function ProgramPage(props: ProgramPageProps) {
   const engineUpdateAvailable = activeProgram
     ? activeProgram.source !== CURRENT_TRAINING_ENGINE_SOURCE
     : false;
+  const sanitizedProgramNotes = sanitizeUserFacingNotes(activeProgram?.notes);
+  const sanitizedProgramNotePreview = sanitizedProgramNotes
+    ? getNotePreview(sanitizedProgramNotes)
+    : null;
 
   return (
     <main className="min-h-screen bg-neutral-950 px-6 py-12 pb-28 text-white">
@@ -351,7 +356,7 @@ export default async function ProgramPage(props: ProgramPageProps) {
         {created ? (
           <div className="mb-6 rounded-2xl border border-emerald-700 bg-emerald-950/60 p-5">
             <p className="text-sm font-semibold text-emerald-200">
-              Nuovo blocco di allenamento creato correttamente.
+              Nuovo programma creato correttamente.
             </p>
             {createdProgramId ? (
               <p className="mt-1 text-sm text-emerald-300">
@@ -364,11 +369,11 @@ export default async function ProgramPage(props: ProgramPageProps) {
         {!activeProgram ? (
           <div className="rounded-2xl border border-neutral-800 bg-neutral-900 p-6">
             <p className="mb-6 text-neutral-300">
-              Non hai ancora un blocco di allenamento attivo.
+              Non hai ancora un programma attivo.
             </p>
             <ProgramActions
               canCreateProgram
-              createLabel="Crea il tuo primo blocco di allenamento"
+              createLabel="Crea il tuo primo programma"
             />
           </div>
         ) : (
@@ -376,15 +381,15 @@ export default async function ProgramPage(props: ProgramPageProps) {
             {onboardingChangedSinceProgram ? (
               <section className="rounded-2xl border border-amber-700 bg-amber-950/40 p-6">
                 <p className="text-sm font-semibold text-amber-200">
-                  Hai modificato il questionario dopo la creazione del programma
+                  Hai aggiornato le tue risposte iniziali dopo la creazione del programma
                   attuale.
                 </p>
                 <p className="mt-2 text-sm text-amber-100">
-                  Puoi creare un nuovo blocco coerente con i nuovi dati. Il
+                  Puoi creare una nuova fase del programma coerente con i nuovi dati. Il
                   programma attuale verrà archiviato, ma resterà nello storico.
                 </p>
                 <div className="mt-5">
-                  <CreateDemoProgramButton label="Crea nuovo blocco dal questionario aggiornato" />
+                  <CreateDemoProgramButton label="Crea una nuova fase del programma" />
                 </div>
               </section>
             ) : null}
@@ -392,19 +397,18 @@ export default async function ProgramPage(props: ProgramPageProps) {
             {engineUpdateAvailable ? (
               <section className="rounded-2xl border border-sky-700 bg-sky-950/40 p-6">
                 <p className="text-sm font-semibold text-sky-200">
-                  Nuova versione del motore disponibile
+                  Aggiornamento disponibile
                 </p>
                 <p className="mt-2 text-sm text-sky-100">
-                  È disponibile una nuova versione del motore di allenamento.
-                  Puoi creare un nuovo blocco usando la selezione esercizi
-                  aggiornata.
+                  Sono disponibili criteri aggiornati per proporre gli esercizi.
+                  Puoi creare una nuova fase del programma con le indicazioni piu recenti.
                 </p>
                 <p className="mt-2 text-sm text-sky-100">
                   Il programma attuale verrà archiviato, ma resterà nello
                   storico.
                 </p>
                 <div className="mt-5">
-                  <CreateDemoProgramButton label="Crea nuovo blocco aggiornato" />
+                  <CreateDemoProgramButton label="Crea programma aggiornato" />
                 </div>
               </section>
             ) : null}
@@ -413,7 +417,7 @@ export default async function ProgramPage(props: ProgramPageProps) {
               <div className="flex flex-col gap-5">
                 <div>
                   <p className="text-sm uppercase tracking-[0.2em] text-neutral-500">
-                    Blocco attivo
+                    Programma attivo
                   </p>
                   <h2 className="mt-2 text-2xl font-semibold">
                     {activeProgram.title}
@@ -429,7 +433,7 @@ export default async function ProgramPage(props: ProgramPageProps) {
                       href="/block-review"
                       className="inline-flex justify-center rounded-xl border border-neutral-700 px-4 py-2.5 text-sm font-semibold text-neutral-100"
                     >
-                      Revisione blocco
+                      Revisione del programma
                     </Link>
                   </div>
                   <p className="mt-2 text-sm text-neutral-400">
@@ -451,7 +455,7 @@ export default async function ProgramPage(props: ProgramPageProps) {
                     </p>
                   </div>
                   <div className="rounded-xl border border-neutral-800 bg-neutral-950 p-4">
-                    <p className="text-neutral-500">Durata blocco</p>
+                    <p className="text-neutral-500">Durata programma</p>
                     <p className="mt-1 font-semibold text-white">
                       {getProgramDurationWeeks(activeProgram)} settimane
                     </p>
@@ -494,20 +498,17 @@ export default async function ProgramPage(props: ProgramPageProps) {
                 <div className="rounded-xl border border-neutral-800 bg-neutral-950 p-4 text-sm text-neutral-300">
                   <p className="font-medium text-white">Nota principale</p>
                   <p className="mt-2">
-                    {activeProgram.notes
-                      ? getNotePreview(activeProgram.notes)
-                      : "Nessuna nota disponibile."}
+                    {sanitizedProgramNotePreview ?? "Nessuna nota disponibile."}
                   </p>
                 </div>
 
-                {activeProgram.notes &&
-                getNotePreview(activeProgram.notes) !==
-                  activeProgram.notes.replace(/\s+/g, " ").trim() ? (
-                  <ProgramNotesToggle fullText={activeProgram.notes} />
+                {sanitizedProgramNotes &&
+                sanitizedProgramNotePreview !== sanitizedProgramNotes.replace(/\s+/g, " ").trim() ? (
+                  <ProgramNotesToggle fullText={sanitizedProgramNotes} />
                 ) : null}
 
                 <div className="rounded-xl border border-neutral-800 bg-neutral-950 p-4 text-sm text-neutral-300">
-                  <p className="text-neutral-500">Split / focus</p>
+                  <p className="text-neutral-500">Distribuzione degli allenamenti</p>
                   <p className="mt-1 font-semibold text-white">
                     {getProgramSplitSummary(activeProgram.workouts)}
                   </p>
@@ -531,9 +532,9 @@ export default async function ProgramPage(props: ProgramPageProps) {
             <section className="space-y-3">
               <div className="flex flex-col gap-3 px-1 sm:flex-row sm:items-end sm:justify-between">
                 <div>
-                  <h3 className="text-xl font-semibold">Coach AI</h3>
+                  <h3 className="text-xl font-semibold">Coach</h3>
                   <p className="mt-1 text-sm text-neutral-400">
-                    Analisi testuale del blocco attivo, senza modificare il programma.
+                    Lettura del programma attivo basata sui dati disponibili, senza modifiche automatiche.
                   </p>
                 </div>
 
@@ -553,7 +554,7 @@ export default async function ProgramPage(props: ProgramPageProps) {
 
             <section className="space-y-4">
               <div className="px-1">
-                <h3 className="text-xl font-semibold">Sedute del blocco</h3>
+                <h3 className="text-xl font-semibold">Sedute del programma</h3>
                 <p className="mt-1 text-sm text-neutral-400">
                   {profile.daysPerWeek} giorni/settimana ·{" "}
                   {profile.sessionMinutes
@@ -590,8 +591,8 @@ export default async function ProgramPage(props: ProgramPageProps) {
                         plannedDateLabel={plannedDateLabel}
                         title={workout.title}
                         focus={
-                          workout.focus ??
-                          workout.notes ??
+                          sanitizeUserFacingText(workout.focus) ??
+                          sanitizeUserFacingNotes(workout.notes) ??
                           "Focus non indicato"
                         }
                         statusLabel={copy.statusLabel}

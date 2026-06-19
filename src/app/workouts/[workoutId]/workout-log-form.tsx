@@ -10,6 +10,7 @@ import {
   getExerciseEquipmentForDisplay,
   getExerciseMusclesForDisplay,
 } from "@/lib/exercises/exercise-display";
+import { sanitizeUserFacingNotes } from "@/lib/user-facing-copy";
 import type {
   WorkoutFormExercise,
   WorkoutFormLog,
@@ -571,7 +572,7 @@ export function WorkoutLogForm({
                 category: payload.programExercise?.category ?? exercise.category,
                 primaryMuscle:
                   payload.programExercise?.primaryMuscle ?? exercise.primaryMuscle,
-                notes: payload.programExercise?.notes ?? exercise.notes,
+                notes: sanitizeUserFacingNotes(payload.programExercise?.notes) ?? exercise.notes,
                 secondaryMuscles:
                   payload.programExercise?.secondaryMuscles ?? exercise.secondaryMuscles,
                 equipment: payload.programExercise?.equipment ?? exercise.equipment,
@@ -696,7 +697,7 @@ export function WorkoutLogForm({
   const completeButtonLabel =
     lastSavedStatus === "completed"
       ? "Aggiorna dati allenamento"
-      : "Completa allenamento";
+      : "Completa seduta";
 
   function getEntryCardCopy(state: FlexibleWorkoutState) {
     switch (state) {

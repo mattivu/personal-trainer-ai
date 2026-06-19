@@ -1395,7 +1395,7 @@ function buildRecipesForSession(
       break;
     case "upper_focus":
       recipes.push(
-        addChestIncline(sessionId, "Seduta upper/focus con priorita ai gruppi superiori scelti dalla strategy."),
+        addChestIncline(sessionId, "Seduta con priorita ai gruppi superiori scelti per il tuo obiettivo."),
         addVerticalPull(sessionId, "Tirata principale per mantenere frequenza utile sul dorso."),
         addRow(sessionId, "Seconda tirata o richiamo di bilanciamento upper."),
         addLateralRaise(sessionId, "Deltoidi in richiamo controllato."),
@@ -1601,8 +1601,8 @@ function attachCardioFinishers(
     const workout = candidates[index];
     const lowerDay = isLowerSessionKind(workout.kind);
     const notePrefix = lowerDay
-      ? "Blocco cardio breve e leggero per aumentare il dispendio senza appesantire troppo il lower day."
-      : "Blocco cardio finale inserito per dare volume aerobico senza togliere priorita al lavoro pesi.";
+      ? "Cardio breve e leggero per aumentare il dispendio senza appesantire troppo la seduta parte bassa."
+      : "Cardio finale inserito per aumentare il lavoro aerobico senza togliere priorita al lavoro con i pesi.";
 
     workout.recipes.push(
       createCardioRecipe(workout.sessionId, strategy, {
@@ -1652,7 +1652,7 @@ function createDedicatedCardioWorkouts(
       title: dedicatedCount > 1 ? `${mode.workoutTitle} ${index + 1}` : mode.workoutTitle,
       focus: mode.focus,
       notes:
-        "Seduta cardio dedicata inserita per rispettare frequenza e recupero della strategy. " +
+        "Seduta cardio dedicata inserita per distribuire meglio lavoro e recupero nella settimana. " +
         getCardioPrescriptionText(strategy, minutes, mode, true),
       kind: "specialization",
       sessionId,
@@ -1686,19 +1686,19 @@ function buildWorkoutFocus(theme: SessionTheme, focusMuscle: StrategyMuscleKey |
 }
 
 function buildWorkoutNotes(
-  strategy: TrainingStrategy,
+  _strategy: TrainingStrategy,
   theme: SessionTheme,
   focusMuscle: StrategyMuscleKey | null
 ) {
   const targets = getPrimaryThemeMuscles(theme);
   const noteParts = [
-    `Builder v2 ${strategy.split.type}: ${theme.notes.join(" ")}`,
+    `Seduta costruita per distribuire il lavoro in modo ordinato e sostenibile. ${theme.notes.join(" ")}`,
     targets.length > 0
-      ? `Target primari: ${targets.join(", ")}.`
-      : "Target primari distribuiti in base alla seduta.",
+      ? `Focus principali: ${targets.join(", ")}.`
+      : "Focus principali distribuiti in base alla seduta.",
     focusMuscle
-      ? `Focus aumentato in modo controllato su ${focusMuscle}.`
-      : "Volume accessorio mantenuto controllato per non appiattire la split.",
+      ? `Richiamo aggiuntivo in modo controllato su ${focusMuscle}.`
+      : "Lavoro accessorio distribuito in modo sostenibile.",
   ];
 
   return noteParts.join(" ");
