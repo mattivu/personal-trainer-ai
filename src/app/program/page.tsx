@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AppBottomNav } from "@/components/app-bottom-nav";
-import { AiCoachCard } from "@/components/ai-coach-card";
+import { AppCard } from "@/components/ui/app-card";
+import { AppPage } from "@/components/ui/app-page";
+import { ProgressBar } from "@/components/ui/progress-bar";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
 import {
@@ -15,17 +17,51 @@ import {
   getCurrentBlockWeek,
   getTrainingBlockDurationWeeks,
 } from "@/lib/training-engine/program-block";
-import { sanitizeUserFacingNotes, sanitizeUserFacingText } from "@/lib/user-facing-copy";
+import {
+  sanitizeUserFacingNotes,
+  sanitizeUserFacingText,
+} from "@/lib/user-facing-copy";
 import { CreateDemoProgramButton } from "./create-demo-program-button";
 import { ProgramNotesToggle } from "./program-notes-toggle";
-import { ProgramWorkoutCard } from "./program-workout-card";
+import { ProgramWorkoutCard, type ProgramWorkoutCardStatus } from "./program-workout-card";
 
 export const dynamic = "force-dynamic";
+
 const CURRENT_TRAINING_ENGINE_SOURCE = "rules_v2";
+
+type WorkoutState = ReturnType<typeof getFlexibleWorkoutState>["state"];
+
+type ProgramWorkoutWithRelations = {
+  id: number;
+  title: string;
+  dayLabel: string | null;
+  focus: string | null;
+  notes: string | null;
+  sortOrder: number;
+  estimatedMinutes: number | null;
+  workoutLogs: Array<{
+    id: number;
+    status: string;
+    performedAt: Date;
+    startedAt: Date | null;
+    completedAt: Date | null;
+    updatedAt: Date;
+  }>;
+  exercises: Array<{
+    id: number;
+    name: string;
+    sets: number | null;
+    reps: string | null;
+    restSeconds: number | null;
+    intensity: string | null;
+    notes: string | null;
+    exercise: unknown;
+  }>;
+};
 
 function formatRest(restSeconds: number | null) {
   if (restSeconds === null) {
-    return "Non indicato";
+    return "Recupero non indicato";
   }
 
   if (restSeconds === 0) {
@@ -37,7 +73,7 @@ function formatRest(restSeconds: number | null) {
 
 function formatExercisePrescription(sets: number | null, reps: string | null) {
   const setsLabel = sets ? `${sets}` : "Serie non indicate";
-  const repsLabel = reps ?? "reps non indicate";
+  const repsLabel = reps ?? "ripetizioni non indicate";
 
   if (!sets) {
     return reps ? reps : "Dettagli non indicati";
@@ -47,7 +83,7 @@ function formatExercisePrescription(sets: number | null, reps: string | null) {
 }
 
 function getSingleSearchParam(
-  value: string | string[] | undefined
+  value: string | string[] | undefined,
 ): string | undefined {
   if (Array.isArray(value)) {
     return value[0];
@@ -63,91 +99,24 @@ function formatItalianDate(date: Date) {
   }).format(date);
 }
 
-function formatItalianDateTime(date: Date) {
-  return new Intl.DateTimeFormat("it-IT", {
-    dateStyle: "medium",
-    timeStyle: "short",
-    timeZone: "Europe/Rome",
-  }).format(date);
-}
+function formatShortDayLabel(value: string) {
+  const trimmed = value.trim();
 
-function getFlexibleStatusCopy(
-  state: ReturnType<typeof getFlexibleWorkoutState>["state"],
-  plannedDateLabel: string
-) {
-  switch (state) {
-    case "recommended_today":
-      return {
-        statusLabel: "Consigliata oggi",
-        statusDescription: null,
-        ctaLabel: "Inizia seduta",
-        ctaVariant: "primary" as const,
-        showSkipAction: true,
-        showKeepSkippedAction: false,
-      };
-    case "overdue":
-      return {
-        statusLabel: "Da recuperare",
-        statusDescription: `Questa seduta era prevista per ${plannedDateLabel}.`,
-        ctaLabel: "Recupera seduta",
-        ctaVariant: "primary" as const,
-        showSkipAction: true,
-        showKeepSkippedAction: false,
-      };
-    case "future_available":
-      return {
-        statusLabel: "Prevista più avanti",
-        statusDescription: `Questa seduta è prevista per ${plannedDateLabel}. Puoi anticiparla se hai cambiato programma.`,
-        ctaLabel: "Inizia comunque",
-        ctaVariant: "secondary" as const,
-        showSkipAction: true,
-        showKeepSkippedAction: false,
-      };
-    case "in_progress":
-      return {
-        statusLabel: "Allenamento in corso",
-        statusDescription: null,
-        ctaLabel: "Continua seduta",
-        ctaVariant: "primary" as const,
-        showSkipAction: false,
-        showKeepSkippedAction: false,
-      };
-    case "completed":
-      return {
-        statusLabel: "Seduta completata",
-        statusDescription: "Hai già completato questa seduta questa settimana.",
-        ctaLabel: "Modifica dati",
-        ctaVariant: "secondary" as const,
-        showSkipAction: false,
-        showKeepSkippedAction: false,
-      };
-    case "skipped":
-      return {
-        statusLabel: "Seduta saltata",
-        statusDescription: "Hai segnato questa seduta come saltata.",
-        ctaLabel: "Recupera seduta",
-        ctaVariant: "primary" as const,
-        showSkipAction: false,
-        showKeepSkippedAction: true,
-      };
+  if (!trimmed) {
+    return "";
   }
+
+  return `${trimmed.slice(0, 3).charAt(0).toUpperCase()}${trimmed.slice(1, 3)}`;
 }
 
-function getProgramFocusSummary(
-  workouts: Array<{ title: string; focus: string | null }>
-) {
-  return workouts
-    .map((workout) => workout.focus ?? workout.title)
-    .filter(Boolean)
-    .join(" / ");
-}
-
-function getProgramSplitSummary(
-  workouts: Array<{ title: string; dayLabel: string | null }>
-) {
-  return workouts
-    .map((workout) => workout.title || workout.dayLabel || "Workout")
-    .join(" / ");
+function formatShortDayFromDate(date: Date) {
+  return new Intl.DateTimeFormat("it-IT", {
+    weekday: "short",
+    timeZone: "Europe/Rome",
+  })
+    .format(date)
+    .replace(".", "")
+    .replace(/^./, (letter) => letter.toUpperCase());
 }
 
 function getFallbackDurationWeeks(goal: string | null) {
@@ -179,69 +148,260 @@ function getProgramDurationWeeks(program: {
   return program.durationWeeks ?? getFallbackDurationWeeks(program.goal);
 }
 
-function getNotePreview(note: string, maxLength = 160) {
-  const normalizedNote = note.replace(/\s+/g, " ").trim();
-
-  if (normalizedNote.length <= maxLength) {
-    return normalizedNote;
-  }
-
-  return `${normalizedNote.slice(0, maxLength).trimEnd()}...`;
-}
-
-function getTrainingEngineLabel(source: string | null) {
-  switch (source) {
-    case "rules_v2":
-      return "Creato in base alle tue risposte piu recenti";
-    case "rules_v1":
-      return "Creato in base alle tue risposte iniziali";
+function getWorkoutPriority(state: WorkoutState) {
+  switch (state) {
+    case "in_progress":
+      return 0;
+    case "recommended_today":
+      return 1;
+    case "overdue":
+      return 2;
+    case "skipped":
+      return 3;
+    case "future_available":
+      return 4;
+    case "completed":
     default:
-      return "Creato in base al tuo profilo attuale";
+      return 5;
   }
 }
 
-function ProgramActions({
-  canCreateProgram,
-  createLabel,
+function getProgramTitle(program: { goal: string | null; title: string }) {
+  const goalLabel = sanitizeUserFacingText(program.goal);
+
+  if (goalLabel) {
+    return goalLabel;
+  }
+
+  const cleanTitle = sanitizeUserFacingText(program.title);
+
+  if (!cleanTitle) {
+    return "Programma personalizzato";
+  }
+
+  return cleanTitle.replace(/^Programma\s+/i, "").trim() || cleanTitle;
+}
+
+function getProgramObjective(program: { goal: string | null; title: string }) {
+  return sanitizeUserFacingText(program.goal) ?? getProgramTitle(program);
+}
+
+function getWorkoutCardCopy(
+  state: WorkoutState,
+): {
+  status: ProgramWorkoutCardStatus;
+  statusLabel: string;
+  recommendedBadgeLabel: string;
+  showSkipAction: boolean;
+  showKeepSkippedAction: boolean;
+} {
+  switch (state) {
+    case "recommended_today":
+      return {
+        status: "todo",
+        statusLabel: "Da fare",
+        recommendedBadgeLabel: "OGGI · CONSIGLIATA",
+        showSkipAction: true,
+        showKeepSkippedAction: false,
+      };
+    case "overdue":
+      return {
+        status: "todo",
+        statusLabel: "Da fare",
+        recommendedBadgeLabel: "DA RECUPERARE",
+        showSkipAction: true,
+        showKeepSkippedAction: false,
+      };
+    case "future_available":
+      return {
+        status: "todo",
+        statusLabel: "Da fare",
+        recommendedBadgeLabel: "PROSSIMA SEDUTA",
+        showSkipAction: true,
+        showKeepSkippedAction: false,
+      };
+    case "in_progress":
+      return {
+        status: "in_progress",
+        statusLabel: "In corso",
+        recommendedBadgeLabel: "OGGI · CONSIGLIATA",
+        showSkipAction: false,
+        showKeepSkippedAction: false,
+      };
+    case "skipped":
+      return {
+        status: "skipped",
+        statusLabel: "Saltata",
+        recommendedBadgeLabel: "DA RECUPERARE",
+        showSkipAction: false,
+        showKeepSkippedAction: true,
+      };
+    case "completed":
+    default:
+      return {
+        status: "completed",
+        statusLabel: "Completata",
+        recommendedBadgeLabel: "COMPLETATA",
+        showSkipAction: false,
+        showKeepSkippedAction: false,
+      };
+  }
+}
+
+function extractDistributionFromNotes(notes: string | null) {
+  if (!notes) {
+    return null;
+  }
+
+  const match = notes.match(/Distribuzione settimanale:\s*([^\n.]+)/i);
+  return match?.[1]?.trim() ?? null;
+}
+
+function inferDistributionFromWorkouts(workouts: ProgramWorkoutWithRelations[]) {
+  const signals = workouts
+    .flatMap((workout) => [workout.title, workout.dayLabel, workout.focus, workout.notes])
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  if (signals.includes("upper") && signals.includes("lower")) {
+    return "Upper / Lower";
+  }
+
+  if (
+    signals.includes("push") &&
+    signals.includes("pull") &&
+    (signals.includes("legs") || signals.includes("gambe"))
+  ) {
+    return "Spinta / Tirata / Gambe";
+  }
+
+  if (
+    signals.includes("full body") ||
+    signals.includes("full_body") ||
+    signals.includes("total body")
+  ) {
+    return "Total body";
+  }
+
+  return null;
+}
+
+function getDistributionLabel(
+  notes: string | null,
+  workouts: ProgramWorkoutWithRelations[],
+) {
+  const fromNotes = extractDistributionFromNotes(notes);
+
+  if (fromNotes) {
+    return sanitizeUserFacingText(fromNotes) ?? "Distribuzione personalizzata";
+  }
+
+  const fromWorkouts = inferDistributionFromWorkouts(workouts);
+
+  if (fromWorkouts) {
+    return fromWorkouts;
+  }
+
+  const dayLabels = workouts
+    .map((workout) => sanitizeUserFacingText(workout.dayLabel))
+    .filter((value): value is string => Boolean(value));
+
+  if (dayLabels.length >= 2) {
+    return dayLabels.slice(0, 3).join(" / ");
+  }
+
+  return "Distribuzione personalizzata";
+}
+
+function getPreviousWeekEntries(
+  workouts: ProgramWorkoutWithRelations[],
+  start: Date,
+  end: Date,
+) {
+  return workouts
+    .flatMap((workout) => {
+      const log = workout.workoutLogs.find(
+        (entry) =>
+          entry.performedAt >= start &&
+          entry.performedAt <= end &&
+          (entry.status === "completed" || entry.status === "skipped"),
+      );
+
+      if (!log) {
+        return [];
+      }
+
+      return [
+        {
+          id: `${workout.id}-${log.id}`,
+          title: workout.title,
+          focus:
+            sanitizeUserFacingText(workout.focus) ??
+            sanitizeUserFacingNotes(workout.notes) ??
+            "Seduta del programma",
+          statusLabel: log.status === "completed" ? "Completata" : "Saltata",
+          dayLabel: formatShortDayFromDate(log.performedAt),
+          performedAt: log.performedAt,
+        },
+      ];
+    })
+    .sort((left, right) => right.performedAt.getTime() - left.performedAt.getTime())
+    .slice(0, 3);
+}
+
+function SummaryMetric({
+  label,
+  value,
 }: {
-  canCreateProgram: boolean;
-  createLabel?: string;
+  label: string;
+  value: string;
 }) {
   return (
-    <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-      <Link
-        href="/dashboard"
-        className="inline-flex justify-center rounded-xl border border-neutral-700 px-5 py-3 font-semibold text-neutral-100"
-      >
-        Torna alla dashboard
-      </Link>
-
-      <Link
-        href="/onboarding"
-        className="inline-flex justify-center rounded-xl border border-neutral-700 px-5 py-3 font-semibold text-neutral-100"
-      >
-        Modifica obiettivo
-      </Link>
-
-      {canCreateProgram && createLabel ? (
-        <CreateDemoProgramButton label={createLabel} />
-      ) : (
-        <button
-          type="button"
-          disabled
-          className="inline-flex cursor-not-allowed justify-center rounded-xl border border-neutral-800 bg-neutral-950 px-5 py-3 font-semibold text-neutral-500"
-        >
-          Tracciamento sedute in arrivo
-        </button>
-      )}
+    <div className="space-y-1.5 rounded-[18px] border border-white/7 bg-white/[0.025] px-3.5 py-3">
+      <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--app-muted-2)]">
+        {label}
+      </p>
+      <p className="text-[15px] font-semibold leading-5 tracking-[-0.02em] text-[var(--app-text)]">
+        {value}
+      </p>
     </div>
   );
 }
 
-type ProgramPageProps = {
+function CompactUpdateCard({
+  label,
+  title,
+  body,
+  actionLabel,
+}: {
+  label: string;
+  title: string;
+  body: string;
+  actionLabel: string;
+}) {
+  return (
+    <AppCard
+      soft
+      className="rounded-[22px] border-white/8 bg-[var(--app-surface)] px-4 py-3.5 shadow-none"
+    >
+      <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--app-muted-2)]">
+        {label}
+      </p>
+      <p className="mt-1.5 text-[15px] font-semibold tracking-[-0.02em] text-[var(--app-text)]">
+        {title}
+      </p>
+      <p className="mt-1.5 text-[13px] leading-5 text-[var(--app-muted)]">{body}</p>
+      <div className="mt-3">
+        <CreateDemoProgramButton label={actionLabel} />
+      </div>
+    </AppCard>
+  );
+}
+
+export type ProgramPageProps = {
   searchParams?: Promise<{
     created?: string | string[];
-    programId?: string | string[];
     t?: string | string[];
   }>;
 };
@@ -259,10 +419,13 @@ export default async function ProgramPage(props: ProgramPageProps) {
 
   const searchParams = (await props.searchParams) ?? {};
   const created = getSingleSearchParam(searchParams.created) === "1";
-  const createdProgramId = getSingleSearchParam(searchParams.programId);
   const now = new Date();
   const currentWeekStart = getWeekStart(now);
   const currentWeekEnd = getWeekEnd(now);
+  const previousWeekReference = new Date(now);
+  previousWeekReference.setDate(previousWeekReference.getDate() - 7);
+  const previousWeekStart = getWeekStart(previousWeekReference);
+  const previousWeekEnd = getWeekEnd(previousWeekReference);
 
   const [onboardingAnswers, activeProgram] = await Promise.all([
     prisma.onboardingAnswer.findMany({
@@ -325,10 +488,9 @@ export default async function ProgramPage(props: ProgramPageProps) {
   ]);
 
   const { profile, snapshotHash } = buildNormalizedOnboardingProfile(
-    onboardingAnswers.map((answer) => answer.answersJson)
+    onboardingAnswers.map((answer) => answer.answersJson),
   );
   const latestOnboardingUpdate = onboardingAnswers[0]?.updatedAt ?? null;
-
   const onboardingChangedSinceProgram = activeProgram
     ? activeProgram.onboardingSnapshotHash
       ? activeProgram.onboardingSnapshotHash !== snapshotHash
@@ -339,272 +501,186 @@ export default async function ProgramPage(props: ProgramPageProps) {
     ? activeProgram.source !== CURRENT_TRAINING_ENGINE_SOURCE
     : false;
   const sanitizedProgramNotes = sanitizeUserFacingNotes(activeProgram?.notes);
-  const sanitizedProgramNotePreview = sanitizedProgramNotes
-    ? getNotePreview(sanitizedProgramNotes)
+  const activeWorkouts =
+    activeProgram?.workouts.filter((workout) => workout.exercises.length > 0) ?? [];
+  const schedule = getWorkoutScheduleForProgram(activeWorkouts, now).map((entry) => {
+    const currentWeekLog =
+      entry.workout.workoutLogs.find(
+        (workoutLog) =>
+          workoutLog.performedAt >= currentWeekStart &&
+          workoutLog.performedAt <= currentWeekEnd,
+      ) ?? null;
+    const latestWorkoutLog = entry.workout.workoutLogs[0] ?? null;
+    const state = getFlexibleWorkoutState({
+      plannedDateThisWeek: entry.plannedDateThisWeek,
+      plannedDateLabel: entry.plannedDateLabel,
+      weekLog: currentWeekLog,
+      referenceDate: now,
+    });
+
+    return {
+      ...entry,
+      currentWeekLog,
+      latestWorkoutLog,
+      state,
+    };
+  });
+
+  const nextWorkout = schedule
+    .filter((entry) => entry.state.state !== "completed")
+    .sort((left, right) => {
+      const priorityDiff =
+        getWorkoutPriority(left.state.state) - getWorkoutPriority(right.state.state);
+
+      if (priorityDiff !== 0) {
+        return priorityDiff;
+      }
+
+      return left.workout.sortOrder - right.workout.sortOrder;
+    })[0];
+  const completedSessions = schedule.filter(
+    (entry) => entry.state.state === "completed",
+  ).length;
+  const weeklySessions = activeWorkouts.length;
+  const programDurationWeeks = activeProgram
+    ? getProgramDurationWeeks(activeProgram)
     : null;
+  const currentProgramWeek =
+    activeProgram && programDurationWeeks !== null
+      ? getCurrentBlockWeek(getProgramStartedAt(activeProgram), programDurationWeeks)
+      : null;
+  const stripProgressValue =
+    activeProgram && programDurationWeeks && currentProgramWeek
+      ? Math.round((currentProgramWeek / programDurationWeeks) * 100)
+      : weeklySessions > 0
+        ? Math.round((completedSessions / weeklySessions) * 100)
+        : 0;
+  const highlightedWorkoutId = nextWorkout?.workout.id ?? null;
+  const weeklyEntries = [...schedule].sort((left, right) => {
+    if (left.workout.id === highlightedWorkoutId) {
+      return -1;
+    }
+
+    if (right.workout.id === highlightedWorkoutId) {
+      return 1;
+    }
+
+    return left.workout.sortOrder - right.workout.sortOrder;
+  });
+  const previousWeekEntries = getPreviousWeekEntries(
+    activeWorkouts,
+    previousWeekStart,
+    previousWeekEnd,
+  );
 
   return (
-    <main className="min-h-screen bg-neutral-950 px-6 py-12 pb-28 text-white">
-      <section className="mx-auto w-full max-w-4xl">
-        <div className="mb-8">
-          <p className="mb-3 text-sm uppercase tracking-[0.3em] text-neutral-500">
-            Personal Trainer AI
+    <AppPage contentClassName="pb-4">
+      <div className="space-y-4 pt-[62px]">
+        <header className="space-y-2">
+          <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--app-muted-2)]">
+            IL TUO PROGRAMMA
           </p>
-          <h1 className="text-3xl font-bold">Il tuo programma</h1>
-        </div>
+          <h1 className="max-w-[12ch] text-[32px] font-bold leading-[0.98] tracking-[-0.04em] text-[var(--app-text)]">
+            {activeProgram ? getProgramTitle(activeProgram) : "Crea il tuo programma"}
+          </h1>
+        </header>
 
         {created ? (
-          <div className="mb-6 rounded-2xl border border-emerald-700 bg-emerald-950/60 p-5">
-            <p className="text-sm font-semibold text-emerald-200">
-              Nuovo programma creato correttamente.
+          <AppCard
+            soft
+            className="rounded-[22px] border-[var(--app-primary-border)] bg-[var(--app-primary-soft)] px-4 py-3.5 shadow-none"
+          >
+            <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--app-primary)]">
+              PROGRAMMA AGGIORNATO
             </p>
-            {createdProgramId ? (
-              <p className="mt-1 text-sm text-emerald-300">
-                Versione programma: #{createdProgramId}
-              </p>
-            ) : null}
-          </div>
+            <p className="mt-1.5 text-[13px] leading-5 text-[var(--app-text)]">
+              Le sedute disponibili sono state aggiornate correttamente.
+            </p>
+          </AppCard>
         ) : null}
 
-        {!activeProgram ? (
-          <div className="rounded-2xl border border-neutral-800 bg-neutral-900 p-6">
-            <p className="mb-6 text-neutral-300">
-              Non hai ancora un programma attivo.
-            </p>
-            <ProgramActions
-              canCreateProgram
-              createLabel="Crea il tuo primo programma"
-            />
-          </div>
-        ) : (
-          <div className="space-y-6">
-            {onboardingChangedSinceProgram ? (
-              <section className="rounded-2xl border border-amber-700 bg-amber-950/40 p-6">
-                <p className="text-sm font-semibold text-amber-200">
-                  Hai aggiornato le tue risposte iniziali dopo la creazione del programma
-                  attuale.
-                </p>
-                <p className="mt-2 text-sm text-amber-100">
-                  Puoi creare una nuova fase del programma coerente con i nuovi dati. Il
-                  programma attuale verrà archiviato, ma resterà nello storico.
-                </p>
-                <div className="mt-5">
-                  <CreateDemoProgramButton label="Crea una nuova fase del programma" />
-                </div>
-              </section>
-            ) : null}
-
-            {engineUpdateAvailable ? (
-              <section className="rounded-2xl border border-sky-700 bg-sky-950/40 p-6">
-                <p className="text-sm font-semibold text-sky-200">
-                  Aggiornamento disponibile
-                </p>
-                <p className="mt-2 text-sm text-sky-100">
-                  Sono disponibili criteri aggiornati per proporre gli esercizi.
-                  Puoi creare una nuova fase del programma con le indicazioni piu recenti.
-                </p>
-                <p className="mt-2 text-sm text-sky-100">
-                  Il programma attuale verrà archiviato, ma resterà nello
-                  storico.
-                </p>
-                <div className="mt-5">
-                  <CreateDemoProgramButton label="Crea programma aggiornato" />
-                </div>
-              </section>
-            ) : null}
-
-            <section className="rounded-2xl border border-neutral-800 bg-neutral-900 p-6">
-              <div className="flex flex-col gap-5">
-                <div>
-                  <p className="text-sm uppercase tracking-[0.2em] text-neutral-500">
-                    Programma attivo
-                  </p>
-                  <h2 className="mt-2 text-2xl font-semibold">
-                    {activeProgram.title}
-                  </h2>
-                  <div className="mt-4 flex flex-wrap gap-3">
-                    <Link
-                      href="/weekly-review"
-                      className="inline-flex justify-center rounded-xl border border-neutral-700 px-4 py-2.5 text-sm font-semibold text-neutral-100"
-                    >
-                      Revisione settimanale
-                    </Link>
-                    <Link
-                      href="/block-review"
-                      className="inline-flex justify-center rounded-xl border border-neutral-700 px-4 py-2.5 text-sm font-semibold text-neutral-100"
-                    >
-                      Revisione del programma
-                    </Link>
-                  </div>
-                  <p className="mt-2 text-sm text-neutral-400">
-                    {getTrainingEngineLabel(activeProgram.source)}
-                  </p>
-                </div>
-
-                <div className="grid gap-3 text-sm text-neutral-300 sm:grid-cols-2">
-                  <div className="rounded-xl border border-neutral-800 bg-neutral-950 p-4">
-                    <p className="text-neutral-500">Nome programma</p>
-                    <p className="mt-1 font-semibold text-white">
-                      {activeProgram.title}
-                    </p>
-                  </div>
-                  <div className="rounded-xl border border-neutral-800 bg-neutral-950 p-4">
-                    <p className="text-neutral-500">Obiettivo</p>
-                    <p className="mt-1 font-semibold text-white">
-                      {activeProgram.goal ?? "Non indicato"}
-                    </p>
-                  </div>
-                  <div className="rounded-xl border border-neutral-800 bg-neutral-950 p-4">
-                    <p className="text-neutral-500">Durata programma</p>
-                    <p className="mt-1 font-semibold text-white">
-                      {getProgramDurationWeeks(activeProgram)} settimane
-                    </p>
-                  </div>
-                  <div className="rounded-xl border border-neutral-800 bg-neutral-950 p-4">
-                    <p className="text-neutral-500">Settimana corrente</p>
-                    <p className="mt-1 font-semibold text-white">
-                      {getCurrentBlockWeek(
-                        getProgramStartedAt(activeProgram),
-                        getProgramDurationWeeks(activeProgram)
-                      )}{" "}
-                      di {getProgramDurationWeeks(activeProgram)}
-                    </p>
-                  </div>
-                  <div className="rounded-xl border border-neutral-800 bg-neutral-950 p-4">
-                    <p className="text-neutral-500">Data inizio</p>
-                    <p className="mt-1 font-semibold text-white">
-                      {formatItalianDate(getProgramStartedAt(activeProgram))}
-                    </p>
-                  </div>
-                  <div className="rounded-xl border border-neutral-800 bg-neutral-950 p-4">
-                    <p className="text-neutral-500">Prossima revisione</p>
-                    <p className="mt-1 font-semibold text-white">
-                      {formatItalianDate(
-                        activeProgram.plannedReviewAt ??
-                          new Date(
-                            getProgramStartedAt(activeProgram).getTime() +
-                              getProgramDurationWeeks(activeProgram) *
-                                7 *
-                                24 *
-                                60 *
-                                60 *
-                                1000
-                          )
-                      )}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="rounded-xl border border-neutral-800 bg-neutral-950 p-4 text-sm text-neutral-300">
-                  <p className="font-medium text-white">Nota principale</p>
-                  <p className="mt-2">
-                    {sanitizedProgramNotePreview ?? "Nessuna nota disponibile."}
-                  </p>
-                </div>
-
-                {sanitizedProgramNotes &&
-                sanitizedProgramNotePreview !== sanitizedProgramNotes.replace(/\s+/g, " ").trim() ? (
-                  <ProgramNotesToggle fullText={sanitizedProgramNotes} />
-                ) : null}
-
-                <div className="rounded-xl border border-neutral-800 bg-neutral-950 p-4 text-sm text-neutral-300">
-                  <p className="text-neutral-500">Distribuzione degli allenamenti</p>
-                  <p className="mt-1 font-semibold text-white">
-                    {getProgramSplitSummary(activeProgram.workouts)}
-                  </p>
-                  <p className="mt-2 text-xs text-neutral-400">
-                    {getProgramFocusSummary(activeProgram.workouts)}
-                  </p>
-                </div>
-
-                <ProgramActions
-                  canCreateProgram={false}
-                  createLabel={undefined}
+        {activeProgram ? (
+          <>
+            <AppCard
+              soft
+              className="rounded-[24px] border-white/8 bg-[var(--app-surface)] px-4 py-4 shadow-none"
+            >
+              <div className="grid grid-cols-2 gap-3">
+                <SummaryMetric
+                  label="Obiettivo"
+                  value={getProgramObjective(activeProgram)}
                 />
-
-                <p className="text-xs text-neutral-500">
-                  Ultimo aggiornamento:{" "}
-                  {formatItalianDateTime(activeProgram.updatedAt)}
-                </p>
+                <SummaryMetric
+                  label="Frequenza"
+                  value={`${profile.daysPerWeek ?? weeklySessions} / settimana`}
+                />
+                <SummaryMetric
+                  label="Durata"
+                  value={
+                    programDurationWeeks
+                      ? `${programDurationWeeks} settimane`
+                      : "Durata da definire"
+                  }
+                />
+                <SummaryMetric
+                  label="Distribuzione"
+                  value={getDistributionLabel(sanitizedProgramNotes, activeWorkouts)}
+                />
               </div>
-            </section>
+
+              <div className="mt-4 border-t border-white/8 pt-4">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-[13px] font-medium text-[var(--app-muted)]">
+                    Avanzamento
+                  </p>
+                  <p className="text-[13px] font-semibold text-[var(--app-text)]">
+                    {programDurationWeeks && currentProgramWeek
+                      ? `Settimana ${currentProgramWeek} / ${programDurationWeeks}`
+                      : `${completedSessions} / ${weeklySessions} sedute`}
+                  </p>
+                </div>
+                <ProgressBar value={stripProgressValue} className="mt-3 h-[4px]" />
+              </div>
+            </AppCard>
 
             <section className="space-y-3">
-              <div className="flex flex-col gap-3 px-1 sm:flex-row sm:items-end sm:justify-between">
+              <div className="flex items-end justify-between gap-3">
                 <div>
-                  <h3 className="text-xl font-semibold">Coach</h3>
-                  <p className="mt-1 text-sm text-neutral-400">
-                    Lettura del programma attivo basata sui dati disponibili, senza modifiche automatiche.
+                  <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--app-muted-2)]">
+                    QUESTA SETTIMANA
                   </p>
                 </div>
-
-                <Link
-                  href="/coach"
-                  className="inline-flex justify-center rounded-xl border border-neutral-700 px-4 py-2.5 text-sm font-semibold text-neutral-100"
-                >
-                  Apri chat coach
-                </Link>
+                {weeklySessions > 0 ? (
+                  <p className="text-[12px] font-semibold text-[var(--app-muted-2)]">
+                    {completedSessions}/{weeklySessions}
+                  </p>
+                ) : null}
               </div>
 
-              <AiCoachCard
-                mode="program_overview"
-                buttonLabel="Analizza il programma"
-              />
-            </section>
-
-            <section className="space-y-4">
-              <div className="px-1">
-                <h3 className="text-xl font-semibold">Sedute del programma</h3>
-                <p className="mt-1 text-sm text-neutral-400">
-                  {profile.daysPerWeek} giorni/settimana ·{" "}
-                  {profile.sessionMinutes
-                    ? `${profile.sessionMinutes} min per sessione`
-                    : "Durata sessione non indicata"}
-                </p>
-              </div>
-
-              <div className="space-y-4">
-                {getWorkoutScheduleForProgram(activeProgram.workouts, now).map(
-                  ({ workout, plannedDateLabel, plannedDateThisWeek }) => {
-                    const currentWeekLog =
-                      workout.workoutLogs.find(
-                        (workoutLog) =>
-                          workoutLog.performedAt >= currentWeekStart &&
-                          workoutLog.performedAt <= currentWeekEnd
-                      ) ?? null;
-                    const latestWorkoutLog = workout.workoutLogs[0] ?? null;
-                    const workoutState = getFlexibleWorkoutState({
-                      plannedDateThisWeek,
-                      plannedDateLabel,
-                      weekLog: currentWeekLog,
-                      referenceDate: now,
-                    });
-                    const copy = getFlexibleStatusCopy(
-                      workoutState.state,
-                      plannedDateLabel
-                    );
+              {weeklyEntries.length > 0 ? (
+                <div className="space-y-2.5">
+                  {weeklyEntries.map(({ workout, plannedDateLabel, latestWorkoutLog, state }) => {
+                    const copy = getWorkoutCardCopy(state.state);
 
                     return (
                       <ProgramWorkoutCard
                         key={workout.id}
                         workoutId={workout.id}
-                        plannedDateLabel={plannedDateLabel}
+                        dayLabel={formatShortDayLabel(plannedDateLabel)}
                         title={workout.title}
                         focus={
                           sanitizeUserFacingText(workout.focus) ??
                           sanitizeUserFacingNotes(workout.notes) ??
-                          "Focus non indicato"
+                          "Seduta del programma"
                         }
+                        status={copy.status}
                         statusLabel={copy.statusLabel}
-                        statusDescription={copy.statusDescription}
-                        ctaLabel={copy.ctaLabel}
                         ctaHref={`/workouts/${workout.id}`}
-                        ctaVariant={copy.ctaVariant}
+                        estimatedMinutes={workout.estimatedMinutes ?? profile.sessionMinutes ?? null}
+                        exerciseCount={workout.exercises.length}
                         lastSessionLabel={
                           latestWorkoutLog
-                            ? `Ultima seduta ${formatItalianDate(
-                                latestWorkoutLog.performedAt
-                              )}`
+                            ? `Ultima seduta ${formatItalianDate(latestWorkoutLog.performedAt)}`
                             : null
                         }
                         showSkipAction={copy.showSkipAction}
@@ -614,23 +690,117 @@ export default async function ProgramPage(props: ProgramPageProps) {
                           name: exercise.name,
                           prescription: formatExercisePrescription(
                             exercise.sets,
-                            exercise.reps
+                            exercise.reps,
                           ),
                           rest: formatRest(exercise.restSeconds),
-                          intensity: exercise.intensity ?? "Non indicata",
-                          notes: exercise.notes,
+                          intensity: exercise.intensity ?? "Intensita libera",
+                          notes: sanitizeUserFacingText(exercise.notes),
                         }))}
+                        variant={
+                          workout.id === highlightedWorkoutId ? "recommended" : "default"
+                        }
+                        recommendedBadgeLabel={copy.recommendedBadgeLabel}
                       />
                     );
-                  }
-                )}
-              </div>
+                  })}
+                </div>
+              ) : (
+                <AppCard
+                  soft
+                  className="rounded-[22px] border-white/8 bg-[var(--app-surface)] px-4 py-3.5 shadow-none"
+                >
+                  <p className="text-[15px] font-semibold tracking-[-0.02em] text-[var(--app-text)]">
+                    Nessuna seduta disponibile
+                  </p>
+                  <p className="mt-1.5 text-[13px] leading-5 text-[var(--app-muted)]">
+                    Riprova tra poco o torna alla dashboard.
+                  </p>
+                </AppCard>
+              )}
             </section>
-          </div>
+
+            {previousWeekEntries.length > 0 ? (
+              <section className="space-y-2.5">
+                <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--app-muted-2)]">
+                  SETTIMANA SCORSA
+                </p>
+                <div className="space-y-2">
+                  {previousWeekEntries.map((entry) => (
+                    <AppCard
+                      key={entry.id}
+                      soft
+                      className="rounded-[20px] border-white/8 bg-[var(--app-surface)] px-4 py-3 shadow-none"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="text-[15px] font-semibold tracking-[-0.02em] text-[var(--app-text)]">
+                            {entry.title}
+                          </p>
+                          <p className="mt-1 text-[13px] leading-5 text-[var(--app-muted)]">
+                            {entry.focus}
+                          </p>
+                        </div>
+                        <div className="shrink-0 text-right">
+                          <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--app-muted-2)]">
+                            {entry.dayLabel}
+                          </p>
+                          <p className="mt-1 text-[12px] font-semibold text-[var(--app-text)]">
+                            {entry.statusLabel}
+                          </p>
+                        </div>
+                      </div>
+                    </AppCard>
+                  ))}
+                </div>
+              </section>
+            ) : null}
+
+            {sanitizedProgramNotes ? (
+              <section>
+                <ProgramNotesToggle fullText={sanitizedProgramNotes} />
+              </section>
+            ) : null}
+
+            {onboardingChangedSinceProgram ? (
+              <CompactUpdateCard
+                label="PROFILO AGGIORNATO"
+                title="Rivedi il programma"
+                body="Hai aggiornato le tue informazioni iniziali. Se vuoi, puoi creare una revisione coerente con il profilo piu recente."
+                actionLabel="Aggiorna programma"
+              />
+            ) : null}
+
+            {engineUpdateAvailable ? (
+              <CompactUpdateCard
+                label="REVISIONE DISPONIBILE"
+                title="Crea una nuova revisione"
+                body="Puoi generare una revisione del percorso in base al tuo profilo attuale. Le sedute gia svolte restano nello storico."
+                actionLabel="Crea revisione"
+              />
+            ) : null}
+          </>
+        ) : (
+          <AppCard className="rounded-[24px] px-5 py-5">
+            <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--app-primary)]">
+              IL TUO PROGRAMMA
+            </p>
+            <h2 className="mt-3 text-[28px] font-bold leading-[1.02] tracking-[-0.03em] text-[var(--app-text)]">
+              Crea il tuo programma
+            </h2>
+            <p className="mt-2 max-w-[28ch] text-[14px] leading-6 text-[var(--app-muted)]">
+              Completa il questionario per ricevere un percorso adatto al tuo obiettivo.
+            </p>
+            <Link
+              href="/onboarding"
+              className="mt-5 inline-flex min-h-11 items-center justify-center rounded-full border border-[var(--app-primary-border)] bg-[var(--app-primary)] px-5 py-2.5 text-[14px] font-semibold text-black transition hover:brightness-105"
+            >
+              Completa questionario
+            </Link>
+          </AppCard>
         )}
-      </section>
+      </div>
 
       <AppBottomNav />
-    </main>
+    </AppPage>
   );
 }
