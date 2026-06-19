@@ -1,11 +1,14 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AppBottomNav } from "@/components/app-bottom-nav";
+import { AdaptiveReviewCard } from "@/components/nutrition/adaptive-review-card";
+import { buildAdaptiveNutritionReview } from "@/lib/nutrition/adaptive-engine";
 import {
   getNutritionWeeklyReviewForUser,
   type NutritionWeeklyReviewStatus,
 } from "@/lib/nutrition/weekly-review";
 import { getBodyWeightTrendLabel, formatBodyWeightDelta } from "@/lib/body-weight";
+import { getOrCreateNutritionProfile } from "@/lib/nutrition/profile";
 import { getCurrentUser } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
@@ -69,8 +72,13 @@ export default async function NutritionWeeklyReviewPage() {
     redirect("/onboarding");
   }
 
-  const review = await getNutritionWeeklyReviewForUser(user.id);
+  const [review, adaptiveReview, nutritionProfileResult] = await Promise.all([
+    getNutritionWeeklyReviewForUser(user.id),
+    buildAdaptiveNutritionReview(user.id),
+    getOrCreateNutritionProfile(user.id),
+  ]);
   const weekLabel = `${formatItalianDate(review.week.start)} - ${formatItalianDate(review.week.end)}`;
+  const nutritionProfile = nutritionProfileResult.profile;
 
   return (
     <main className="min-h-screen bg-neutral-950 px-4 py-6 pb-28 text-white sm:px-6 sm:py-10">
@@ -269,6 +277,16 @@ export default async function NutritionWeeklyReviewPage() {
             </p>
           </div>
         </section>
+
+        <AdaptiveReviewCard
+          review={adaptiveReview}
+          currentTargets={{
+            calories: nutritionProfile.calorieTarget,
+            protein: nutritionProfile.proteinTarget,
+            carbs: nutritionProfile.carbsTarget,
+            fat: nutritionProfile.fatTarget,
+          }}
+        />
       </section>
 
       <AppBottomNav />
