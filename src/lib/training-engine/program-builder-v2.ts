@@ -1535,6 +1535,19 @@ function getDedicatedCardioSessionsCount(
     return 0;
   }
 
+  if (strategy.goal === "forza") {
+    return 0;
+  }
+
+  if (
+    strategy.goal === "massa muscolare" ||
+    isLowRecoveryStrategy(strategy)
+  ) {
+    return strategy.cardio.placement === "separate_days"
+      ? Math.min(1, strategy.cardio.weeklySessions, availableSeparateDays)
+      : 0;
+  }
+
   if (strategy.cardio.placement === "separate_days") {
     return Math.min(strategy.cardio.weeklySessions, availableSeparateDays);
   }

@@ -8,6 +8,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "qa:training-engine": "node scripts/qa-training-engine.mjs",
     "seed:exercises": "node scripts/seed-exercises.mjs",
     "import:exercises:free-db": "node scripts/import-free-exercise-db.mjs --limit=50",
     "activate:exercises:imported": "node scripts/activate-imported-exercises.mjs",

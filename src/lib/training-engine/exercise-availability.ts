@@ -618,20 +618,12 @@ export function getExerciseAvailabilityForUser(
   const context = normalizeAvailabilityProfile(onboardingProfile);
   const metadata = parseSourceMetadata(exercise.sourceMetadata);
   const environments = normalizeStringArray(exercise.environments);
-
-  if (!exercise.externalSource) {
-    return {
-      eligible: true,
-      status: "available",
-      reasons: ["internal_exercise"],
-      warnings: [],
-    };
-  }
+  const isInternalExercise = !exercise.externalSource;
 
   const qualityStatus = metadata?.qualityStatus;
   const engineStatus = metadata?.engineStatus;
 
-  if (environments.includes("external_import_pending")) {
+  if (!isInternalExercise && environments.includes("external_import_pending")) {
     return {
       eligible: false,
       status: "excluded",
@@ -641,9 +633,12 @@ export function getExerciseAvailabilityForUser(
   }
 
   if (
-    qualityStatus === "low_confidence" ||
-    qualityStatus === "missing_media" ||
-    engineStatus === "excluded_v1"
+    !isInternalExercise &&
+    (
+      qualityStatus === "low_confidence" ||
+      qualityStatus === "missing_media" ||
+      engineStatus === "excluded_v1"
+    )
   ) {
     return {
       eligible: false,
@@ -653,7 +648,7 @@ export function getExerciseAvailabilityForUser(
     };
   }
 
-  if (!qualityStatus || qualityStatus === "pending_review") {
+  if (!isInternalExercise && (!qualityStatus || qualityStatus === "pending_review")) {
     return {
       eligible: false,
       status: "excluded",
@@ -662,7 +657,11 @@ export function getExerciseAvailabilityForUser(
     };
   }
 
-  if (qualityStatus === "usable_candidate" && engineStatus !== "active_candidate") {
+  if (
+    !isInternalExercise &&
+    qualityStatus === "usable_candidate" &&
+    engineStatus !== "active_candidate"
+  ) {
     return {
       eligible: false,
       status: "excluded",
@@ -672,6 +671,7 @@ export function getExerciseAvailabilityForUser(
   }
 
   if (
+    !isInternalExercise &&
     qualityStatus === "specialized_equipment" &&
     engineStatus !== "conditional_candidate"
   ) {
@@ -712,7 +712,7 @@ export function getExerciseAvailabilityForUser(
 
   reasons.push(...getIncompatibleLimitations(exercise, metadata, context.profile));
 
-  if (qualityStatus === "specialized_equipment") {
+  if (!isInternalExercise && qualityStatus === "specialized_equipment") {
     const specialistCompatible = hasExplicitSpecialistCompatibility(
       exercise,
       metadata,
@@ -732,10 +732,12 @@ export function getExerciseAvailabilityForUser(
     eligible,
     status: !eligible
       ? "excluded"
-      : qualityStatus === "specialized_equipment"
+      : !isInternalExercise && qualityStatus === "specialized_equipment"
         ? "conditional"
         : "available",
-    reasons: eligible ? [qualityStatus] : reasons,
+    reasons: eligible
+      ? [isInternalExercise ? "internal_exercise" : qualityStatus ?? "external_exercise"]
+      : reasons,
     warnings,
   };
 }

@@ -1183,7 +1183,7 @@ export function getCardioStrategy(
 
   switch (profile.goal.primary) {
     case "dimagrimento":
-      weeklySessions = weeklyTrainingDays >= 5 ? 3 : 2;
+      weeklySessions = weeklyTrainingDays >= 4 ? (weeklyTrainingDays >= 5 ? 3 : 2) : 2;
       minutesPerSession = recoveryStatus === "low" ? 25 : 30;
       intensity =
         recoveryStatus === "high" && modalities.includes("HIIT") ? "mixed" : "low";
@@ -1191,22 +1191,24 @@ export function getCardioStrategy(
         "Dimagrimento: piu frequenza cardio con focus su LISS, zone 2 o opzioni low impact.";
       break;
     case "massa muscolare":
-      weeklySessions = weeklyTrainingDays >= 5 ? 3 : 2;
+      weeklySessions = weeklyTrainingDays >= 5 ? 2 : weeklyTrainingDays >= 4 ? 1 : 1;
       minutesPerSession = 15;
       intensity = "low";
+      placement = "after_weights";
       reason =
         "Massa muscolare: cardio presente ma dosato per non interferire troppo con gambe e recupero.";
       break;
     case "forza":
-      weeklySessions = 2;
+      weeklySessions = 1;
       minutesPerSession = 15;
       intensity = "low";
+      placement = "after_weights";
       reason =
         "Forza: conditioning leggero e a basso impatto per supporto aerobico senza rubare risorse ai fondamentali.";
       break;
     case "salute/mantenimento":
     case "mobilita/postura":
-      weeklySessions = weeklyTrainingDays >= 4 ? 3 : 2;
+      weeklySessions = weeklyTrainingDays >= 4 ? 2 : 1;
       minutesPerSession = 25;
       intensity = "moderate";
       reason =
@@ -1222,7 +1224,7 @@ export function getCardioStrategy(
     case "ricomposizione":
     case "altro":
     default:
-      weeklySessions = weeklyTrainingDays >= 5 ? 3 : 2;
+      weeklySessions = weeklyTrainingDays >= 4 ? 2 : 1;
       minutesPerSession = 20;
       intensity = recoveryStatus === "low" ? "low" : "moderate";
       reason =
@@ -1231,6 +1233,14 @@ export function getCardioStrategy(
   }
 
   if (recoveryStatus === "low") {
+    if (profile.goal.primary === "massa muscolare" || profile.goal.primary === "forza") {
+      weeklySessions = Math.min(weeklySessions, 1);
+      minutesPerSession = Math.min(minutesPerSession, 15);
+      placement = "after_weights";
+    } else {
+      weeklySessions = Math.max(1, weeklySessions - 1);
+      minutesPerSession = Math.min(minutesPerSession, 25);
+    }
     intensity = "low";
     modalities.splice(0, modalities.length, ...modalities.filter((entry) => entry !== "HIIT"));
     if (modalities.length === 0) {
@@ -1490,6 +1500,13 @@ export function buildTrainingStrategy(
   const techniques = getAdvancedTechniquePolicy(profile);
   const intensity = getIntensityStrategy(profile);
   const warnings: string[] = [];
+
+  if (getRecoveryStatus(profile) === "low") {
+    addWarning(
+      warnings,
+      "Recupero dichiarato basso: volume, cardio e tecniche intense sono mantenuti piu prudenti."
+    );
+  }
 
   if (volume.deloadRecommended) {
     addWarning(

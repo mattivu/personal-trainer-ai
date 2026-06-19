@@ -110,6 +110,28 @@ function isCardioExercise(exercise: {
   );
 }
 
+function isDedicatedCardioWorkout(
+  workout: GeneratedProgram["workouts"][number]
+) {
+  const workoutText = normalizeText(
+    [workout.title, workout.focus, workout.notes].join(" ")
+  );
+  const cardioExercises = workout.exercises.filter((exercise) =>
+    isCardioExercise(exercise)
+  );
+
+  return (
+    cardioExercises.length > 0 &&
+    cardioExercises.length === workout.exercises.length &&
+    (workoutText.includes("cardio") ||
+      workoutText.includes("conditioning") ||
+      workoutText.includes("zone 2") ||
+      workoutText.includes("camminata") ||
+      workoutText.includes("bike") ||
+      workoutText.includes("cyclette"))
+  );
+}
+
 export function validateGeneratedProgramConsistency(
   program: GeneratedProgram,
   strategy: TrainingStrategy
@@ -125,9 +147,7 @@ export function validateGeneratedProgramConsistency(
       ? comparableGoal
       : (goalSignals[0] ?? null);
   const dedicatedCardioWorkoutCount = program.workouts.filter((workout) =>
-    normalizeText([workout.title, workout.focus, workout.notes].join(" ")).includes(
-      "cardio"
-    )
+    isDedicatedCardioWorkout(workout)
   ).length;
   const cardioSlotCount = program.workouts.reduce((count, workout) => {
     const workoutSignals = detectGoalSignals(
