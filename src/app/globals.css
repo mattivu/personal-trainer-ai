@@ -1,6 +1,8 @@
 @import "tailwindcss";
 
 :root {
+  --font-hanken: "Hanken Grotesk", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --font-space: "Space Grotesk", "Avenir Next Condensed", "Segoe UI", system-ui, sans-serif;
   --app-bg: #0a0d0d;
   --app-surface: #121516;
   --app-surface-2: #16191b;
@@ -18,8 +20,8 @@
   --app-danger: #ff7a7a;
   --app-warning: #f3be64;
   --app-success: #d0d82b;
-  --font-app-ui: "Hanken Grotesk", "Avenir Next", "Segoe UI", system-ui, sans-serif;
-  --font-app-metrics: "Space Grotesk", "Avenir Next Condensed", "Segoe UI", system-ui, sans-serif;
+  --font-app-ui: var(--font-hanken);
+  --font-app-metrics: var(--font-space);
   --app-shell-width: 402px;
 }
 
@@ -71,6 +73,7 @@ textarea {
   color: var(--app-text);
 }
 
+.font-metric,
 .font-metrics {
   font-family: var(--font-app-metrics);
 }

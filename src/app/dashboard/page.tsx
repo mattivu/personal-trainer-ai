@@ -373,6 +373,16 @@ function CompactInfoCard({ title, href, children }: CompactCardProps) {
   );
 }
 
+function MetricText({
+  children,
+  className,
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
+  return <span className={["font-metrics", className].filter(Boolean).join(" ")}>{children}</span>;
+}
+
 export default async function DashboardPage() {
   const user = await getCurrentUser();
 
@@ -526,9 +536,23 @@ export default async function DashboardPage() {
               </p>
               <p className="shrink-0 text-[13px] font-semibold text-[var(--app-muted-2)]">
                 {programWindow
-                  ? `Settimana ${programWindow.currentWeek} / ${programWindow.durationWeeks}`
+                  ? (
+                    <>
+                      Settimana{" "}
+                      <MetricText>
+                        {programWindow.currentWeek} / {programWindow.durationWeeks}
+                      </MetricText>
+                    </>
+                  )
                   : activeProgram
-                    ? `${completedSessions}/${weeklySessions} sedute`
+                    ? (
+                      <>
+                        <MetricText>
+                          {completedSessions}/{weeklySessions}
+                        </MetricText>{" "}
+                        sedute
+                      </>
+                    )
                     : "Inizia oggi"}
               </p>
             </div>
@@ -552,10 +576,12 @@ export default async function DashboardPage() {
                 </p>
                 <div className="mt-5 flex flex-wrap gap-2">
                   {nextWorkout.workout.estimatedMinutes ? (
-                    <span className="app-pill">~{nextWorkout.workout.estimatedMinutes} min</span>
+                    <span className="app-pill">
+                      <MetricText>~{nextWorkout.workout.estimatedMinutes}</MetricText> min
+                    </span>
                   ) : null}
                   <span className="app-pill">
-                    {nextWorkout.workout.exercises.length}{" "}
+                    <MetricText>{nextWorkout.workout.exercises.length}</MetricText>{" "}
                     {nextWorkout.workout.exercises.length === 1 ? "esercizio" : "esercizi"}
                   </span>
                   <span className="app-pill">{nextWorkout.state.plannedDateLabel}</span>
@@ -627,20 +653,20 @@ export default async function DashboardPage() {
                       </p>
                       <p className="text-[11px] text-[var(--app-muted)]">rimanenti</p>
                       <p className="mt-2 text-[11px] text-[var(--app-muted-2)]">
-                        Target {formatNumber(nutritionSummary.calorieTarget)}
+                        Target <MetricText>{formatNumber(nutritionSummary.calorieTarget)}</MetricText>
                       </p>
                     </div>
                   </div>
                   <div className="mt-4 space-y-2">
                     <div className="flex items-center justify-between text-[12px]">
                       <span className="text-[var(--app-muted)]">Consumate</span>
-                      <span className="font-semibold text-[var(--app-text)]">
+                      <span className="font-metrics font-semibold text-[var(--app-text)]">
                         {formatNumber(nutritionSummary.caloriesConsumed)} kcal
                       </span>
                     </div>
                     <div className="flex items-center justify-between text-[12px]">
                       <span className="text-[var(--app-muted)]">Pasti oggi</span>
-                      <span className="font-semibold text-[var(--app-text)]">
+                      <span className="font-metrics font-semibold text-[var(--app-text)]">
                         {dailyNutritionData.meals.length}
                       </span>
                     </div>
@@ -674,7 +700,7 @@ export default async function DashboardPage() {
                       </span>
                     </p>
                     <div className="mt-2 flex items-center gap-2">
-                      <span className="text-[13px] font-semibold text-[var(--app-primary)]">
+                      <span className="font-metrics text-[13px] font-semibold text-[var(--app-primary)]">
                         {formatDelta(bodyWeightOverview.summary.change7DaysKg) ?? "—"}
                       </span>
                       <span className="text-[11px] text-[var(--app-muted-2)]">7 giorni</span>
