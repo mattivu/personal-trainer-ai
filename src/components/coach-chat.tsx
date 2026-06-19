@@ -30,14 +30,14 @@ type CoachChatApiResponse =
     };
 
 const QUICK_PROMPTS = [
-  "Sto migliorando?",
-  "Cosa devo fare oggi?",
-  "Perché mi consigli questa progressione?",
-  "Mi sento stanco, come gestisco la seduta?",
+  "Come sto andando con alimentazione e allenamento?",
+  "Devo cambiare calorie?",
+  "Sto recuperando bene?",
+  "Il cardio e sufficiente?",
 ] as const;
 
 const INITIAL_MESSAGE =
-  "Scrivimi cosa vuoi capire sul tuo allenamento. Usero il tuo programma, i progressi e lo storico per risponderti.";
+  "Scrivimi cosa vuoi capire su allenamento, alimentazione, peso, cardio o recupero. Usero solo il tuo contesto reale per risponderti, senza applicare modifiche.";
 
 function createMessageId() {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
@@ -160,8 +160,8 @@ export function CoachChat({ currentWorkoutId }: CoachChatProps) {
         </p>
         <h2 className="mt-2 text-2xl font-semibold text-white">Chat coach</h2>
         <p className="mt-2 max-w-2xl text-sm text-neutral-400">
-          Domande sul programma, sulla seduta di oggi, sui progressi e sulla logica
-          della progressione. Nessuna modifica viene applicata.
+          Domande su programma, sedute, progressi, alimentazione, peso, cardio e recupero.
+          Nessuna modifica viene applicata.
         </p>
       </div>
 

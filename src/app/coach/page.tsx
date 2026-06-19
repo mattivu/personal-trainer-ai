@@ -61,7 +61,7 @@ export default async function CoachPage(props: CoachPageProps) {
             <h1 className="mt-3 text-3xl font-bold">Coach</h1>
             <p className="mt-3 max-w-2xl text-sm text-neutral-400">
               Chat read-only basata sul tuo contesto reale: onboarding, programma
-              attivo, progressi, sedute e storico recente.
+              attivo, progressi, sedute, nutrizione, peso e cardio recente.
             </p>
           </div>
 

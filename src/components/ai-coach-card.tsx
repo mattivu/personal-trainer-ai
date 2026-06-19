@@ -122,7 +122,7 @@ export function AiCoachCard({
             Coach AI
           </p>
           <p className="mt-2 text-sm text-neutral-400">
-            Analisi testuale basata sui dati esistenti. Nessuna modifica automatica al programma.
+            Analisi testuale basata sui dati esistenti di allenamento, nutrizione, peso e cardio. Nessuna modifica automatica.
           </p>
         </div>
 

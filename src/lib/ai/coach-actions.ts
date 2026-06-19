@@ -155,12 +155,14 @@ export async function generateCoachActions({
   context,
 }: GenerateCoachActionsInput): Promise<CoachAction[]> {
   const normalizedMessage = normalizeText(latestUserMessage);
-  const [weeklyReview, nutritionWeeklyReview, blockReview, scheduledWorkouts] = await Promise.all([
-    getWeeklyReviewForUser(userId),
-    getNutritionWeeklyReviewForUser(userId),
-    getBlockReviewForUser(userId),
-    getScheduledWorkoutSignals(userId, context),
-  ]);
+  const hasNutritionProfile = Boolean(context.nutritionContext.profile);
+  const [weeklyReview, nutritionWeeklyReview, blockReview, scheduledWorkouts] =
+    await Promise.all([
+      getWeeklyReviewForUser(userId),
+      hasNutritionProfile ? getNutritionWeeklyReviewForUser(userId) : Promise.resolve(null),
+      getBlockReviewForUser(userId),
+      getScheduledWorkoutSignals(userId, context),
+    ]);
 
   const actions: CoachAction[] = [];
   const currentWorkoutId = context.currentWorkout?.id;
@@ -248,6 +250,9 @@ export async function generateCoachActions({
     /\balimentazione settimana\b/,
     /\bsto rispettando la dieta\b/,
     /\bpeso e calorie\b/,
+    /\bcambiare target\b/,
+    /\bdevo cambiare\b/,
+    /\bdevo abbassare le calorie\b/,
   ]);
   const asksForBodyWeight = matchesAny(normalizedMessage, [
     /\bpeso\b/,
@@ -259,7 +264,7 @@ export async function generateCoachActions({
     /\bbilancia\b/,
   ]);
 
-  if (asksForNutritionWeeklyReview) {
+  if (asksForNutritionWeeklyReview && nutritionWeeklyReview) {
     addAction(
       actions,
       createAction(
@@ -289,8 +294,18 @@ export async function generateCoachActions({
     addAction(
       actions,
       createAction(
+        "record-body-weight",
+        "Registra peso",
+        "/body-weight",
+        "navigation",
+        "Apri la sezione peso corporeo per inserire una nuova pesata o controllare il riepilogo."
+      )
+    );
+    addAction(
+      actions,
+      createAction(
         "open-body-weight",
-        "Apri peso corporeo",
+        "Apri storico peso",
         "/body-weight",
         "navigation",
         "Apri riepilogo, storico pesate e trend senza modificare target o programma."
@@ -375,7 +390,7 @@ export async function generateCoachActions({
       actions,
       createAction(
         "open-history",
-        "Vedi storico",
+        "Apri storico allenamenti",
         "/workout-history",
         "navigation",
         "Confronta le sedute completate per capire andamento, carichi e progressi registrati."
