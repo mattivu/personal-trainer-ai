@@ -1,6 +1,7 @@
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { applyProgressionWriteBackAfterWorkout } from "@/lib/progressions/progression-writeback";
 import { getCurrentUser } from "@/lib/session";
 import {
   getCurrentWeekBounds,
@@ -419,6 +420,21 @@ export async function POST(request: Request) {
         },
       });
     });
+
+    if (workoutLog.status === "completed") {
+      try {
+        await applyProgressionWriteBackAfterWorkout({
+          workoutLogId: workoutLog.id,
+          userId: user.id,
+        });
+      } catch (error) {
+        console.error("PROGRESSION_WRITEBACK_ERROR", {
+          workoutLogId: workoutLog.id,
+          userId: user.id,
+          error,
+        });
+      }
+    }
 
     revalidatePath("/program");
     revalidatePath(`/workouts/${workoutId}`);
