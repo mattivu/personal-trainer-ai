@@ -71,6 +71,11 @@ type ExerciseState = {
   progressionSuggestion: WorkoutFormExercise["progressionSuggestion"];
 };
 
+type CompletionCardState = {
+  visible: boolean;
+  completedAtLabel: string | null;
+};
+
 type WorkoutLogApiResponse = {
   ok?: boolean;
   workoutLogId?: number;
@@ -489,6 +494,10 @@ export function WorkoutLogForm({
         : "not_started",
   );
   const [isEditingWorkout, setIsEditingWorkout] = useState(false);
+  const [completionCard, setCompletionCard] = useState<CompletionCardState>({
+    visible: false,
+    completedAtLabel: existingLog?.completedAt ?? null,
+  });
   const [activeSwapExerciseId, setActiveSwapExerciseId] = useState<number | null>(
     null,
   );
@@ -536,6 +545,13 @@ export function WorkoutLogForm({
       return new Set([...currentState].filter((exerciseId) => validIds.has(exerciseId)));
     });
   }, [exercises]);
+
+  useEffect(() => {
+    setCompletionCard((currentState) => ({
+      visible: currentState.visible,
+      completedAtLabel: existingLog?.completedAt ?? currentState.completedAtLabel,
+    }));
+  }, [existingLog?.completedAt]);
 
   function updateSetLog(
     exerciseId: number,
@@ -754,9 +770,15 @@ export function WorkoutLogForm({
       }
 
       setLastSavedStatus(status);
-      setMessage(
-        responseMessage || (status === "completed" ? "Seduta completata." : "Progressi salvati."),
-      );
+      if (action === "complete") {
+        setCompletionCard({
+          visible: true,
+          completedAtLabel: new Date().toISOString(),
+        });
+        setMessage(null);
+      } else {
+        setMessage(responseMessage || "Progressi salvati.");
+      }
       router.refresh();
     } catch (caughtError) {
       setError(
@@ -782,149 +804,196 @@ export function WorkoutLogForm({
 
   return (
     <section className="mt-5 space-y-5">
-      {!isEditingWorkout ? (
+      {completionCard.visible ? (
         <AppCard
           soft
-          className="rounded-[24px] border border-white/8 bg-[var(--app-surface)] p-5"
+          className="rounded-[28px] border border-white/8 bg-[var(--app-surface)] p-5 sm:p-6"
         >
           <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--app-muted-2)]">
-            {entryCardCopy.eyebrow}
+            Seduta completata
           </p>
-          <h2 className="mt-2 text-[24px] font-semibold tracking-[-0.02em] text-[var(--app-text)]">
-            {entryCardCopy.title}
+          <h2 className="mt-3 text-[30px] font-semibold tracking-[-0.03em] text-[var(--app-text)]">
+            Complimenti
           </h2>
-          <p className="mt-3 text-sm leading-6 text-[var(--app-muted)]">
-            {entryCardCopy.description}
+          <p className="mt-2 text-base font-medium text-[var(--app-text)]">
+            Hai completato la seduta.
           </p>
-          {completedAtLabel ? (
+          <p className="mt-3 text-sm leading-6 text-[var(--app-muted)]">
+            I tuoi progressi sono stati salvati. Puoi tornare alla dashboard o
+            modificare i dati appena inseriti.
+          </p>
+          {completionCard.completedAtLabel ? (
             <p className="mt-3 text-[13px] text-[var(--app-muted-2)]">
-              Aggiornata il {formatDateLabel(completedAtLabel)}.
+              Aggiornata il {formatDateLabel(completionCard.completedAtLabel)}.
             </p>
           ) : null}
-
-          <div className="mt-5 flex flex-col gap-3">
-            {!isCompletedWorkout ? (
-              <PrimaryButton onClick={() => setIsEditingWorkout(true)}>
-                {entryCardCopy.buttonLabel}
-                <PlayIcon />
-              </PrimaryButton>
-            ) : (
-              <SecondaryButton onClick={() => setIsEditingWorkout(true)}>
-                {entryCardCopy.buttonLabel}
-              </SecondaryButton>
-            )}
-
-            {workoutState === "skipped" && !isCompletedWorkout ? (
-              <SecondaryButton href="/program">Apri programma</SecondaryButton>
-            ) : null}
-
-            {isCompletedWorkout ? (
-              <>
-                <SecondaryButton href="/program">Torna al programma</SecondaryButton>
-                <SecondaryButton href="/workout-history">Vedi storico</SecondaryButton>
-              </>
-            ) : null}
+          <div className="mt-6 grid gap-3">
+            <PrimaryButton
+              href="/dashboard"
+              className="min-h-12 rounded-2xl whitespace-nowrap"
+            >
+              Torna alla dashboard
+            </PrimaryButton>
+            <SecondaryButton
+              className="min-h-12 rounded-2xl whitespace-nowrap"
+              onClick={() =>
+                setCompletionCard((currentState) => ({
+                  ...currentState,
+                  visible: false,
+                }))
+              }
+            >
+              Modifica progressi
+            </SecondaryButton>
           </div>
         </AppCard>
       ) : null}
 
-      {isCompletedWorkout && !isEditingWorkout ? (
-        <div className="space-y-4">
-          <SectionHeader eyebrow="Esercizi" title="Riepilogo seduta" />
+      {!completionCard.visible ? (
+        <>
+          {!isEditingWorkout ? (
+            <AppCard
+              soft
+              className="rounded-[24px] border border-white/8 bg-[var(--app-surface)] p-5"
+            >
+              <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--app-muted-2)]">
+                {entryCardCopy.eyebrow}
+              </p>
+              <h2 className="mt-2 text-[24px] font-semibold tracking-[-0.02em] text-[var(--app-text)]">
+                {entryCardCopy.title}
+              </h2>
+              <p className="mt-3 text-sm leading-6 text-[var(--app-muted)]">
+                {entryCardCopy.description}
+              </p>
+              {completedAtLabel ? (
+                <p className="mt-3 text-[13px] text-[var(--app-muted-2)]">
+                  Aggiornata il {formatDateLabel(completedAtLabel)}.
+                </p>
+              ) : null}
 
-          {exerciseStates.map((exercise, index) => {
-            const displayData = getExerciseDisplayData(exercise);
+              <div className="mt-5 flex flex-col gap-3">
+                {!isCompletedWorkout ? (
+                  <PrimaryButton onClick={() => setIsEditingWorkout(true)}>
+                    {entryCardCopy.buttonLabel}
+                    <PlayIcon />
+                  </PrimaryButton>
+                ) : (
+                  <SecondaryButton onClick={() => setIsEditingWorkout(true)}>
+                    {entryCardCopy.buttonLabel}
+                  </SecondaryButton>
+                )}
 
-            return (
+                {workoutState === "skipped" && !isCompletedWorkout ? (
+                  <SecondaryButton href="/program">Apri programma</SecondaryButton>
+                ) : null}
+
+                {isCompletedWorkout ? (
+                  <>
+                    <SecondaryButton href="/program">Torna al programma</SecondaryButton>
+                    <SecondaryButton href="/workout-history">Vedi storico</SecondaryButton>
+                  </>
+                ) : null}
+              </div>
+            </AppCard>
+          ) : null}
+
+          {isCompletedWorkout && !isEditingWorkout ? (
+            <div className="space-y-4">
+              <SectionHeader eyebrow="Esercizi" title="Riepilogo seduta" />
+
+              {exerciseStates.map((exercise, index) => {
+                const displayData = getExerciseDisplayData(exercise);
+
+                return (
+                  <AppCard
+                    key={exercise.id}
+                    soft
+                    className="rounded-[24px] border border-white/8 bg-[var(--app-surface)] p-4"
+                  >
+                    <div className="flex items-start gap-4">
+                      <ExercisePreviewImage name={displayData.name} imageUrls={exercise.imageUrls} />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--app-muted-2)]">
+                          Esercizio {index + 1}
+                        </p>
+                        <h3 className="mt-1 text-[18px] font-semibold tracking-[-0.02em] text-[var(--app-text)]">
+                          {displayData.name}
+                        </h3>
+                        <p className="mt-2 text-sm text-[var(--app-muted)]">
+                          {formatPrescription(exercise.sets, exercise.reps)} · {formatRest(exercise.restSeconds)}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 rounded-[18px] border border-white/7 bg-[var(--app-bg)]/55 p-4">
+                      <p className="text-[13px] font-semibold text-[var(--app-text)]">Progressi</p>
+                      {exercise.todaySummary.length > 0 ? (
+                        <div className="mt-3 space-y-2 text-sm text-[var(--app-muted)]">
+                          {exercise.todaySummary.map((setLog) => (
+                            <p key={`${exercise.id}-summary-${setLog.setNumber}`}>
+                              {formatSetSummary(setLog)}
+                            </p>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="mt-2 text-sm text-[var(--app-muted)]">
+                          Nessun progresso registrato per questo esercizio.
+                        </p>
+                      )}
+                    </div>
+                  </AppCard>
+                );
+              })}
+
+              {!hasTodaySummary ? (
+                <EmptyState
+                  title="Nessun progresso registrato."
+                  description="Questa seduta non contiene ancora un riepilogo da mostrare."
+                />
+              ) : null}
+            </div>
+          ) : null}
+
+          {isEditingWorkout ? (
+            <div className="space-y-5">
               <AppCard
-                key={exercise.id}
                 soft
                 className="rounded-[24px] border border-white/8 bg-[var(--app-surface)] p-4"
               >
-                <div className="flex items-start gap-4">
-                  <ExercisePreviewImage name={displayData.name} imageUrls={exercise.imageUrls} />
-                  <div className="min-w-0 flex-1">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
                     <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--app-muted-2)]">
-                      Esercizio {index + 1}
+                      Sessione attiva
                     </p>
-                    <h3 className="mt-1 text-[18px] font-semibold tracking-[-0.02em] text-[var(--app-text)]">
-                      {displayData.name}
-                    </h3>
-                    <p className="mt-2 text-sm text-[var(--app-muted)]">
-                      {formatPrescription(exercise.sets, exercise.reps)} · {formatRest(exercise.restSeconds)}
-                    </p>
+                    <h2 className="mt-1 text-[18px] font-semibold tracking-[-0.02em] text-[var(--app-text)]">
+                      {lastSavedStatus === "completed"
+                        ? "Seduta completata"
+                        : lastSavedStatus === "in_progress"
+                          ? "Allenamento in corso"
+                          : "Pronto a registrare i progressi"}
+                    </h2>
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsEditingWorkout(false)}
+                    className="rounded-full border border-white/10 px-3 py-1.5 text-[12px] font-semibold text-[var(--app-muted)] transition hover:border-white/16 hover:text-[var(--app-text)]"
+                  >
+                    Riduci
+                  </button>
                 </div>
-
-                <div className="mt-4 rounded-[18px] border border-white/7 bg-[var(--app-bg)]/55 p-4">
-                  <p className="text-[13px] font-semibold text-[var(--app-text)]">Progressi</p>
-                  {exercise.todaySummary.length > 0 ? (
-                    <div className="mt-3 space-y-2 text-sm text-[var(--app-muted)]">
-                      {exercise.todaySummary.map((setLog) => (
-                        <p key={`${exercise.id}-summary-${setLog.setNumber}`}>
-                          {formatSetSummary(setLog)}
-                        </p>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="mt-2 text-sm text-[var(--app-muted)]">
-                      Nessun progresso registrato per questo esercizio.
-                    </p>
-                  )}
-                </div>
-              </AppCard>
-            );
-          })}
-
-          {!hasTodaySummary ? (
-            <EmptyState
-              title="Nessun progresso registrato."
-              description="Questa seduta non contiene ancora un riepilogo da mostrare."
-            />
-          ) : null}
-        </div>
-      ) : null}
-
-      {isEditingWorkout ? (
-        <div className="space-y-5">
-          <AppCard
-            soft
-            className="rounded-[24px] border border-white/8 bg-[var(--app-surface)] p-4"
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--app-muted-2)]">
-                  Sessione attiva
-                </p>
-                <h2 className="mt-1 text-[18px] font-semibold tracking-[-0.02em] text-[var(--app-text)]">
+                <p className="mt-3 text-sm leading-6 text-[var(--app-muted)]">
                   {lastSavedStatus === "completed"
-                    ? "Seduta completata"
-                    : lastSavedStatus === "in_progress"
-                      ? "Allenamento in corso"
-                      : "Pronto a registrare i progressi"}
-                </h2>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsEditingWorkout(false)}
-                className="rounded-full border border-white/10 px-3 py-1.5 text-[12px] font-semibold text-[var(--app-muted)] transition hover:border-white/16 hover:text-[var(--app-text)]"
-              >
-                Riduci
-              </button>
-            </div>
-            <p className="mt-3 text-sm leading-6 text-[var(--app-muted)]">
-              {lastSavedStatus === "completed"
-                ? "Puoi aggiornare i progressi senza aprire una nuova seduta."
-                : "Troverai i progressi sotto ogni esercizio. Puoi salvare in fondo quando vuoi."}
-            </p>
-          </AppCard>
+                    ? "Puoi aggiornare i progressi senza aprire una nuova seduta."
+                    : "Troverai i progressi sotto ogni esercizio. Puoi salvare in fondo quando vuoi."}
+                </p>
+              </AppCard>
 
-          <SectionHeader
-            eyebrow="Esercizi"
-            title={`${exerciseStates.length} ${exerciseStates.length === 1 ? "esercizio" : "esercizi"}`}
-          />
+              <SectionHeader
+                eyebrow="Esercizi"
+                title={`${exerciseStates.length} ${exerciseStates.length === 1 ? "esercizio" : "esercizi"}`}
+              />
 
-          <div className="space-y-4">
+              <div className="space-y-4">
             {exerciseStates.map((exercise, index) => {
               const completedSets = exercise.setLogs.filter(isSetCompleted).length;
               const totalSets = exercise.setLogs.length;
@@ -937,6 +1006,7 @@ export function WorkoutLogForm({
               const exerciseActionLabel = hasEnteredData
                 ? "Modifica esercizio"
                 : "Inizia esercizio";
+              const canSwapExercise = exercise.exerciseId !== null;
 
               return (
                 <AppCard
@@ -1017,7 +1087,7 @@ export function WorkoutLogForm({
                       needsTranslation={exercise.needsTranslation}
                     />
 
-                    {!isCompletedWorkout ? (
+                    {canSwapExercise ? (
                       <button
                         type="button"
                         onClick={() => openSwapPanel(exercise.id)}
@@ -1424,6 +1494,8 @@ export function WorkoutLogForm({
             </div>
           </AppCard>
         </div>
+          ) : null}
+        </>
       ) : null}
     </section>
   );
