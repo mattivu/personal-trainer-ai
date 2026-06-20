@@ -178,6 +178,60 @@ textarea {
   width: min(calc(100vw - 16px), var(--app-shell-width));
 }
 
+@keyframes coachBubble {
+  0% {
+    transform: translate(-50%, -50%) scale(0.92) translateY(0);
+    border-radius: 45% 55% 52% 48%;
+  }
+
+  35% {
+    transform: translate(-50%, -50%) scale(1.06) translateY(-1px);
+    border-radius: 55% 45% 48% 52%;
+  }
+
+  70% {
+    transform: translate(-50%, -50%) scale(0.98) translateY(1px);
+    border-radius: 48% 52% 56% 44%;
+  }
+
+  100% {
+    transform: translate(-50%, -50%) scale(0.92) translateY(0);
+    border-radius: 45% 55% 52% 48%;
+  }
+}
+
+.app-coach-bubble {
+  z-index: 0;
+  width: 36px;
+  height: 36px;
+  background: #d0d82b;
+  opacity: 0.9;
+  animation: coachBubble 2.8s ease-in-out infinite;
+  transform-origin: center;
+  transform: translate(-50%, -50%) scale(0.92);
+  will-change: transform, border-radius;
+  pointer-events: none;
+  transform-box: fill-box;
+}
+
+.app-coach-bubble[data-active="true"] {
+  width: 38px;
+  height: 38px;
+  opacity: 0.95;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-coach-bubble {
+    animation: none;
+    transform: translate(-50%, -50%) scale(1);
+    border-radius: 50%;
+  }
+
+  .app-coach-bubble[data-active="true"] {
+    opacity: 0.95;
+  }
+}
+
 @media (min-width: 640px) {
   .app-container {
     padding-inline: 18px;
