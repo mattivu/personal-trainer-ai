@@ -308,6 +308,25 @@ function PlayIcon() {
   );
 }
 
+function CheckIcon({ active }: { active: boolean }) {
+  return (
+    <svg
+      viewBox="0 0 20 20"
+      fill="none"
+      aria-hidden="true"
+      className={active ? "h-4 w-4 text-[#111315]" : "h-4 w-4 text-white/35"}
+    >
+      <path
+        d="M5 10.5 8.25 13.75 15 7"
+        stroke="currentColor"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 function ExercisePreviewImage({
   name,
   imageUrls,
@@ -915,11 +934,9 @@ export function WorkoutLogForm({
               const primaryMuscleLabel = displayData.primaryMuscles[0] ?? null;
               const equipmentLabel = getExerciseEquipmentForDisplay(exercise).join(", ");
               const cleanNote = sanitizeUserFacingNotes(exercise.notes);
-              const exerciseActionLabel = isCollapsed
-                ? hasEnteredData
-                  ? "Modifica esercizio"
-                  : "Inizia esercizio"
-                : "Finisci esercizio";
+              const exerciseActionLabel = hasEnteredData
+                ? "Modifica esercizio"
+                : "Inizia esercizio";
 
               return (
                 <AppCard
@@ -1011,15 +1028,15 @@ export function WorkoutLogForm({
                     ) : null}
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() =>
-                      isCollapsed ? openExercise(exercise.id) : collapseExercise(exercise.id)
-                    }
-                    className="mt-3 inline-flex min-h-[56px] w-full items-center justify-center rounded-[18px] bg-[#D0D82B] px-4 py-3 text-sm font-bold text-[#121212] transition hover:brightness-105"
-                  >
-                    {exerciseActionLabel}
-                  </button>
+                  {isCollapsed ? (
+                    <button
+                      type="button"
+                      onClick={() => openExercise(exercise.id)}
+                      className="mt-3 inline-flex min-h-[56px] w-full items-center justify-center rounded-[18px] bg-[#D0D82B] px-4 py-3 text-sm font-bold text-[#121212] transition hover:brightness-105"
+                    >
+                      {exerciseActionLabel}
+                    </button>
+                  ) : null}
 
                   {activeSwapExerciseId === exercise.id ? (
                     <div className="mt-4 rounded-[22px] border border-[var(--app-primary-border)] bg-[var(--app-primary-soft)] p-4">
@@ -1188,157 +1205,122 @@ export function WorkoutLogForm({
                   {!isCollapsed ? (
                     <div className="mt-4 rounded-[22px] border border-white/8 bg-[var(--app-bg)]/45 p-4 sm:p-5">
                       <div className="flex items-center justify-between gap-3">
-                        <div>
-                          <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--app-muted-2)]">
-                            Progressi
-                          </p>
-                          <h4 className="mt-1 text-[17px] font-semibold tracking-[-0.02em] text-[var(--app-text)]">
-                            Dettagli della serie
-                          </h4>
-                        </div>
+                        <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--app-muted-2)]">
+                          Progressi
+                        </p>
                         <p className="text-[12px] font-semibold text-[var(--app-muted)]">
                           {completedSets}/{totalSets}
                         </p>
                       </div>
 
-                      <div className="mt-4 space-y-3">
-                        {exercise.setLogs.map((setLog) => (
-                          <div
-                            key={`${exercise.id}-${setLog.setNumber}`}
-                            className="rounded-[20px] border border-white/7 bg-[var(--app-surface)] p-4"
-                          >
-                            <div className="flex items-center justify-between gap-3">
-                              <p className="text-[15px] font-semibold text-[var(--app-text)]">
-                                Serie {setLog.setNumber}
-                              </p>
-                              <label className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.035] px-3 py-1.5 text-[12px] font-medium text-[var(--app-muted)]">
-                                <input
-                                  type="checkbox"
-                                  checked={setLog.completed}
-                                  onChange={(event) =>
-                                    updateSetLog(
-                                      exercise.id,
-                                      setLog.setNumber,
-                                      "completed",
-                                      event.target.checked,
-                                    )
-                                  }
-                                  className="h-4 w-4"
-                                />
-                                <span>Serie completata</span>
-                              </label>
-                            </div>
-
-                            <div className="mt-4 grid gap-3">
-                              <label className="text-sm">
-                                <span className="block text-[var(--app-muted)]">Carico</span>
-                                <input
-                                  type="number"
-                                  min={0}
-                                  step={0.5}
-                                  value={setLog.actualWeight ?? ""}
-                                  onChange={(event) =>
-                                    updateSetLog(
-                                      exercise.id,
-                                      setLog.setNumber,
-                                      "actualWeight",
-                                      parseNumberInput(event.target.value),
-                                    )
-                                  }
-                                  className="mt-2 h-12 w-full rounded-[14px] border border-white/10 bg-[var(--app-surface-soft)] px-4 text-[var(--app-text)] outline-none transition focus:border-[var(--app-primary-border)]"
-                                  placeholder="Kg usati"
-                                />
-                              </label>
-
-                              <div className="grid grid-cols-2 gap-3">
-                                <label className="text-sm">
-                                  <span className="block text-[var(--app-muted)]">Reps</span>
-                                  <input
-                                    type="number"
-                                    min={0}
-                                    step={1}
-                                    value={setLog.actualReps ?? ""}
-                                    onChange={(event) =>
-                                      updateSetLog(
-                                        exercise.id,
-                                        setLog.setNumber,
-                                        "actualReps",
-                                        parseNumberInput(event.target.value),
-                                      )
-                                    }
-                                    className="mt-2 h-12 w-full rounded-[14px] border border-white/10 bg-[var(--app-surface-soft)] px-4 text-[var(--app-text)] outline-none transition focus:border-[var(--app-primary-border)]"
-                                    placeholder="Reps"
-                                  />
-                                </label>
-
-                                <label className="text-sm">
-                                  <span className="block text-[var(--app-muted)]">
-                                    Ripetizioni in riserva
-                                  </span>
-                                  <input
-                                    type="number"
-                                    min={0}
-                                    max={10}
-                                    step={1}
-                                    value={setLog.actualRir ?? ""}
-                                    onChange={(event) =>
-                                      updateSetLog(
-                                        exercise.id,
-                                        setLog.setNumber,
-                                        "actualRir",
-                                        parseNumberInput(event.target.value),
-                                      )
-                                    }
-                                    className="mt-2 h-12 w-full rounded-[14px] border border-white/10 bg-[var(--app-surface-soft)] px-4 text-[var(--app-text)] outline-none transition focus:border-[var(--app-primary-border)]"
-                                    placeholder="0-4"
-                                  />
-                                </label>
-                              </div>
-
-                              <label className="text-sm">
-                                <span className="block text-[var(--app-muted)]">
-                                  Sforzo della serie
-                                </span>
-                                <input
-                                  type="number"
-                                  min={0}
-                                  max={10}
-                                  step={1}
-                                  value={setLog.actualRpe ?? ""}
-                                  onChange={(event) =>
-                                    updateSetLog(
-                                      exercise.id,
-                                      setLog.setNumber,
-                                      "actualRpe",
-                                      parseNumberInput(event.target.value),
-                                    )
-                                  }
-                                  className="mt-2 h-12 w-full rounded-[14px] border border-white/10 bg-[var(--app-surface-soft)] px-4 text-[var(--app-text)] outline-none transition focus:border-[var(--app-primary-border)]"
-                                  placeholder="0-10"
-                                />
-                              </label>
-
-                              <label className="text-sm">
-                                <span className="block text-[var(--app-muted)]">Note</span>
-                                <textarea
-                                  value={setLog.notes}
-                                  onChange={(event) =>
-                                    updateSetLog(
-                                      exercise.id,
-                                      setLog.setNumber,
-                                      "notes",
-                                      event.target.value,
-                                    )
-                                  }
-                                  rows={3}
-                                  className="mt-2 w-full rounded-[14px] border border-white/10 bg-[var(--app-surface-soft)] px-4 py-3 text-[var(--app-text)] outline-none transition focus:border-[var(--app-primary-border)]"
-                                  placeholder="Tecnica, sensazioni, adattamenti..."
-                                />
-                              </label>
-                            </div>
+                      <div className="mt-4">
+                        <div className="grid grid-cols-[32px_minmax(0,1fr)] items-center gap-3 px-1">
+                          <div aria-hidden="true" />
+                          <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_52px] gap-2">
+                            <p className="px-3 text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--app-muted-2)]">
+                              KG
+                            </p>
+                            <p className="px-3 text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--app-muted-2)]">
+                              REPS
+                            </p>
+                            <div aria-hidden="true" />
                           </div>
-                        ))}
+                        </div>
+
+                        <div className="mt-2 space-y-3">
+                          {exercise.setLogs.map((setLog) => (
+                            <div
+                              key={`${exercise.id}-${setLog.setNumber}`}
+                              className="space-y-2.5"
+                            >
+                              <div className="grid grid-cols-[32px_minmax(0,1fr)] items-center gap-3">
+                                <p className="text-[28px] font-semibold leading-none tracking-[-0.04em] text-[#D0D82B]">
+                                  {setLog.setNumber}
+                                </p>
+
+                                <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_52px] gap-2">
+                                  <label className="text-sm">
+                                    <span className="sr-only">
+                                      KG serie {setLog.setNumber}
+                                    </span>
+                                    <input
+                                      type="number"
+                                      min={0}
+                                      step={0.5}
+                                      value={setLog.actualWeight ?? ""}
+                                      onChange={(event) =>
+                                        updateSetLog(
+                                          exercise.id,
+                                          setLog.setNumber,
+                                          "actualWeight",
+                                          parseNumberInput(event.target.value),
+                                        )
+                                      }
+                                      className="h-11 w-full rounded-[14px] border border-white/10 bg-[var(--app-surface-soft)] px-3 text-[15px] font-semibold text-[var(--app-text)] outline-none transition placeholder:text-white/30 focus:border-[#D0D82B]/60"
+                                      placeholder="KG"
+                                    />
+                                  </label>
+
+                                  <label className="text-sm">
+                                    <span className="sr-only">
+                                      Reps serie {setLog.setNumber}
+                                    </span>
+                                    <input
+                                      type="number"
+                                      min={0}
+                                      step={1}
+                                      value={setLog.actualReps ?? ""}
+                                      onChange={(event) =>
+                                        updateSetLog(
+                                          exercise.id,
+                                          setLog.setNumber,
+                                          "actualReps",
+                                          parseNumberInput(event.target.value),
+                                        )
+                                      }
+                                      className="h-11 w-full rounded-[14px] border border-white/10 bg-[var(--app-surface-soft)] px-3 text-[15px] font-semibold text-[var(--app-text)] outline-none transition placeholder:text-white/30 focus:border-[#D0D82B]/60"
+                                      placeholder="Reps"
+                                    />
+                                  </label>
+
+                                  <button
+                                    type="button"
+                                    aria-pressed={setLog.completed}
+                                    aria-label={
+                                      setLog.completed
+                                        ? `Segna serie ${setLog.setNumber} come non completata`
+                                        : `Segna serie ${setLog.setNumber} come completata`
+                                    }
+                                    onClick={() =>
+                                      updateSetLog(
+                                        exercise.id,
+                                        setLog.setNumber,
+                                        "completed",
+                                        !setLog.completed,
+                                      )
+                                    }
+                                    className={`flex h-11 w-[52px] items-center justify-center rounded-[14px] border transition ${
+                                      setLog.completed
+                                        ? "border-[#D0D82B] bg-[#D0D82B]"
+                                        : "border-white/10 bg-[var(--app-surface-soft)]"
+                                    }`}
+                                  >
+                                    <CheckIcon active={setLog.completed} />
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
                       </div>
+
+                      <button
+                        type="button"
+                        onClick={() => collapseExercise(exercise.id)}
+                        className="mt-4 inline-flex min-h-[56px] w-full items-center justify-center rounded-[18px] bg-[#D0D82B] px-4 py-3 text-sm font-bold text-[#121212] transition hover:brightness-105"
+                      >
+                        Finisci esercizio
+                      </button>
                     </div>
                   ) : null}
                 </AppCard>
