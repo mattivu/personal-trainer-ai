@@ -1,8 +1,13 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ExerciseInstructionsModal } from "@/components/exercises/exercise-instructions-modal";
+import { AppCard } from "@/components/ui/app-card";
+import { PrimaryButton, SecondaryButton } from "@/components/ui/buttons";
+import { EmptyState } from "@/components/ui/empty-state";
+import { SectionHeader } from "@/components/ui/section-header";
 import {
   getExerciseDifficultyForDisplay,
   getExerciseDisplayData,
@@ -121,10 +126,6 @@ function isSetCompleted(setLog: WorkoutFormSetLog) {
   return setLog.completed;
 }
 
-function isExerciseCompleted(setLogs: WorkoutFormSetLog[]) {
-  return setLogs.length > 0 && setLogs.every(isSetCompleted);
-}
-
 function hasExerciseData(setLogs: WorkoutFormSetLog[]) {
   return setLogs.some(
     (setLog) =>
@@ -133,7 +134,7 @@ function hasExerciseData(setLogs: WorkoutFormSetLog[]) {
       setLog.actualRir !== null ||
       setLog.actualRpe !== null ||
       Boolean(setLog.notes.trim()) ||
-      setLog.completed
+      setLog.completed,
   );
 }
 
@@ -149,18 +150,18 @@ function formatSetSummary(setLog: {
   const weightValue = setLog.actualWeight ?? setLog.weightKg ?? null;
   const rirValue = setLog.actualRir ?? setLog.rir ?? null;
   const weight = weightValue !== null ? `${weightValue} kg` : "carico n/d";
-  const reps = setLog.actualReps !== null ? `${setLog.actualReps}` : "reps n/d";
+  const reps = setLog.actualReps !== null ? `${setLog.actualReps} reps` : "reps n/d";
   const rir = rirValue !== null ? `RIR ${rirValue}` : "RIR n/d";
   const status = setLog.completed ? "completata" : "non completata";
 
-  return `Serie ${setLog.setNumber}: ${weight} x ${reps} - ${rir} - ${status}`;
+  return `Serie ${setLog.setNumber}: ${weight} · ${reps} · ${rir} · ${status}`;
 }
 
 function buildInitialSetLogs(exercise: WorkoutFormExercise) {
   const plannedSets = exercise.sets ?? 1;
   const totalSets = Math.max(plannedSets, exercise.initialSetLogs.length, 1);
   const existingBySetNumber = new Map(
-    exercise.initialSetLogs.map((setLog) => [setLog.setNumber, setLog])
+    exercise.initialSetLogs.map((setLog) => [setLog.setNumber, setLog]),
   );
 
   return Array.from({ length: totalSets }, (_, index) => {
@@ -244,33 +245,34 @@ function formatDifficultyLabel(value: string | null) {
   const label = getExerciseDifficultyForDisplay({ difficulty: value });
 
   if (!label) {
-    return "Difficolta n/d";
+    return "Livello n/d";
   }
 
-  return `Difficolta: ${label}`;
+  return label;
 }
 
-function ExercisePreviewImage({
-  name,
-  imageUrls,
-}: {
-  name: string;
-  imageUrls: string[];
-}) {
-  if (imageUrls.length === 0) {
-    return null;
+function formatRest(restSeconds: number | null) {
+  if (restSeconds === null) {
+    return "Recupero da definire";
   }
 
-  return (
-    <div className="mt-4 max-w-sm overflow-hidden rounded-2xl border border-neutral-800 bg-neutral-950">
-      <img
-        src={imageUrls[0]}
-        alt={`Esecuzione esercizio: ${name}`}
-        className="h-44 w-full object-cover"
-        loading="lazy"
-      />
-    </div>
-  );
+  if (restSeconds === 0) {
+    return "0 sec";
+  }
+
+  return `${restSeconds} sec`;
+}
+
+function formatPrescription(sets: number | null, reps: string | null) {
+  if (!sets && !reps) {
+    return "Dettagli da definire";
+  }
+
+  if (!sets) {
+    return reps ?? "Dettagli da definire";
+  }
+
+  return `${sets} x ${reps ?? "reps"}`;
 }
 
 async function parseApiResponse(response: Response) {
@@ -298,6 +300,143 @@ async function parseApiResponse(response: Response) {
   }
 }
 
+function PlayIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4">
+      <path d="M8 6v12l10-6-10-6Z" fill="currentColor" />
+    </svg>
+  );
+}
+
+function ExercisePreviewImage({
+  name,
+  imageUrls,
+}: {
+  name: string;
+  imageUrls: string[];
+}) {
+  if (imageUrls.length === 0) {
+    return (
+      <div className="flex h-[96px] w-[96px] items-center justify-center rounded-[18px] border border-white/7 bg-[repeating-linear-gradient(135deg,#1c2123_0_8px,#181c1d_8px_16px)] text-center">
+        <span className="px-3 text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--app-muted-3)]">
+          Preview
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="h-[96px] w-[96px] overflow-hidden rounded-[18px] border border-white/7 bg-[var(--app-surface-soft)]">
+      <img
+        src={imageUrls[0]}
+        alt={`Esecuzione esercizio: ${name}`}
+        className="h-full w-full object-cover"
+        loading="lazy"
+      />
+    </div>
+  );
+}
+
+function MetricPill({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="rounded-[16px] border border-white/7 bg-[var(--app-bg)]/50 px-3 py-2.5">
+      <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--app-muted-2)]">
+        {label}
+      </p>
+      <p className="mt-1 text-[13px] font-semibold leading-5 text-[var(--app-text)]">
+        {value}
+      </p>
+    </div>
+  );
+}
+
+function getSuggestionAccent(status: ExerciseState["progressionSuggestion"]["status"]) {
+  switch (status) {
+    case "increase_load":
+      return "border-[var(--app-primary-border)] bg-[var(--app-primary-soft)] text-[var(--app-text)]";
+    case "increase_reps":
+      return "border-emerald-800/70 bg-emerald-950/30 text-emerald-50";
+    case "reduce_load":
+      return "border-amber-800/70 bg-amber-950/30 text-amber-50";
+    case "repeat_load":
+    case "time_based":
+      return "border-white/8 bg-white/[0.035] text-[var(--app-text)]";
+    case "incomplete_data":
+      return "border-white/8 bg-[var(--app-surface-soft)] text-[var(--app-text)]";
+    default:
+      return "border-white/8 bg-white/[0.035] text-[var(--app-text)]";
+  }
+}
+
+function getEntryCardCopy(
+  state: FlexibleWorkoutState,
+  title: string,
+  plannedDateLabel: string,
+  isCompletedWorkout: boolean,
+) {
+  if (isCompletedWorkout) {
+    return {
+      eyebrow: "Seduta completata",
+      title,
+      description:
+        "Hai gia completato questa seduta. Qui sotto trovi il riepilogo pulito e, se ti serve, puoi rivedere i progressi.",
+      buttonLabel: "Rivedi progressi",
+    };
+  }
+
+  switch (state) {
+    case "recommended_today":
+      return {
+        eyebrow: "Pronta per oggi",
+        title,
+        description: "Quando inizi, apri solo gli esercizi che ti servono e registra i progressi.",
+        buttonLabel: "Inizia allenamento",
+      };
+    case "overdue":
+      return {
+        eyebrow: "Da recuperare",
+        title,
+        description: `Era prevista per ${plannedDateLabel}. Puoi recuperarla quando vuoi.`,
+        buttonLabel: "Inizia allenamento",
+      };
+    case "future_available":
+      return {
+        eyebrow: "Disponibile",
+        title,
+        description: "Puoi aprirla in anticipo se ti serve riorganizzare la settimana.",
+        buttonLabel: "Inizia allenamento",
+      };
+    case "in_progress":
+      return {
+        eyebrow: "In corso",
+        title,
+        description: "Riprendi da dove avevi lasciato: i progressi gia salvati restano qui.",
+        buttonLabel: "Riprendi allenamento",
+      };
+    case "skipped":
+      return {
+        eyebrow: "Seduta saltata",
+        title,
+        description: "Hai segnato questa seduta come saltata. Puoi recuperarla quando vuoi.",
+        buttonLabel: "Recupera seduta",
+      };
+    case "completed":
+    default:
+      return {
+        eyebrow: "Seduta",
+        title,
+        description: "Apri la seduta e registra i progressi sotto ogni esercizio.",
+        buttonLabel: "Inizia allenamento",
+      };
+  }
+}
+
 export function WorkoutLogForm({
   workout,
   exercises,
@@ -307,26 +446,17 @@ export function WorkoutLogForm({
 }: WorkoutLogFormProps) {
   const router = useRouter();
   const [exerciseStates, setExerciseStates] = useState<ExerciseState[]>(
-    exercises.map(buildExerciseState)
+    exercises.map(buildExerciseState),
   );
   const [collapsedExerciseIds, setCollapsedExerciseIds] = useState<Set<number>>(
-    () =>
-      new Set(
-        exercises
-          .map((exercise) => ({
-            id: exercise.id,
-            setLogs: buildInitialSetLogs(exercise),
-          }))
-          .filter((exercise) => isExerciseCompleted(exercise.setLogs))
-          .map((exercise) => exercise.id)
-      )
+    () => new Set(exercises.map((exercise) => exercise.id)),
   );
   const [perceivedEffort, setPerceivedEffort] = useState(
-    existingLog?.perceivedEffort?.toString() ?? ""
+    existingLog?.perceivedEffort?.toString() ?? "",
   );
   const [sessionNotes, setSessionNotes] = useState(existingLog?.notes ?? "");
   const [loadingAction, setLoadingAction] = useState<"save" | "complete" | null>(
-    null
+    null,
   );
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -337,18 +467,18 @@ export function WorkoutLogForm({
       ? "completed"
       : existingLog?.status === "in_progress" || existingLog?.status === "saved"
         ? "in_progress"
-        : "not_started"
+        : "not_started",
   );
   const [isEditingWorkout, setIsEditingWorkout] = useState(false);
   const [activeSwapExerciseId, setActiveSwapExerciseId] = useState<number | null>(
-    null
+    null,
   );
   const [swapReason, setSwapReason] = useState<SwapReason>("prefer_alternative");
   const [swapAlternatives, setSwapAlternatives] = useState<ExerciseAlternative[]>(
-    []
+    [],
   );
   const [selectedAlternativeId, setSelectedAlternativeId] = useState<number | null>(
-    null
+    null,
   );
   const [swapLoading, setSwapLoading] = useState(false);
   const [swapSubmitting, setSwapSubmitting] = useState(false);
@@ -357,6 +487,12 @@ export function WorkoutLogForm({
   const hasTodaySummary = exerciseStates.some((exercise) => exercise.todaySummary.length > 0);
   const isCompletedWorkout = workoutState === "completed";
   const completedAtLabel = existingLog?.completedAt ?? null;
+  const entryCardCopy = getEntryCardCopy(
+    workoutState,
+    workout.title,
+    plannedDateLabel,
+    isCompletedWorkout,
+  );
 
   useEffect(() => {
     setExerciseStates((currentState) => {
@@ -378,58 +514,15 @@ export function WorkoutLogForm({
 
     setCollapsedExerciseIds((currentState) => {
       const validIds = new Set(exercises.map((exercise) => exercise.id));
-      const nextState = new Set(
-        [...currentState].filter((exerciseId) => validIds.has(exerciseId))
-      );
-
-      for (const exercise of exercises) {
-        const setLogs = buildInitialSetLogs(exercise);
-
-        if (isExerciseCompleted(setLogs)) {
-          nextState.add(exercise.id);
-        }
-      }
-
-      return nextState;
+      return new Set([...currentState].filter((exerciseId) => validIds.has(exerciseId)));
     });
   }, [exercises]);
-
-  function formatRest(restSeconds: number | null) {
-    if (restSeconds === null) {
-      return "Non indicato";
-    }
-
-    if (restSeconds === 0) {
-      return "0 sec";
-    }
-
-    return `${restSeconds} sec`;
-  }
-
-  function getSuggestionAccent(status: ExerciseState["progressionSuggestion"]["status"]) {
-    switch (status) {
-      case "increase_load":
-        return "border-sky-800/70 bg-sky-950/40 text-sky-100";
-      case "increase_reps":
-        return "border-emerald-800/70 bg-emerald-950/40 text-emerald-100";
-      case "reduce_load":
-        return "border-amber-800/70 bg-amber-950/40 text-amber-100";
-      case "repeat_load":
-      case "time_based":
-        return "border-neutral-700 bg-neutral-950 text-neutral-100";
-      case "no_previous_data":
-      case "incomplete_data":
-        return "border-neutral-800 bg-neutral-950/80 text-neutral-100";
-      default:
-        return "border-neutral-800 bg-neutral-950 text-neutral-100";
-    }
-  }
 
   function updateSetLog(
     exerciseId: number,
     setNumber: number,
     field: keyof WorkoutFormSetLog,
-    value: number | boolean | string | null
+    value: number | boolean | string | null,
   ) {
     setExerciseStates((currentState) =>
       currentState.map((exercise) => {
@@ -443,24 +536,13 @@ export function WorkoutLogForm({
                 ...setLog,
                 [field]: value,
               }
-            : setLog
+            : setLog,
         );
-        const wasCompleted = isExerciseCompleted(exercise.setLogs);
-        const isCompletedNow = isExerciseCompleted(nextSetLogs);
-
-        if (!wasCompleted && isCompletedNow) {
-          setCollapsedExerciseIds((currentState) => {
-            const nextState = new Set(currentState);
-            nextState.add(exerciseId);
-            return nextState;
-          });
-        }
-
         return {
           ...exercise,
           setLogs: nextSetLogs,
         };
-      })
+      }),
     );
   }
 
@@ -490,10 +572,7 @@ export function WorkoutLogForm({
     setSwapError(null);
   }
 
-  async function loadSwapAlternatives(
-    programExerciseId: number,
-    reason: SwapReason
-  ) {
+  async function loadSwapAlternatives(programExerciseId: number, reason: SwapReason) {
     setSwapLoading(true);
     setSwapError(null);
     setSwapAlternatives([]);
@@ -501,7 +580,7 @@ export function WorkoutLogForm({
 
     try {
       const response = await fetch(
-        `/api/exercises/alternatives?programExerciseId=${programExerciseId}&reason=${reason}`
+        `/api/exercises/alternatives?programExerciseId=${programExerciseId}&reason=${reason}`,
       );
       const { data, message: responseMessage } = await parseApiResponse(response);
       const payload = data as ExerciseAlternativesApiResponse | null;
@@ -515,7 +594,7 @@ export function WorkoutLogForm({
       setSwapError(
         caughtError instanceof Error
           ? caughtError.message
-          : "Errore di connessione. Riprova."
+          : "Errore di connessione. Riprova.",
       );
     } finally {
       setSwapLoading(false);
@@ -585,8 +664,8 @@ export function WorkoutLogForm({
                 previousPerformance: null,
                 todaySummary: [],
               }
-            : exercise
-        )
+            : exercise,
+        ),
       );
       setCollapsedExerciseIds((currentState) => {
         const nextState = new Set(currentState);
@@ -599,16 +678,14 @@ export function WorkoutLogForm({
         return nextState;
       });
 
-      setMessage(
-        [payload.message, payload.swapSummary].filter(Boolean).join(" ")
-      );
+      setMessage([payload.message, payload.swapSummary].filter(Boolean).join(" "));
       closeSwapPanel();
       router.refresh();
     } catch (caughtError) {
       setSwapError(
         caughtError instanceof Error
           ? caughtError.message
-          : "Errore di connessione. Riprova."
+          : "Errore di connessione. Riprova.",
       );
     } finally {
       setSwapSubmitting(false);
@@ -646,7 +723,7 @@ export function WorkoutLogForm({
               actualRpe: setLog.actualRpe,
               completed: setLog.completed,
               notes: setLog.notes.trim() || null,
-            }))
+            })),
           ),
         }),
       });
@@ -659,171 +736,111 @@ export function WorkoutLogForm({
 
       setLastSavedStatus(status);
       setMessage(
-        responseMessage ||
-          (status === "completed"
-            ? "Seduta completata."
-            : "Progressi salvati.")
+        responseMessage || (status === "completed" ? "Seduta completata." : "Progressi salvati."),
       );
       router.refresh();
     } catch (caughtError) {
       setError(
         caughtError instanceof Error
           ? caughtError.message
-          : "Errore di connessione. Riprova."
+          : "Errore di connessione. Riprova.",
       );
     } finally {
       setLoadingAction(null);
     }
   }
 
-  const editorStatusLabel =
-    lastSavedStatus === "completed"
-      ? "Seduta completata"
-      : lastSavedStatus === "in_progress"
-        ? "Allenamento in corso"
-        : workoutState === "skipped"
-          ? "Recupera seduta"
-          : workoutState === "future_available"
-            ? "Inizia comunque"
-            : workoutState === "overdue"
-              ? "Da recuperare"
-              : "Consigliata oggi";
-  const editorIntro =
-    lastSavedStatus === "completed"
-      ? "Stai correggendo una seduta già completata. I salvataggi aggiornano la stessa seduta senza crearne una nuova."
-      : "Compila i dati della serie sotto ogni esercizio e salva quando vuoi.";
-  const saveButtonLabel =
-    lastSavedStatus === "completed" ? "Salva correzioni" : "Salva progressi";
-  const completeButtonLabel =
-    lastSavedStatus === "completed"
-      ? "Aggiorna dati allenamento"
-      : "Completa seduta";
-
-  function getEntryCardCopy(state: FlexibleWorkoutState) {
-    switch (state) {
-      case "recommended_today":
-        return {
-          eyebrow: "Consigliata oggi",
-          title: workout.title,
-          description:
-            "Compila i dati reali delle serie mentre ti alleni: carico usato, ripetizioni fatte e ripetizioni in riserva.",
-          buttonLabel: "Inizia allenamento",
-        };
-      case "overdue":
-        return {
-          eyebrow: "Da recuperare",
-          title: "Seduta da recuperare",
-          description: `Questa seduta era prevista per ${plannedDateLabel}.`,
-          buttonLabel: "Recupera seduta",
-        };
-      case "future_available":
-        return {
-          eyebrow: "Prevista più avanti",
-          title: "Questa seduta è prevista più avanti",
-          description:
-            "Puoi iniziarla comunque se hai modificato la tua settimana.",
-          buttonLabel: "Inizia comunque",
-        };
-      case "in_progress":
-        return {
-          eyebrow: "Allenamento in corso",
-          title: "Allenamento in corso",
-          description:
-            "Abbiamo mantenuto i dati già salvati. Puoi continuare la compilazione da dove avevi lasciato.",
-          buttonLabel: "Continua seduta",
-        };
-      case "completed":
-        return {
-          eyebrow: "Seduta completata",
-          title: "Allenamento completato",
-          description:
-            "Hai già completato questa seduta questa settimana. Puoi correggere i dati se hai commesso un errore.",
-          buttonLabel: "Modifica dati allenamento",
-        };
-      case "skipped":
-        return {
-          eyebrow: "Seduta saltata",
-          title: "Seduta segnata come saltata",
-          description:
-            "Hai segnato questa seduta come saltata. Puoi recuperarla quando vuoi.",
-          buttonLabel: "Recupera seduta",
-        };
-    }
+  if (exerciseStates.length === 0) {
+    return (
+      <section className="mt-5">
+        <EmptyState
+          title="Nessun esercizio disponibile per questa seduta."
+          description="Torna al programma e riprova tra poco."
+        />
+      </section>
+    );
   }
 
-  const entryCardCopy = getEntryCardCopy(workoutState);
-
   return (
-    <section className="mt-6 space-y-6">
+    <section className="mt-5 space-y-5">
       {!isEditingWorkout ? (
-        <div className="rounded-2xl border border-neutral-800 bg-neutral-900 p-6">
-          <p className="text-sm uppercase tracking-[0.2em] text-neutral-500">
+        <AppCard
+          soft
+          className="rounded-[24px] border border-white/8 bg-[var(--app-surface)] p-5"
+        >
+          <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--app-muted-2)]">
             {entryCardCopy.eyebrow}
           </p>
-          <h2 className="mt-3 text-2xl font-semibold">{entryCardCopy.title}</h2>
-          <p className="mt-4 max-w-2xl text-sm text-neutral-300">
+          <h2 className="mt-2 text-[24px] font-semibold tracking-[-0.02em] text-[var(--app-text)]">
+            {entryCardCopy.title}
+          </h2>
+          <p className="mt-3 text-sm leading-6 text-[var(--app-muted)]">
             {entryCardCopy.description}
           </p>
-          {isCompletedWorkout && completedAtLabel ? (
-            <p className="mt-3 text-sm text-neutral-400">
-              Completato il {formatDateLabel(completedAtLabel)}.
+          {completedAtLabel ? (
+            <p className="mt-3 text-[13px] text-[var(--app-muted-2)]">
+              Aggiornata il {formatDateLabel(completedAtLabel)}.
             </p>
           ) : null}
-          <button
-            type="button"
-            onClick={() => setIsEditingWorkout(true)}
-            className="mt-6 inline-flex justify-center rounded-xl bg-white px-5 py-3 font-semibold text-neutral-950 disabled:opacity-50"
-          >
-            {entryCardCopy.buttonLabel}
-          </button>
-        </div>
+
+          <div className="mt-5 flex flex-col gap-3">
+            {!isCompletedWorkout ? (
+              <PrimaryButton onClick={() => setIsEditingWorkout(true)}>
+                {entryCardCopy.buttonLabel}
+                <PlayIcon />
+              </PrimaryButton>
+            ) : (
+              <SecondaryButton onClick={() => setIsEditingWorkout(true)}>
+                {entryCardCopy.buttonLabel}
+              </SecondaryButton>
+            )}
+
+            {workoutState === "skipped" && !isCompletedWorkout ? (
+              <SecondaryButton href="/program">Apri programma</SecondaryButton>
+            ) : null}
+
+            {isCompletedWorkout ? (
+              <>
+                <SecondaryButton href="/program">Torna al programma</SecondaryButton>
+                <SecondaryButton href="/workout-history">Vedi storico</SecondaryButton>
+              </>
+            ) : null}
+          </div>
+        </AppCard>
       ) : null}
 
       {isCompletedWorkout && !isEditingWorkout ? (
-        <div className="space-y-5">
-          <div className="rounded-2xl border border-neutral-800 bg-neutral-900 p-6">
-            <h3 className="text-xl font-semibold">Dati registrati</h3>
-            <p className="mt-2 text-sm text-neutral-400">
-              Qui sotto trovi il riepilogo della seduta già completata per ogni esercizio.
-            </p>
-          </div>
+        <div className="space-y-4">
+          <SectionHeader eyebrow="Esercizi" title="Riepilogo seduta" />
 
-          {exerciseStates.map((exercise) => {
+          {exerciseStates.map((exercise, index) => {
             const displayData = getExerciseDisplayData(exercise);
-            const primaryMuscleLabel = displayData.primaryMuscles[0] ?? null;
 
             return (
-              <section
+              <AppCard
                 key={exercise.id}
-                className="rounded-2xl border border-neutral-800 bg-neutral-900 p-5"
+                soft
+                className="rounded-[24px] border border-white/8 bg-[var(--app-surface)] p-4"
               >
-                <h4 className="text-lg font-semibold text-white">{displayData.name}</h4>
-                {primaryMuscleLabel ? (
-                  <p className="mt-2 text-sm text-neutral-400">
-                    Muscolo principale: {primaryMuscleLabel}
-                  </p>
-                ) : null}
-                <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-start">
-                  <ExercisePreviewImage
-                    name={displayData.name}
-                    imageUrls={exercise.imageUrls}
-                  />
-                  <ExerciseInstructionsModal
-                    name={exercise.name}
-                    imageUrls={exercise.imageUrls}
-                    instructions={exercise.instructions}
-                    primaryMuscle={exercise.primaryMuscle}
-                    secondaryMuscles={exercise.secondaryMuscles}
-                    equipment={exercise.equipment}
-                    difficulty={exercise.difficulty}
-                    category={exercise.category}
-                    needsTranslation={exercise.needsTranslation}
-                  />
+                <div className="flex items-start gap-4">
+                  <ExercisePreviewImage name={displayData.name} imageUrls={exercise.imageUrls} />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--app-muted-2)]">
+                      Esercizio {index + 1}
+                    </p>
+                    <h3 className="mt-1 text-[18px] font-semibold tracking-[-0.02em] text-[var(--app-text)]">
+                      {displayData.name}
+                    </h3>
+                    <p className="mt-2 text-sm text-[var(--app-muted)]">
+                      {formatPrescription(exercise.sets, exercise.reps)} · {formatRest(exercise.restSeconds)}
+                    </p>
+                  </div>
                 </div>
-                <div className="mt-4 rounded-xl border border-neutral-800 bg-neutral-950 p-4">
-                  <p className="text-sm font-semibold text-white">Dati registrati</p>
+
+                <div className="mt-4 rounded-[18px] border border-white/7 bg-[var(--app-bg)]/55 p-4">
+                  <p className="text-[13px] font-semibold text-[var(--app-text)]">Progressi</p>
                   {exercise.todaySummary.length > 0 ? (
-                    <div className="mt-3 space-y-2 text-sm text-neutral-300">
+                    <div className="mt-3 space-y-2 text-sm text-[var(--app-muted)]">
                       {exercise.todaySummary.map((setLog) => (
                         <p key={`${exercise.id}-summary-${setLog.setNumber}`}>
                           {formatSetSummary(setLog)}
@@ -831,442 +848,411 @@ export function WorkoutLogForm({
                       ))}
                     </div>
                   ) : (
-                    <p className="mt-2 text-sm text-neutral-400">
-                      Nessun dato registrato per questo esercizio.
+                    <p className="mt-2 text-sm text-[var(--app-muted)]">
+                      Nessun progresso registrato per questo esercizio.
                     </p>
                   )}
                 </div>
-              </section>
+              </AppCard>
             );
           })}
 
           {!hasTodaySummary ? (
-            <p className="rounded-xl border border-neutral-800 bg-neutral-900 px-4 py-3 text-sm text-neutral-300">
-              Nessun dato registrato da mostrare nel riepilogo.
-            </p>
+            <EmptyState
+              title="Nessun progresso registrato."
+              description="Questa seduta non contiene ancora un riepilogo da mostrare."
+            />
           ) : null}
         </div>
       ) : null}
 
       {isEditingWorkout ? (
-        <div className="space-y-6">
-          <div className="flex flex-col gap-2 rounded-2xl border border-neutral-800 bg-neutral-900 p-6 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <h2 className="text-xl font-semibold">{editorStatusLabel}</h2>
-              <p className="mt-2 text-sm text-neutral-400">{editorIntro}</p>
+        <div className="space-y-5">
+          <AppCard
+            soft
+            className="rounded-[24px] border border-white/8 bg-[var(--app-surface)] p-4"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--app-muted-2)]">
+                  Sessione attiva
+                </p>
+                <h2 className="mt-1 text-[18px] font-semibold tracking-[-0.02em] text-[var(--app-text)]">
+                  {lastSavedStatus === "completed"
+                    ? "Seduta completata"
+                    : lastSavedStatus === "in_progress"
+                      ? "Allenamento in corso"
+                      : "Pronto a registrare i progressi"}
+                </h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsEditingWorkout(false)}
+                className="rounded-full border border-white/10 px-3 py-1.5 text-[12px] font-semibold text-[var(--app-muted)] transition hover:border-white/16 hover:text-[var(--app-text)]"
+              >
+                Riduci
+              </button>
             </div>
-            <p className="max-w-md text-sm text-neutral-400">
+            <p className="mt-3 text-sm leading-6 text-[var(--app-muted)]">
               {lastSavedStatus === "completed"
-                ? "Puoi correggere kg, reps, RIR, stato di completamento, fatica e note senza aprire una nuova seduta."
-                : "I dati salvati resteranno associati alla seduta della settimana corrente."}
+                ? "Puoi aggiornare i progressi senza aprire una nuova seduta."
+                : "Troverai i progressi sotto ogni esercizio. Puoi salvare in fondo quando vuoi."}
             </p>
-          </div>
+          </AppCard>
 
-          <div className="space-y-5">
-            {exerciseStates.map((exercise) => {
+          <SectionHeader
+            eyebrow="Esercizi"
+            title={`${exerciseStates.length} ${exerciseStates.length === 1 ? "esercizio" : "esercizi"}`}
+          />
+
+          <div className="space-y-4">
+            {exerciseStates.map((exercise, index) => {
               const completedSets = exercise.setLogs.filter(isSetCompleted).length;
               const totalSets = exercise.setLogs.length;
               const isCollapsed = collapsedExerciseIds.has(exercise.id);
-              const canCollapseManually = hasExerciseData(exercise.setLogs);
+              const hasEnteredData = hasExerciseData(exercise.setLogs);
               const displayData = getExerciseDisplayData(exercise);
               const primaryMuscleLabel = displayData.primaryMuscles[0] ?? null;
+              const equipmentLabel = getExerciseEquipmentForDisplay(exercise).join(", ");
+              const cleanNote = sanitizeUserFacingNotes(exercise.notes);
+              const exerciseActionLabel = isCollapsed
+                ? hasEnteredData
+                  ? "Modifica esercizio"
+                  : "Inizia esercizio"
+                : "Finisci esercizio";
 
               return (
-                <section
+                <AppCard
                   key={exercise.id}
-                  className="rounded-2xl border border-neutral-800 bg-neutral-900 p-5"
+                  soft
+                  className="rounded-[24px] border border-white/8 bg-[var(--app-surface)] p-4"
                 >
-                  {isCollapsed ? (
-                    <div className="space-y-4">
+                  <div className="flex items-start gap-4">
+                    <ExercisePreviewImage name={displayData.name} imageUrls={exercise.imageUrls} />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--app-muted-2)]">
+                            Esercizio {index + 1}
+                          </p>
+                          <h3 className="mt-1 text-[19px] font-semibold tracking-[-0.02em] text-[var(--app-text)]">
+                            {displayData.name}
+                          </h3>
+                        </div>
+                        <span className="text-[14px] font-semibold tracking-[-0.02em] text-[#D0D82B]">
+                          {completedSets}/{totalSets}
+                        </span>
+                      </div>
+
+                      <p className="mt-2 text-sm text-[var(--app-muted)]">
+                        {[primaryMuscleLabel, equipmentLabel || null].filter(Boolean).join(" · ") ||
+                          "Dettagli da definire"}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 grid grid-cols-2 gap-3">
+                    <MetricPill
+                      label="Serie x reps"
+                      value={formatPrescription(exercise.sets, exercise.reps)}
+                    />
+                    <MetricPill label="Recupero" value={formatRest(exercise.restSeconds)} />
+                    <MetricPill
+                      label="Intensita"
+                      value={exercise.intensity?.trim() || "Da definire"}
+                    />
+                    <MetricPill
+                      label="Livello"
+                      value={formatDifficultyLabel(exercise.difficulty)}
+                    />
+                  </div>
+
+                  <div
+                    className={`mt-4 rounded-[18px] border p-4 ${getSuggestionAccent(
+                      exercise.progressionSuggestion.status,
+                    )}`}
+                  >
+                    <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--app-muted-2)]">
+                      Obiettivo prossima seduta
+                    </p>
+                    <p className="mt-2 text-[14px] font-semibold text-current">
+                      {exercise.progressionSuggestion.title}
+                    </p>
+                    <p className="mt-2 text-sm leading-6 text-current/85">
+                      {exercise.progressionSuggestion.message}
+                    </p>
+                    <p className="mt-3 text-sm text-current/75">
+                      {exercise.progressionSuggestion.suggestedAction}
+                    </p>
+                  </div>
+
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                    <ExerciseInstructionsModal
+                      name={exercise.name}
+                      imageUrls={exercise.imageUrls}
+                      instructions={exercise.instructions}
+                      technicalNote={cleanNote}
+                      primaryMuscle={exercise.primaryMuscle}
+                      secondaryMuscles={exercise.secondaryMuscles}
+                      equipment={exercise.equipment}
+                      difficulty={exercise.difficulty}
+                      category={exercise.category}
+                      needsTranslation={exercise.needsTranslation}
+                    />
+
+                    {!isCompletedWorkout ? (
                       <button
                         type="button"
-                        onClick={() => openExercise(exercise.id)}
-                        className="w-full rounded-2xl text-left outline-none transition hover:bg-neutral-950/40 focus-visible:ring-2 focus-visible:ring-white/60"
+                        onClick={() => openSwapPanel(exercise.id)}
+                        className="inline-flex min-h-[52px] items-center justify-center rounded-[16px] border border-white/10 bg-white/[0.035] px-4 py-3 text-sm font-semibold text-[var(--app-text)] transition hover:border-white/16 hover:bg-white/[0.05]"
                       >
-                        <div className="flex flex-col gap-4 rounded-2xl border border-neutral-800 bg-neutral-950 p-4 sm:flex-row sm:items-start sm:justify-between">
-                          <div className="max-w-3xl">
-                            <h3 className="text-xl font-semibold text-white">
-                              {displayData.name}
-                            </h3>
-                            <p className="mt-2 text-sm font-medium text-emerald-300">
-                              Esercizio completato
-                            </p>
-                            <p className="mt-2 text-sm text-neutral-300">
-                              {completedSets}/{totalSets} serie completate
-                            </p>
-                            <div className="mt-4 space-y-2 text-sm text-neutral-300">
-                              {exercise.setLogs.map((setLog) => (
-                                <p key={`${exercise.id}-${setLog.setNumber}`}>
-                                  {formatSetSummary(setLog)}
-                                </p>
-                              ))}
-                            </div>
-                          </div>
-                          <span className="inline-flex justify-center rounded-xl border border-neutral-700 px-4 py-2 text-sm font-medium text-neutral-100">
-                            Modifica
-                          </span>
-                        </div>
+                        Sostituisci
                       </button>
-                      <ExerciseInstructionsModal
-                        name={exercise.name}
-                        imageUrls={exercise.imageUrls}
-                        instructions={exercise.instructions}
-                        primaryMuscle={exercise.primaryMuscle}
-                        secondaryMuscles={exercise.secondaryMuscles}
-                        equipment={exercise.equipment}
-                        difficulty={exercise.difficulty}
-                        category={exercise.category}
-                        needsTranslation={exercise.needsTranslation}
-                      />
-                    </div>
-                  ) : (
-                    <>
-                      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                        <div className="max-w-2xl">
-                          <h3 className="text-xl font-semibold">{displayData.name}</h3>
-                          {primaryMuscleLabel ? (
-                            <p className="mt-2 text-sm text-neutral-400">
-                              Muscolo principale: {primaryMuscleLabel}
-                            </p>
-                          ) : null}
-                          <div className="mt-4 flex flex-col gap-4">
-                            <ExercisePreviewImage
-                              name={displayData.name}
-                              imageUrls={exercise.imageUrls}
-                            />
-                            <div>
-                              <ExerciseInstructionsModal
-                                name={exercise.name}
-                                imageUrls={exercise.imageUrls}
-                                instructions={exercise.instructions}
-                                primaryMuscle={exercise.primaryMuscle}
-                                secondaryMuscles={exercise.secondaryMuscles}
-                                equipment={exercise.equipment}
-                                difficulty={exercise.difficulty}
-                                category={exercise.category}
-                                needsTranslation={exercise.needsTranslation}
-                              />
-                            </div>
-                          </div>
-                          <p className="mt-3 text-sm text-neutral-200">
-                            Obiettivo: {exercise.sets ?? "Serie non indicate"} serie x{" "}
-                            {exercise.reps ?? "reps non indicate"}
-                          </p>
-                          {exercise.notes ? (
-                            <p className="mt-3 whitespace-pre-line text-sm text-neutral-300">
-                              {exercise.notes}
-                            </p>
-                          ) : null}
-                          {!isCompletedWorkout ? (
-                            <div className="mt-4">
-                              <button
-                                type="button"
-                                onClick={() => openSwapPanel(exercise.id)}
-                                className="inline-flex justify-center rounded-xl border border-neutral-700 px-4 py-2 text-sm font-medium text-neutral-100"
-                              >
-                                Sostituisci esercizio
-                              </button>
-                            </div>
-                          ) : null}
-                        </div>
+                    ) : null}
+                  </div>
 
-                        <div className="grid gap-3 text-sm text-neutral-300 sm:grid-cols-3 lg:min-w-[320px]">
-                          <div className="rounded-xl border border-neutral-800 bg-neutral-950 p-3">
-                            <p className="text-neutral-500">Serie previste</p>
-                            <p className="mt-1 font-medium text-white">
-                              {exercise.sets ?? "Non indicate"}
-                            </p>
-                          </div>
-                          <div className="rounded-xl border border-neutral-800 bg-neutral-950 p-3">
-                            <p className="text-neutral-500">Recupero</p>
-                            <p className="mt-1 font-medium text-white">
-                              {formatRest(exercise.restSeconds)}
-                            </p>
-                          </div>
-                          <div className="rounded-xl border border-neutral-800 bg-neutral-950 p-3">
-                            <p className="text-neutral-500">Intensita</p>
-                            <p className="mt-1 font-medium text-white">
-                              {exercise.intensity ?? "Non indicata"}
-                            </p>
-                          </div>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      isCollapsed ? openExercise(exercise.id) : collapseExercise(exercise.id)
+                    }
+                    className="mt-3 inline-flex min-h-[56px] w-full items-center justify-center rounded-[18px] bg-[#D0D82B] px-4 py-3 text-sm font-bold text-[#121212] transition hover:brightness-105"
+                  >
+                    {exerciseActionLabel}
+                  </button>
+
+                  {activeSwapExerciseId === exercise.id ? (
+                    <div className="mt-4 rounded-[22px] border border-[var(--app-primary-border)] bg-[var(--app-primary-soft)] p-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--app-primary)]">
+                            Sostituzione esercizio
+                          </p>
+                          <p className="mt-2 text-sm leading-6 text-[var(--app-text)]">
+                            Scegli il motivo e valuta le alternative piu coerenti.
+                          </p>
                         </div>
+                        <button
+                          type="button"
+                          onClick={closeSwapPanel}
+                          className="rounded-full border border-white/10 px-3 py-1.5 text-[12px] font-semibold text-[var(--app-text)]"
+                        >
+                          Chiudi
+                        </button>
                       </div>
 
-                      {activeSwapExerciseId === exercise.id ? (
-                        <div className="mt-5 rounded-2xl border border-amber-700/60 bg-amber-950/20 p-5">
-                          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                            <div className="max-w-2xl">
-                              <h4 className="text-lg font-semibold text-white">
-                                Sostituisci esercizio
-                              </h4>
-                              <p className="mt-2 text-sm text-neutral-300">
-                                Scegli il motivo, valuta le alternative consigliate e
-                                conferma solo quella che vuoi usare.
-                              </p>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={closeSwapPanel}
-                              className="inline-flex justify-center rounded-xl border border-neutral-700 px-4 py-2 text-sm font-medium text-neutral-100"
-                            >
-                              Annulla
-                            </button>
-                          </div>
+                      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                        {SWAP_REASON_OPTIONS.map((option) => (
+                          <label
+                            key={option.value}
+                            className={`cursor-pointer rounded-[16px] border p-3 text-sm transition ${
+                              swapReason === option.value
+                                ? "border-[var(--app-primary-border)] bg-[var(--app-bg)]/40 text-[var(--app-text)]"
+                                : "border-white/8 bg-[var(--app-bg)]/35 text-[var(--app-muted)]"
+                            }`}
+                          >
+                            <input
+                              type="radio"
+                              name={`swap-reason-${exercise.id}`}
+                              checked={swapReason === option.value}
+                              onChange={() => {
+                                setSwapReason(option.value);
+                                void loadSwapAlternatives(exercise.id, option.value);
+                              }}
+                              className="sr-only"
+                            />
+                            {option.label}
+                          </label>
+                        ))}
+                      </div>
 
-                          <div className="mt-5">
-                            <p className="text-sm font-semibold text-white">
-                              Motivo sostituzione
-                            </p>
-                            <div className="mt-3 grid gap-3 md:grid-cols-2">
-                              {SWAP_REASON_OPTIONS.map((option) => (
-                                <label
-                                  key={option.value}
-                                  className="flex cursor-pointer items-start gap-3 rounded-xl border border-neutral-800 bg-neutral-950 p-3 text-sm text-neutral-200"
-                                >
-                                  <input
-                                    type="radio"
-                                    name={`swap-reason-${exercise.id}`}
-                                    checked={swapReason === option.value}
-                                    onChange={() => {
-                                      setSwapReason(option.value);
-                                      void loadSwapAlternatives(
-                                        exercise.id,
-                                        option.value
-                                      );
-                                    }}
-                                    className="mt-0.5 h-4 w-4"
-                                  />
-                                  <span>{option.label}</span>
-                                </label>
-                              ))}
-                            </div>
-                            {swapReason === "discomfort_or_limitation" ? (
-                              <p className="mt-3 rounded-xl border border-amber-800 bg-amber-950/40 px-4 py-3 text-sm text-amber-100">
-                                Se il fastidio e dolore acuto, persistente o peggiora,
-                                interrompi l'esercizio e valuta un professionista.
-                              </p>
-                            ) : null}
-                          </div>
-
-                          <div className="mt-5">
-                            <div className="flex items-center justify-between gap-3">
-                              <p className="text-sm font-semibold text-white">
-                                Alternative consigliate
-                              </p>
-                              {swapLoading ? (
-                                <p className="text-sm text-neutral-400">
-                                  Caricamento...
-                                </p>
-                              ) : null}
-                            </div>
-
-                            {swapError ? (
-                              <p className="mt-3 rounded-xl border border-red-800 bg-red-950 px-4 py-3 text-sm text-red-200">
-                                {swapError}
-                              </p>
-                            ) : null}
-
-                            {!swapLoading && !swapError && swapAlternatives.length === 0 ? (
-                              <p className="mt-3 rounded-xl border border-neutral-800 bg-neutral-950 px-4 py-3 text-sm text-neutral-300">
-                                Nessuna alternativa coerente disponibile per questo
-                                esercizio.
-                              </p>
-                            ) : null}
-
-                            <div className="mt-3 space-y-3">
-                              {swapAlternatives.map((alternative) => {
-                                const alternativeName = getExerciseDisplayName(alternative);
-                                const alternativePrimaryMuscle =
-                                  getExerciseMusclesForDisplay(alternative).primaryMuscles[0] ??
-                                  null;
-                                const alternativeEquipment =
-                                  getExerciseEquipmentForDisplay(alternative);
-
-                                return (
-                                  <button
-                                    key={alternative.exerciseId}
-                                    type="button"
-                                    onClick={() =>
-                                      setSelectedAlternativeId(alternative.exerciseId)
-                                    }
-                                    className={`w-full rounded-xl border p-4 text-left transition ${
-                                      selectedAlternativeId === alternative.exerciseId
-                                        ? "border-white bg-white/10"
-                                        : "border-neutral-800 bg-neutral-950 hover:border-neutral-600"
-                                    }`}
-                                  >
-                                    <div className="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
-                                      <div>
-                                        <p className="text-sm font-semibold text-white">
-                                          {alternativeName}
-                                        </p>
-                                        <p className="mt-1 text-sm text-neutral-400">
-                                          {alternativePrimaryMuscle
-                                            ? `Muscolo principale: ${alternativePrimaryMuscle}`
-                                            : "Muscolo principale non indicato"}
-                                        </p>
-                                      </div>
-                                      <p className="text-xs uppercase tracking-[0.18em] text-neutral-500">
-                                        Punteggio {alternative.score}
-                                      </p>
-                                    </div>
-
-                                    <div className="mt-3 flex flex-wrap gap-2 text-xs text-neutral-300">
-                                      <span className="rounded-full border border-neutral-700 px-2.5 py-1">
-                                        {alternativeEquipment.join(", ") ||
-                                          "Attrezzatura n/d"}
-                                      </span>
-                                      <span className="rounded-full border border-neutral-700 px-2.5 py-1">
-                                        {alternative.movementPattern ?? "Pattern n/d"}
-                                      </span>
-                                      <span className="rounded-full border border-neutral-700 px-2.5 py-1">
-                                        {formatDifficultyLabel(alternative.difficulty)}
-                                      </span>
-                                    </div>
-
-                                    {alternative.matchReasons.length > 0 ? (
-                                      <p className="mt-3 text-sm text-neutral-300">
-                                        {alternative.matchReasons.join(" · ")}
-                                      </p>
-                                    ) : null}
-                                  </button>
-                                );
-                              })}
-                            </div>
-
-                            <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-                              <button
-                                type="button"
-                                onClick={() => applyExerciseSwap(exercise.id)}
-                                disabled={
-                                  selectedAlternativeId === null || swapSubmitting
-                                }
-                                className="inline-flex justify-center rounded-xl bg-white px-5 py-3 font-semibold text-neutral-950 disabled:opacity-50"
-                              >
-                                {swapSubmitting
-                                  ? "Applicazione..."
-                                  : "Usa questa alternativa"}
-                              </button>
-                              <button
-                                type="button"
-                                onClick={closeSwapPanel}
-                                className="inline-flex justify-center rounded-xl border border-neutral-700 px-5 py-3 font-semibold text-neutral-100"
-                              >
-                                Annulla
-                              </button>
-                            </div>
-                          </div>
-                        </div>
+                      {swapReason === "discomfort_or_limitation" ? (
+                        <p className="mt-3 rounded-[16px] border border-amber-800/60 bg-amber-950/30 px-4 py-3 text-sm text-amber-100">
+                          Se il fastidio e acuto, persistente o peggiora, interrompi l'esercizio.
+                        </p>
                       ) : null}
 
-                      <div className="mt-5 rounded-xl border border-neutral-800 bg-neutral-950 p-4">
-                        <p className="text-sm font-semibold text-white">Ultima volta</p>
-                        {exercise.previousPerformance ? (
-                          <>
-                            <p className="mt-2 text-sm text-neutral-400">
-                              {formatPreviousPerformanceDate(
-                                exercise.previousPerformance.performedAt
-                              )}{" "}
-                              ·{" "}
-                              {exercise.previousPerformance.status === "completed"
-                                ? "Completato"
-                                : exercise.previousPerformance.status === "in_progress"
-                                  ? "In corso"
-                                  : exercise.previousPerformance.status === "skipped"
-                                    ? "Seduta saltata"
-                                  : "Salvato"}
-                            </p>
-                            <div className="mt-3 space-y-2 text-sm text-neutral-300">
-                              {exercise.previousPerformance.sets.map((setLog) => (
-                                <p key={`${exercise.id}-previous-${setLog.setNumber}`}>
-                                  {formatSetSummary(setLog)}
-                                </p>
-                              ))}
-                            </div>
-                          </>
-                        ) : (
-                          <p className="mt-2 text-sm text-neutral-400">
-                            Prima volta con questo esercizio.
-                          </p>
-                        )}
-                      </div>
+                      {swapError ? (
+                        <p className="mt-3 rounded-[16px] border border-red-800/60 bg-red-950/30 px-4 py-3 text-sm text-red-200">
+                          {swapError}
+                        </p>
+                      ) : null}
 
-                      <div
-                        className={`mt-4 rounded-xl border p-4 ${getSuggestionAccent(
-                          exercise.progressionSuggestion.status
-                        )}`}
-                      >
-                        <p className="text-sm font-semibold text-white">
-                          {exercise.progressionSuggestion.title}
+                      {!swapLoading && !swapError && swapAlternatives.length === 0 ? (
+                        <p className="mt-3 rounded-[16px] border border-white/8 bg-[var(--app-bg)]/35 px-4 py-3 text-sm text-[var(--app-muted)]">
+                          Nessuna alternativa coerente disponibile per questo esercizio.
                         </p>
-                        <p className="mt-2 text-sm leading-6 text-current">
-                          {exercise.progressionSuggestion.message}
-                        </p>
-                        <p className="mt-3 text-sm text-current/80">
-                          {exercise.progressionSuggestion.suggestedAction}
-                        </p>
-                      </div>
+                      ) : null}
 
-                      <div className="mt-5 border-t border-neutral-800 pt-5">
-                        <div className="flex items-center justify-between gap-3">
-                          <p className="text-sm font-semibold text-white">Dati della serie</p>
-                          <p className="text-sm text-neutral-400">
-                            {completedSets}/{totalSets} serie completate
-                          </p>
-                        </div>
-                        <div className="mt-4 space-y-3">
-                          {exercise.setLogs.map((setLog) => (
-                            <div
-                              key={`${exercise.id}-${setLog.setNumber}`}
-                              className="rounded-xl border border-neutral-800 bg-neutral-950 p-4"
+                      <div className="mt-3 space-y-3">
+                        {swapAlternatives.map((alternative) => {
+                          const alternativeName = getExerciseDisplayName(alternative);
+                          const alternativePrimaryMuscle =
+                            getExerciseMusclesForDisplay(alternative).primaryMuscles[0] ?? null;
+                          const alternativeEquipment =
+                            getExerciseEquipmentForDisplay(alternative);
+
+                          return (
+                            <button
+                              key={alternative.exerciseId}
+                              type="button"
+                              onClick={() => setSelectedAlternativeId(alternative.exerciseId)}
+                              className={`w-full rounded-[18px] border p-4 text-left transition ${
+                                selectedAlternativeId === alternative.exerciseId
+                                  ? "border-[var(--app-primary-border)] bg-[var(--app-bg)]/50"
+                                  : "border-white/8 bg-[var(--app-bg)]/35 hover:border-white/16"
+                              }`}
                             >
-                              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                                <p className="text-sm font-semibold text-white">
-                                  Serie {setLog.setNumber}
-                                </p>
-                                <label className="inline-flex items-center gap-2 rounded-full border border-neutral-700 bg-neutral-900 px-3 py-1.5 text-xs text-neutral-300">
-                                  <input
-                                    type="checkbox"
-                                    checked={setLog.completed}
-                                    onChange={(event) =>
-                                      updateSetLog(
-                                        exercise.id,
-                                        setLog.setNumber,
-                                        "completed",
-                                        event.target.checked
-                                      )
-                                    }
-                                    className="h-4 w-4"
-                                  />
-                                  <span>Serie completata</span>
-                                </label>
+                              <div className="flex items-start justify-between gap-3">
+                                <div>
+                                  <p className="text-[15px] font-semibold text-[var(--app-text)]">
+                                    {alternativeName}
+                                  </p>
+                                  <p className="mt-1 text-sm text-[var(--app-muted)]">
+                                    {alternativePrimaryMuscle
+                                      ? `Focus: ${alternativePrimaryMuscle}`
+                                      : "Focus da definire"}
+                                  </p>
+                                </div>
+                                <span className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--app-muted-2)]">
+                                  {alternative.score}
+                                </span>
                               </div>
 
-                              <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                                <label className="text-sm">
-                                  <span className="block text-neutral-400">
-                                    Carico usato (kg)
-                                  </span>
-                                  <input
-                                    type="number"
-                                    min={0}
-                                    step={0.5}
-                                    value={setLog.actualWeight ?? ""}
-                                    onChange={(event) =>
-                                      updateSetLog(
-                                        exercise.id,
-                                        setLog.setNumber,
-                                        "actualWeight",
-                                        parseNumberInput(event.target.value)
-                                      )
-                                    }
-                                    className="mt-2 w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-white outline-none"
-                                    placeholder="0"
-                                  />
-                                </label>
+                              <div className="mt-3 flex flex-wrap gap-2">
+                                <span className="app-pill">
+                                  {alternativeEquipment.join(", ") || "Attrezzatura n/d"}
+                                </span>
+                                <span className="app-pill">
+                                  {alternative.movementPattern ?? "Pattern n/d"}
+                                </span>
+                                <span className="app-pill">
+                                  {formatDifficultyLabel(alternative.difficulty)}
+                                </span>
+                              </div>
 
+                              {alternative.matchReasons.length > 0 ? (
+                                <p className="mt-3 text-sm leading-6 text-[var(--app-muted)]">
+                                  {alternative.matchReasons.join(" · ")}
+                                </p>
+                              ) : null}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                        <button
+                          type="button"
+                          onClick={() => applyExerciseSwap(exercise.id)}
+                          disabled={selectedAlternativeId === null || swapSubmitting}
+                          className="inline-flex min-h-[52px] items-center justify-center rounded-[16px] bg-[var(--app-primary)] px-4 py-3 text-sm font-bold text-[var(--app-bg)] disabled:opacity-50"
+                        >
+                          {swapSubmitting ? "Applicazione..." : "Usa questo esercizio"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={closeSwapPanel}
+                          className="inline-flex min-h-[52px] items-center justify-center rounded-[16px] border border-white/10 bg-white/[0.035] px-4 py-3 text-sm font-semibold text-[var(--app-text)]"
+                        >
+                          Annulla
+                        </button>
+                      </div>
+                    </div>
+                  ) : null}
+
+                  <div className="mt-4 rounded-[18px] border border-white/7 bg-[var(--app-bg)]/55 p-4">
+                    <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--app-muted-2)]">
+                      Ultima volta
+                    </p>
+                    {exercise.previousPerformance ? (
+                      <>
+                        <p className="mt-2 text-sm text-[var(--app-muted)]">
+                          {formatPreviousPerformanceDate(exercise.previousPerformance.performedAt)}
+                        </p>
+                        <div className="mt-3 space-y-2 text-sm text-[var(--app-muted)]">
+                          {exercise.previousPerformance.sets.map((setLog) => (
+                            <p key={`${exercise.id}-previous-${setLog.setNumber}`}>
+                              {formatSetSummary(setLog)}
+                            </p>
+                          ))}
+                        </div>
+                      </>
+                    ) : (
+                      <p className="mt-2 text-sm text-[var(--app-muted)]">
+                        Prima volta con questo esercizio.
+                      </p>
+                    )}
+                  </div>
+
+                  {!isCollapsed ? (
+                    <div className="mt-4 rounded-[22px] border border-white/8 bg-[var(--app-bg)]/45 p-4 sm:p-5">
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--app-muted-2)]">
+                            Progressi
+                          </p>
+                          <h4 className="mt-1 text-[17px] font-semibold tracking-[-0.02em] text-[var(--app-text)]">
+                            Dettagli della serie
+                          </h4>
+                        </div>
+                        <p className="text-[12px] font-semibold text-[var(--app-muted)]">
+                          {completedSets}/{totalSets}
+                        </p>
+                      </div>
+
+                      <div className="mt-4 space-y-3">
+                        {exercise.setLogs.map((setLog) => (
+                          <div
+                            key={`${exercise.id}-${setLog.setNumber}`}
+                            className="rounded-[20px] border border-white/7 bg-[var(--app-surface)] p-4"
+                          >
+                            <div className="flex items-center justify-between gap-3">
+                              <p className="text-[15px] font-semibold text-[var(--app-text)]">
+                                Serie {setLog.setNumber}
+                              </p>
+                              <label className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.035] px-3 py-1.5 text-[12px] font-medium text-[var(--app-muted)]">
+                                <input
+                                  type="checkbox"
+                                  checked={setLog.completed}
+                                  onChange={(event) =>
+                                    updateSetLog(
+                                      exercise.id,
+                                      setLog.setNumber,
+                                      "completed",
+                                      event.target.checked,
+                                    )
+                                  }
+                                  className="h-4 w-4"
+                                />
+                                <span>Serie completata</span>
+                              </label>
+                            </div>
+
+                            <div className="mt-4 grid gap-3">
+                              <label className="text-sm">
+                                <span className="block text-[var(--app-muted)]">Carico</span>
+                                <input
+                                  type="number"
+                                  min={0}
+                                  step={0.5}
+                                  value={setLog.actualWeight ?? ""}
+                                  onChange={(event) =>
+                                    updateSetLog(
+                                      exercise.id,
+                                      setLog.setNumber,
+                                      "actualWeight",
+                                      parseNumberInput(event.target.value),
+                                    )
+                                  }
+                                  className="mt-2 h-12 w-full rounded-[14px] border border-white/10 bg-[var(--app-surface-soft)] px-4 text-[var(--app-text)] outline-none transition focus:border-[var(--app-primary-border)]"
+                                  placeholder="Kg usati"
+                                />
+                              </label>
+
+                              <div className="grid grid-cols-2 gap-3">
                                 <label className="text-sm">
-                                  <span className="block text-neutral-400">Reps fatte</span>
+                                  <span className="block text-[var(--app-muted)]">Reps</span>
                                   <input
                                     type="number"
                                     min={0}
@@ -1277,21 +1263,17 @@ export function WorkoutLogForm({
                                         exercise.id,
                                         setLog.setNumber,
                                         "actualReps",
-                                        parseNumberInput(event.target.value)
+                                        parseNumberInput(event.target.value),
                                       )
                                     }
-                                    className="mt-2 w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-white outline-none"
-                                    placeholder="0"
+                                    className="mt-2 h-12 w-full rounded-[14px] border border-white/10 bg-[var(--app-surface-soft)] px-4 text-[var(--app-text)] outline-none transition focus:border-[var(--app-primary-border)]"
+                                    placeholder="Reps"
                                   />
                                 </label>
 
-                                <label className="text-sm md:col-span-2 xl:col-span-1">
-                                  <span className="block text-neutral-400">
+                                <label className="text-sm">
+                                  <span className="block text-[var(--app-muted)]">
                                     Ripetizioni in riserva
-                                  </span>
-                                  <span className="mt-2 block text-xs leading-5 text-neutral-500">
-                                    Quante ripetizioni pensi ti sarebbero rimaste con
-                                    tecnica corretta?
                                   </span>
                                   <input
                                     type="number"
@@ -1304,135 +1286,88 @@ export function WorkoutLogForm({
                                         exercise.id,
                                         setLog.setNumber,
                                         "actualRir",
-                                        parseNumberInput(event.target.value)
+                                        parseNumberInput(event.target.value),
                                       )
                                     }
-                                    className="mt-2 w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-white outline-none"
+                                    className="mt-2 h-12 w-full rounded-[14px] border border-white/10 bg-[var(--app-surface-soft)] px-4 text-[var(--app-text)] outline-none transition focus:border-[var(--app-primary-border)]"
                                     placeholder="0-4"
-                                  />
-                                  <span className="mt-2 block text-xs leading-5 text-neutral-500">
-                                    0 = cedimento, 1 = ne avevi ancora 1, 2 = ne avevi
-                                    ancora 2, 3+ = potevi continuare.
-                                  </span>
-                                </label>
-
-                                <label className="text-sm">
-                                  <span className="block text-neutral-400">Fatica serie</span>
-                                  <input
-                                    type="number"
-                                    min={0}
-                                    max={10}
-                                    step={1}
-                                    value={setLog.actualRpe ?? ""}
-                                    onChange={(event) =>
-                                      updateSetLog(
-                                        exercise.id,
-                                        setLog.setNumber,
-                                        "actualRpe",
-                                        parseNumberInput(event.target.value)
-                                      )
-                                    }
-                                    className="mt-2 w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-white outline-none"
-                                    placeholder="0-10"
-                                  />
-                                </label>
-
-                                <label className="text-sm md:col-span-2">
-                                  <span className="block text-neutral-400">Note serie</span>
-                                  <textarea
-                                    value={setLog.notes}
-                                    onChange={(event) =>
-                                      updateSetLog(
-                                        exercise.id,
-                                        setLog.setNumber,
-                                        "notes",
-                                        event.target.value
-                                      )
-                                    }
-                                    rows={3}
-                                    className="mt-2 w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-white outline-none"
-                                    placeholder="Note su esecuzione, adattamenti o sensazioni..."
                                   />
                                 </label>
                               </div>
-                            </div>
-                          ))}
-                        </div>
 
-                        {canCollapseManually ? (
-                          <div className="mt-5 flex justify-end">
-                            <button
-                              type="button"
-                              onClick={() => collapseExercise(exercise.id)}
-                              className="inline-flex justify-center rounded-xl border border-neutral-700 px-4 py-2 text-sm font-medium text-neutral-100"
-                            >
-                              Chiudi esercizio
-                            </button>
+                              <label className="text-sm">
+                                <span className="block text-[var(--app-muted)]">
+                                  Sforzo della serie
+                                </span>
+                                <input
+                                  type="number"
+                                  min={0}
+                                  max={10}
+                                  step={1}
+                                  value={setLog.actualRpe ?? ""}
+                                  onChange={(event) =>
+                                    updateSetLog(
+                                      exercise.id,
+                                      setLog.setNumber,
+                                      "actualRpe",
+                                      parseNumberInput(event.target.value),
+                                    )
+                                  }
+                                  className="mt-2 h-12 w-full rounded-[14px] border border-white/10 bg-[var(--app-surface-soft)] px-4 text-[var(--app-text)] outline-none transition focus:border-[var(--app-primary-border)]"
+                                  placeholder="0-10"
+                                />
+                              </label>
+
+                              <label className="text-sm">
+                                <span className="block text-[var(--app-muted)]">Note</span>
+                                <textarea
+                                  value={setLog.notes}
+                                  onChange={(event) =>
+                                    updateSetLog(
+                                      exercise.id,
+                                      setLog.setNumber,
+                                      "notes",
+                                      event.target.value,
+                                    )
+                                  }
+                                  rows={3}
+                                  className="mt-2 w-full rounded-[14px] border border-white/10 bg-[var(--app-surface-soft)] px-4 py-3 text-[var(--app-text)] outline-none transition focus:border-[var(--app-primary-border)]"
+                                  placeholder="Tecnica, sensazioni, adattamenti..."
+                                />
+                              </label>
+                            </div>
                           </div>
-                        ) : null}
+                        ))}
                       </div>
-                    </>
-                  )}
-                </section>
+                    </div>
+                  ) : null}
+                </AppCard>
               );
             })}
           </div>
 
           {error ? (
-            <p className="rounded-xl border border-red-800 bg-red-950 px-4 py-3 text-sm text-red-200">
+            <p className="rounded-[18px] border border-red-800/60 bg-red-950/30 px-4 py-3 text-sm text-red-200">
               {error}
             </p>
           ) : null}
 
           {message ? (
-            <p className="rounded-xl border border-emerald-800 bg-emerald-950 px-4 py-3 text-sm text-emerald-200">
+            <p className="rounded-[18px] border border-[var(--app-primary-border)] bg-[var(--app-primary-soft)] px-4 py-3 text-sm text-[var(--app-text)]">
               {message}
             </p>
           ) : null}
 
-          <div className="rounded-2xl border border-neutral-800 bg-neutral-900 p-6">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <h3 className="text-lg font-semibold">
-                  {lastSavedStatus === "completed"
-                    ? "Salva correzioni"
-                    : "Salva progressi"}
-                </h3>
-                <p className="mt-2 text-sm text-neutral-400">
-                  {lastSavedStatus === "completed"
-                    ? "Salva le modifiche senza far sembrare che stai iniziando una nuova seduta."
-                    : "Puoi salvare anche se non hai ancora completato tutta la seduta."}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => submitWorkout("save")}
-                disabled={loadingAction !== null}
-                className="inline-flex justify-center rounded-xl border border-neutral-700 px-5 py-3 font-semibold text-neutral-100 disabled:opacity-50"
-              >
-                {loadingAction === "save" ? "Salvataggio..." : saveButtonLabel}
-              </button>
-            </div>
-          </div>
+          <SectionHeader eyebrow="Finale" title="Feedback finale" />
 
-          <div className="rounded-2xl border border-neutral-800 bg-neutral-900 p-6">
-            <h3 className="text-xl font-semibold">
-              {lastSavedStatus === "completed"
-                ? "Aggiorna dati allenamento"
-                : "Feedback finale"}
-            </h3>
-            <p className="mt-2 text-sm text-neutral-400">
-              {lastSavedStatus === "completed"
-                ? "Aggiorna i dati finali mantenendo la seduta nello stato completato."
-                : "Completa il feedback finale alla fine della seduta."}
-            </p>
-
-            <div className="mt-5 grid gap-4 sm:grid-cols-2">
-              <label className="rounded-xl border border-neutral-800 bg-neutral-950 p-4 text-sm">
-                <span className="block text-neutral-400">
-                  Fatica percepita della seduta
-                </span>
-                <span className="mt-2 block text-xs leading-5 text-neutral-500">
+          <AppCard
+            soft
+            className="rounded-[24px] border border-white/8 bg-[var(--app-surface)] p-4"
+          >
+            <div className="grid gap-3">
+              <label className="rounded-[18px] border border-white/7 bg-[var(--app-bg)]/55 p-4 text-sm">
+                <span className="block text-[var(--app-muted)]">Fatica percepita</span>
+                <span className="mt-2 block text-xs leading-5 text-[var(--app-muted-2)]">
                   1 = molto facile, 10 = massimo sforzo.
                 </span>
                 <input
@@ -1441,36 +1376,71 @@ export function WorkoutLogForm({
                   max={10}
                   value={perceivedEffort}
                   onChange={(event) => setPerceivedEffort(event.target.value)}
-                  className="mt-3 w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-white outline-none"
+                  className="mt-3 h-12 w-full rounded-[14px] border border-white/10 bg-[var(--app-surface-soft)] px-4 text-[var(--app-text)] outline-none transition focus:border-[var(--app-primary-border)]"
                   placeholder="1-10"
                 />
               </label>
 
-              <label className="rounded-xl border border-neutral-800 bg-neutral-950 p-4 text-sm">
-                <span className="block text-neutral-400">Note sulla seduta</span>
+              <label className="rounded-[18px] border border-white/7 bg-[var(--app-bg)]/55 p-4 text-sm">
+                <span className="block text-[var(--app-muted)]">Note finali</span>
                 <textarea
                   value={sessionNotes}
                   onChange={(event) => setSessionNotes(event.target.value)}
                   rows={4}
-                  className="mt-3 w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-white outline-none"
-                  placeholder="Sensazioni, adattamenti, osservazioni finali..."
+                  className="mt-3 w-full rounded-[14px] border border-white/10 bg-[var(--app-surface-soft)] px-4 py-3 text-[var(--app-text)] outline-none transition focus:border-[var(--app-primary-border)]"
+                  placeholder="Come ti sei sentito, cosa vuoi ricordare, eventuali adattamenti..."
                 />
               </label>
             </div>
 
-            <div className="mt-6">
-              <button
-                type="button"
+            <div className="mt-5 rounded-[18px] border border-white/7 bg-[var(--app-bg)]/55 px-4 py-3">
+              <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--app-muted-2)]">
+                Stato seduta
+              </p>
+              <p className="mt-1 text-sm text-[var(--app-text)]">
+                {lastSavedStatus === "completed"
+                  ? "Completata"
+                  : lastSavedStatus === "in_progress"
+                    ? "In corso"
+                    : "Da iniziare"}
+              </p>
+            </div>
+
+            <div className="mt-5 grid gap-3">
+              <SecondaryButton
+                onClick={() => submitWorkout("save")}
+                disabled={loadingAction !== null}
+              >
+                {loadingAction === "save" ? "Salvataggio..." : "Salva e continua dopo"}
+              </SecondaryButton>
+
+              <PrimaryButton
                 onClick={() => submitWorkout("complete")}
                 disabled={loadingAction !== null}
-                className="inline-flex justify-center rounded-xl bg-white px-5 py-3 font-semibold text-neutral-950 disabled:opacity-50"
               >
                 {loadingAction === "complete"
                   ? "Salvataggio..."
-                  : completeButtonLabel}
-              </button>
+                  : lastSavedStatus === "completed"
+                    ? "Aggiorna progressi"
+                    : "Salva progressi"}
+              </PrimaryButton>
             </div>
-          </div>
+
+            <div className="mt-4 flex flex-wrap gap-3">
+              <Link
+                href="/program"
+                className="text-[13px] font-semibold text-[var(--app-muted)] transition hover:text-[var(--app-text)]"
+              >
+                Torna al programma
+              </Link>
+              <Link
+                href="/workout-history"
+                className="text-[13px] font-semibold text-[var(--app-muted)] transition hover:text-[var(--app-text)]"
+              >
+                Vedi storico
+              </Link>
+            </div>
+          </AppCard>
         </div>
       ) : null}
     </section>

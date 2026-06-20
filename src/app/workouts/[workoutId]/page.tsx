@@ -1,7 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { AppBottomNav } from "@/components/app-bottom-nav";
 import { AiCoachCard } from "@/components/ai-coach-card";
+import { AppBottomNav } from "@/components/app-bottom-nav";
+import { AppCard } from "@/components/ui/app-card";
+import { AppPage } from "@/components/ui/app-page";
+import { EmptyState } from "@/components/ui/empty-state";
 import { getCurrentUser } from "@/lib/session";
 import { getWorkoutPageDataForUser } from "@/lib/workout-execution";
 import type { FlexibleWorkoutState } from "@/lib/workout-schedule";
@@ -19,39 +22,94 @@ function getWorkoutStateCopy(state: FlexibleWorkoutState, plannedDateLabel: stri
   switch (state) {
     case "recommended_today":
       return {
-        statusLabel: "Consigliata oggi",
-        statusDescription: "Puoi iniziare la seduta consigliata per oggi.",
+        statusLabel: "Oggi",
+        statusDescription: "Pronta da iniziare.",
       };
     case "overdue":
       return {
         statusLabel: "Da recuperare",
-        statusDescription: `Questa seduta era prevista per ${plannedDateLabel}.`,
+        statusDescription: `Era prevista per ${plannedDateLabel}.`,
       };
     case "future_available":
       return {
-        statusLabel: "Prevista più avanti",
-        statusDescription:
-          "Questa seduta è prevista più avanti. Puoi iniziarla comunque se hai modificato la tua settimana.",
+        statusLabel: "Disponibile",
+        statusDescription: "Puoi farla anche prima se ti serve.",
       };
     case "in_progress":
       return {
-        statusLabel: "Allenamento in corso",
-        statusDescription:
-          "I dati già registrati restano disponibili e puoi continuare la compilazione da dove avevi lasciato.",
+        statusLabel: "In corso",
+        statusDescription: "Puoi riprendere da dove avevi lasciato.",
       };
     case "completed":
       return {
-        statusLabel: "Seduta completata",
-        statusDescription:
-          "Hai già completato questa seduta questa settimana. Puoi solo modificare i dati registrati.",
+        statusLabel: "Completata",
+        statusDescription: "Hai gia completato questa seduta questa settimana.",
       };
     case "skipped":
       return {
-        statusLabel: "Seduta saltata",
-        statusDescription:
-          "Hai segnato questa seduta come saltata. Puoi recuperarla quando vuoi.",
+        statusLabel: "Saltata",
+        statusDescription: "Puoi recuperarla quando vuoi.",
       };
   }
+}
+
+function getWorkoutStateBadgeClasses(state: FlexibleWorkoutState) {
+  switch (state) {
+    case "recommended_today":
+      return "border-[var(--app-primary-border)] bg-[var(--app-primary-soft)] text-[var(--app-primary)]";
+    case "in_progress":
+      return "border-white/12 bg-white/[0.055] text-[var(--app-text)]";
+    case "completed":
+      return "border-[var(--app-primary-border)] bg-[var(--app-primary-soft)] text-[var(--app-primary)]";
+    case "skipped":
+      return "border-white/8 bg-white/[0.03] text-white/55";
+    case "overdue":
+    case "future_available":
+    default:
+      return "border-white/8 bg-white/[0.035] text-white/72";
+  }
+}
+
+function extractCardioCallout(notes: string | null) {
+  if (!notes?.toLowerCase().includes("cardio")) {
+    return null;
+  }
+
+  return "Richiamo cardio";
+}
+
+function getIntensitySummary(
+  exercises: Array<{
+    intensity: string | null;
+  }>,
+) {
+  const labels = Array.from(
+    new Set(
+      exercises
+        .map((exercise) => exercise.intensity?.trim())
+        .filter((value): value is string => Boolean(value)),
+    ),
+  );
+
+  if (labels.length === 0) {
+    return "Da definire";
+  }
+
+  return labels.slice(0, 2).join(" · ");
+}
+
+function ArrowLeftIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4">
+      <path
+        d="M19 12H5M11 18l-6-6 6-6"
+        stroke="currentColor"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
 }
 
 export default async function WorkoutPage(props: WorkoutPageProps) {
@@ -80,58 +138,118 @@ export default async function WorkoutPage(props: WorkoutPageProps) {
 
   const copy = getWorkoutStateCopy(
     workoutData.workoutState,
-    workoutData.plannedDateLabel
+    workoutData.plannedDateLabel,
   );
+  const summaryItems = [
+    {
+      label: "Focus",
+      value: workoutData.workout.focus ?? "Da definire",
+    },
+    {
+      label: "Quando",
+      value: workoutData.plannedDateLabel,
+    },
+    {
+      label: "Esercizi",
+      value: `${workoutData.exercises.length}`,
+    },
+    {
+      label: "Intensita",
+      value: getIntensitySummary(workoutData.exercises),
+    },
+  ];
+  const cardioCallout = extractCardioCallout(workoutData.workout.notes);
 
   return (
-    <main className="min-h-screen bg-neutral-950 px-6 py-12 pb-28 text-white">
-      <section className="mx-auto w-full max-w-5xl">
-        <div className="mb-4">
+    <AppPage className="pb-28">
+      <section className="pt-[62px]">
+        <div className="flex items-center justify-between gap-3">
           <Link
             href="/program"
-            className="inline-flex items-center justify-center rounded-xl border border-neutral-700 bg-neutral-900 px-4 py-2 text-sm font-semibold text-neutral-100 hover:border-neutral-500 hover:bg-neutral-800"
+            className="inline-flex min-h-10 items-center gap-2 rounded-full border border-white/10 bg-white/[0.035] px-4 py-2 text-[13px] font-semibold text-[var(--app-text)] transition hover:border-white/16 hover:bg-white/[0.05]"
           >
-            ← Torna al programma
+            <ArrowLeftIcon />
+            Programma
           </Link>
+          <span
+            className={`inline-flex min-h-9 items-center rounded-full border px-3 py-1 text-[11px] font-bold uppercase tracking-[0.08em] ${getWorkoutStateBadgeClasses(
+              workoutData.workoutState,
+            )}`}
+          >
+            {copy.statusLabel}
+          </span>
         </div>
 
-        <section className="rounded-2xl border border-neutral-800 bg-neutral-900 p-6">
-          <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-            <div className="max-w-3xl">
-              <p className="text-sm uppercase tracking-[0.3em] text-neutral-500">
-                Giorno consigliato: {workoutData.plannedDateLabel}
-              </p>
-              <h1 className="mt-3 text-3xl font-bold">{workoutData.workout.title}</h1>
-              <p className="mt-3 text-sm text-neutral-400">
-                Focus: {workoutData.workout.focus ?? "Non indicato"}
-              </p>
-              <div className="mt-5 rounded-xl border border-neutral-800 bg-neutral-950 p-4">
-                <p className="text-sm text-neutral-500">Note seduta</p>
-                <p className="mt-2 whitespace-pre-line text-sm text-neutral-200">
-                  {workoutData.workout.notes ?? "Nessuna nota disponibile."}
+        <header className="mt-5">
+          <p className="text-[12px] font-bold uppercase tracking-[0.08em] text-[var(--app-muted-2)]">
+            Seduta
+          </p>
+          <h1 className="mt-1 text-[28px] font-bold tracking-[-0.02em] text-[var(--app-text)]">
+            {workoutData.workout.title}
+          </h1>
+          <p className="mt-2 text-sm text-[var(--app-muted)]">{copy.statusDescription}</p>
+        </header>
+
+        <AppCard
+          soft
+          className="mt-5 rounded-[24px] border border-white/8 bg-[var(--app-surface)] p-4"
+        >
+          <div className="grid grid-cols-2 gap-3">
+            {summaryItems.map((item) => (
+              <div
+                key={item.label}
+                className="rounded-[18px] border border-white/7 bg-[var(--app-bg)]/55 px-3.5 py-3"
+              >
+                <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--app-muted-2)]">
+                  {item.label}
+                </p>
+                <p className="mt-1 text-[14px] font-semibold leading-5 text-[var(--app-text)]">
+                  {item.value}
                 </p>
               </div>
-            </div>
-
-            <div className="min-w-52 rounded-xl border border-neutral-800 bg-neutral-950 p-4">
-              <p className="text-sm text-neutral-500">Stato</p>
-              <p className="mt-2 text-base font-semibold text-white">
-                {copy.statusLabel}
-              </p>
-              <p className="mt-2 text-sm text-neutral-400">
-                {copy.statusDescription}
-              </p>
-            </div>
+            ))}
           </div>
-        </section>
+          {cardioCallout ? (
+            <div className="mt-3 flex flex-wrap gap-2">
+              <span className="app-pill">{cardioCallout}</span>
+            </div>
+          ) : null}
+        </AppCard>
+
+        {workoutData.exercises.length === 0 ? (
+          <EmptyState
+            className="mt-5"
+            title="Nessun esercizio disponibile per questa seduta."
+            description="Torna al programma e riprova tra poco."
+            action={
+              <Link
+                href="/program"
+                className="inline-flex min-h-11 items-center justify-center rounded-[16px] border border-white/10 bg-white/[0.035] px-4 py-2 text-sm font-semibold text-[var(--app-text)] transition hover:border-white/16 hover:bg-white/[0.05]"
+              >
+                Torna al programma
+              </Link>
+            }
+          />
+        ) : (
+          <WorkoutLogForm
+            workout={workoutData.workout}
+            exercises={workoutData.exercises}
+            existingLog={workoutData.existingLog}
+            workoutState={workoutData.workoutState}
+            plannedDateLabel={workoutData.plannedDateLabel}
+          />
+        )}
 
         <section className="mt-6">
-          <div className="mb-3 flex justify-end">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--app-muted-2)]">
+              Coach
+            </p>
             <Link
               href={`/coach?workoutId=${workoutData.workout.id}`}
-              className="inline-flex justify-center rounded-xl border border-neutral-700 px-4 py-2.5 text-sm font-semibold text-neutral-100"
+              className="text-[12px] font-semibold text-[var(--app-muted)] transition hover:text-[var(--app-text)]"
             >
-              Apri chat su questa seduta
+              Apri chat
             </Link>
           </div>
           <AiCoachCard
@@ -140,17 +258,9 @@ export default async function WorkoutPage(props: WorkoutPageProps) {
             buttonLabel="Analizza questa seduta"
           />
         </section>
-
-        <WorkoutLogForm
-          workout={workoutData.workout}
-          exercises={workoutData.exercises}
-          existingLog={workoutData.existingLog}
-          workoutState={workoutData.workoutState}
-          plannedDateLabel={workoutData.plannedDateLabel}
-        />
       </section>
 
       <AppBottomNav />
-    </main>
+    </AppPage>
   );
 }

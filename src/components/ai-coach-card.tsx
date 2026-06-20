@@ -73,7 +73,7 @@ export function AiCoachCard({
   mode,
   workoutId,
   workoutLogId,
-  buttonLabel = "Chiedi al coach AI",
+  buttonLabel = "Chiedi al coach",
 }: AiCoachCardProps) {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<CoachResult | null>(null);
@@ -108,7 +108,7 @@ export function AiCoachCard({
       setResult(payload.result);
     } catch {
       setResult(null);
-      setError("Errore di rete durante l'analisi del Coach AI.");
+      setError("Errore di rete durante l'analisi del coach.");
     } finally {
       setLoading(false);
     }
@@ -116,10 +116,10 @@ export function AiCoachCard({
 
   return (
     <div className="rounded-2xl border border-neutral-800 bg-neutral-900 p-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-4">
         <div>
           <p className="text-sm uppercase tracking-[0.2em] text-neutral-500">
-            Coach AI
+            Coach
           </p>
           <p className="mt-2 text-sm text-neutral-400">
             Analisi testuale basata sui dati esistenti di allenamento, nutrizione, peso e cardio. Nessuna modifica automatica.
@@ -130,7 +130,7 @@ export function AiCoachCard({
           type="button"
           onClick={handleAnalyze}
           disabled={loading}
-          className="inline-flex justify-center rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-neutral-950 disabled:cursor-not-allowed disabled:bg-neutral-700 disabled:text-neutral-300"
+          className="inline-flex min-h-[52px] w-full items-center justify-center rounded-[16px] bg-white px-4 py-3 text-sm font-semibold text-neutral-950 transition hover:bg-neutral-100 disabled:cursor-not-allowed disabled:bg-neutral-700 disabled:text-neutral-300"
         >
           {loading ? "Analisi in corso..." : buttonLabel}
         </button>
