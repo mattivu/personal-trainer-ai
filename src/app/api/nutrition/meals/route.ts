@@ -108,7 +108,7 @@ export async function POST(request: Request) {
     } catch (error) {
       if (isJsonSyntaxError(error)) {
         return NextResponse.json(
-          { ok: false, message: "Payload JSON non valido." },
+          { ok: false, message: "Dati non validi. Controlla i campi e riprova." },
           { status: 400 }
         );
       }

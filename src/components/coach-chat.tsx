@@ -156,7 +156,7 @@ export function CoachChat({ currentWorkoutId }: CoachChatProps) {
     <div className="flex min-h-[70vh] flex-col rounded-3xl border border-neutral-800 bg-neutral-900">
       <div className="border-b border-neutral-800 px-5 py-4 sm:px-6">
         <p className="text-sm uppercase tracking-[0.28em] text-neutral-500">
-          Coach AI
+          Coach
         </p>
         <h2 className="mt-2 text-2xl font-semibold text-white">Chat coach</h2>
         <p className="mt-2 max-w-2xl text-sm text-neutral-400">

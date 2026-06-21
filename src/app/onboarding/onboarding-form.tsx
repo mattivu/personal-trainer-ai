@@ -263,7 +263,7 @@ const steps: Step[] = [
         type: "select",
         required: true,
         options: GOAL_OPTIONS,
-        helpText: "Questa scelta guidera il futuro motore allenamento.",
+        helpText: "Questa scelta aiutera a definire la direzione del programma.",
       },
       {
         name: "intensitaObiettivo",
@@ -495,7 +495,7 @@ const steps: Step[] = [
     id: "split-focus",
     title: "Split e focus",
     description:
-      "La preferenza non e una regola assoluta, ma un segnale utile per il futuro Training Engine v2.",
+      "La preferenza non e una regola assoluta, ma ci aiuta a costruire un programma piu adatto a te.",
     fields: [
       {
         name: "preferenzaSplit",
@@ -503,7 +503,7 @@ const steps: Step[] = [
         type: "select",
         required: true,
         options: SPLIT_OPTIONS,
-        helpText: "Se la scelta non fosse coerente, il motore potra adattarla.",
+        helpText: "Se necessario, questa scelta verra adattata per mantenere il programma equilibrato.",
       },
       {
         name: "focusMuscolari",
@@ -737,9 +737,9 @@ const steps: Step[] = [
   },
   {
     id: "alimentazione-attuale",
-    title: "Nutrizione adattiva",
+    title: "Nutrizione",
     description:
-      "Non cambiamo il motore nutrizione ora, ma raccogliamo dati utili per adattarlo meglio in futuro.",
+      "Raccogliamo dati utili per proporti indicazioni nutrizionali piu adatte nel tempo.",
     fields: [
       {
         name: "obiettivoNutrizionale",
@@ -1520,12 +1520,12 @@ export function OnboardingForm({
             </p>
             <h1 className="text-3xl font-bold">
               {isCompleted
-                ? "Aggiorna il tuo questionario"
+                ? "Aggiorna le tue risposte iniziali"
                 : "Prima di creare il tuo percorso, conosciamoti meglio"}
             </h1>
             <p className="mt-3 max-w-2xl text-neutral-400">
               {isCompleted
-                ? "Hai gia completato il questionario. Puoi aggiornare le risposte senza perdere l'accesso alle aree gia attive."
+                ? "Hai gia completato questa fase iniziale. Puoi aggiornare le risposte senza perdere l'accesso alle aree gia attive."
                 : `${userName ? `${userName}, ` : ""}rispondi alle domande essenziali per preparare un percorso piu adatto al tuo contesto.`}
             </p>
             <p className="mt-4 max-w-2xl rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">

@@ -19,19 +19,19 @@ export function PageHeader({
   meta,
 }: PageHeaderProps) {
   return (
-    <header className={cn("pt-14", className)}>
+    <header className={cn("pt-[62px]", className)}>
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           {eyebrow ? (
-            <p className="text-[12px] font-bold uppercase tracking-[0.12em] text-[var(--app-muted-2)]">
+            <p className="text-[12px] font-bold uppercase tracking-[0.08em] text-[var(--app-muted-2)]">
               {eyebrow}
             </p>
           ) : null}
-          <h1 className="mt-1 text-[32px] font-bold tracking-[-0.03em] text-[var(--app-text)]">
+          <h1 className="mt-1 text-[26px] font-bold tracking-[-0.02em] text-[var(--app-text)]">
             {title}
           </h1>
           {description ? (
-            <p className="mt-3 max-w-[34rem] text-sm leading-6 text-[var(--app-muted)]">
+            <p className="mt-2 max-w-[34rem] text-sm leading-6 text-[var(--app-muted)]">
               {description}
             </p>
           ) : null}

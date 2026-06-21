@@ -4,7 +4,7 @@ import OpenAI from "openai";
 const DEFAULT_OPENAI_MODEL = "gpt-5.4-mini";
 
 export class AIConfigurationError extends Error {
-  constructor(message = "Coach AI non configurato.") {
+  constructor(message = "Coach non disponibile in questo momento.") {
     super(message);
     this.name = "AIConfigurationError";
   }

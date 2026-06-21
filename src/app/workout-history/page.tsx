@@ -135,7 +135,7 @@ export default async function WorkoutHistoryPage() {
                 </summary>
 
                 <div className="mt-6 border-t border-neutral-800 pt-6">
-                  <h3 className="text-lg font-semibold">Dati della serie</h3>
+                  <h3 className="text-lg font-semibold">Dettagli delle serie</h3>
                   {entry.exercises.length === 0 ? (
                     <p className="mt-4 rounded-xl border border-neutral-800 bg-neutral-950 px-4 py-3 text-sm text-neutral-300">
                       Nessun dato serie registrato.

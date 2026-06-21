@@ -36,9 +36,9 @@ function getLifecycleStatusClasses(status: BlockReviewLifecycleStatus) {
 
 function getSummaryStatusClasses(status: BlockReviewSummaryStatus) {
   switch (status) {
-    case "Blocco solido":
+    case "Percorso solido":
       return "border-emerald-700 bg-emerald-950/40 text-emerald-200";
-    case "Blocco incompleto":
+    case "Percorso incompleto":
       return "border-sky-700 bg-sky-950/40 text-sky-200";
     case "Fatica elevata":
       return "border-amber-700 bg-amber-950/40 text-amber-200";
@@ -72,9 +72,9 @@ export default async function BlockReviewPage() {
             <p className="text-sm uppercase tracking-[0.3em] text-neutral-500">
               Personal Trainer AI
             </p>
-            <h1 className="mt-3 text-3xl font-bold">Revisione blocco</h1>
+            <h1 className="mt-3 text-3xl font-bold">Revisione del programma</h1>
             <p className="mt-3 max-w-2xl text-sm text-neutral-400">
-              Revisione rule-based dell&apos;intero ciclo attivo, senza modifiche automatiche al programma.
+              Controllo dell&apos;intera fase attiva del programma, senza modifiche automatiche.
             </p>
           </div>
 
@@ -99,7 +99,7 @@ export default async function BlockReviewPage() {
             <div>
               <p className="text-sm text-neutral-500">Programma attivo</p>
               <h2 className="mt-2 text-2xl font-semibold">
-                {review.activeProgram?.title ?? "Nessun blocco attivo"}
+                {review.activeProgram?.title ?? "Nessun programma attivo"}
               </h2>
               <p className="mt-3 text-sm text-neutral-400">
                 Settimana {review.block.currentWeek || 0} di {review.block.durationWeeks || 0}
@@ -182,7 +182,7 @@ export default async function BlockReviewPage() {
             <h2 className="text-xl font-semibold">Segnali rilevati</h2>
             {review.signals.length === 0 ? (
               <p className="mt-4 text-sm text-neutral-400">
-                Nessun segnale rilevante oltre alla normale lettura del blocco.
+                Nessun segnale rilevante oltre al normale andamento del programma.
               </p>
             ) : (
               <ul className="mt-4 space-y-3 text-sm text-neutral-200">

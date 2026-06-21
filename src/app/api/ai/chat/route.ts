@@ -130,7 +130,7 @@ export async function POST(request: Request) {
     } catch (error) {
       if (isJsonSyntaxError(error)) {
         return NextResponse.json(
-          { ok: false, message: "Payload JSON non valido." },
+          { ok: false, message: "Richiesta non valida. Riprova." },
           { status: 400 }
         );
       }
@@ -179,7 +179,7 @@ export async function POST(request: Request) {
     const content = response.output_text?.trim();
 
     if (!content) {
-      throw new Error("Risposta AI vuota.");
+      throw new Error("Risposta del coach vuota.");
     }
 
     const latestUserMessage = [...messages]
@@ -206,7 +206,7 @@ export async function POST(request: Request) {
   } catch (error) {
     if (error instanceof AIConfigurationError) {
       return NextResponse.json(
-        { ok: false, message: "Coach AI non configurato." },
+        { ok: false, message: "Coach non disponibile in questo momento." },
         { status: 503 }
       );
     }
@@ -226,7 +226,7 @@ export async function POST(request: Request) {
       });
 
       return NextResponse.json(
-        { ok: false, message: "Coach AI temporaneamente non disponibile." },
+        { ok: false, message: "Coach temporaneamente non disponibile." },
         { status: 502 }
       );
     }
@@ -234,7 +234,7 @@ export async function POST(request: Request) {
     console.error("AI chat route error", error);
 
     return NextResponse.json(
-      { ok: false, message: "Impossibile completare la risposta del Coach AI." },
+      { ok: false, message: "Impossibile completare la risposta del coach." },
       { status: 500 }
     );
   }

@@ -200,7 +200,7 @@ export async function POST(request: Request) {
     } catch (error) {
       if (isJsonSyntaxError(error)) {
         return NextResponse.json(
-          { ok: false, message: "Payload JSON non valido." },
+          { ok: false, message: "Dati non validi. Controlla i campi e riprova." },
           { status: 400 }
         );
       }
@@ -305,7 +305,7 @@ export async function POST(request: Request) {
     const rawOutput = response.output_text?.trim();
 
     if (!rawOutput) {
-      throw new Error("Risposta AI vuota.");
+      throw new Error("Risposta della stima vuota.");
     }
 
     return NextResponse.json({
@@ -315,7 +315,7 @@ export async function POST(request: Request) {
   } catch (error) {
     if (error instanceof AIConfigurationError) {
       return NextResponse.json(
-        { ok: false, message: "Stima AI non configurata." },
+        { ok: false, message: "Stima automatica non disponibile in questo momento." },
         { status: 503 }
       );
     }
@@ -328,7 +328,7 @@ export async function POST(request: Request) {
       });
 
       return NextResponse.json(
-        { ok: false, message: "Stima AI temporaneamente non disponibile." },
+        { ok: false, message: "Stima automatica temporaneamente non disponibile." },
         { status: 502 }
       );
     }

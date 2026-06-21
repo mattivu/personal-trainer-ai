@@ -12,14 +12,14 @@ export function SectionHeader({
   action,
 }: SectionHeaderProps) {
   return (
-    <div className="mb-4 flex items-end justify-between gap-4">
+    <div className="mb-3 flex items-end justify-between gap-4">
       <div>
         {eyebrow ? (
-          <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--app-muted-2)]">
+          <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--app-muted-2)]">
             {eyebrow}
           </p>
         ) : null}
-        <h2 className="mt-1 text-lg font-semibold tracking-[-0.02em] text-[var(--app-text)]">
+        <h2 className="mt-1 text-[17px] font-semibold tracking-[-0.02em] text-[var(--app-text)]">
           {title}
         </h2>
       </div>

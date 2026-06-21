@@ -85,7 +85,7 @@ function ExerciseCard({ exercise }: { exercise: ExerciseLibraryItem }) {
               Fonte: {exercise.sourceLabel}
             </span>
             <span className="rounded-full border border-sky-800/60 bg-sky-500/10 px-2.5 py-1 text-sky-100">
-              Motore: {exercise.engineStatusLabel}
+              Disponibilita: {exercise.engineStatusLabel}
             </span>
             {exercise.qualityStatusLabel ? (
               <span className="rounded-full border border-amber-700/60 bg-amber-500/10 px-2.5 py-1 text-amber-200">
@@ -137,7 +137,7 @@ function ExerciseCard({ exercise }: { exercise: ExerciseLibraryItem }) {
             </dd>
           </div>
           <div className="sm:col-span-2 xl:col-span-3">
-            <dt className="text-neutral-500">Disponibilita motore v1</dt>
+            <dt className="text-neutral-500">Disponibilita nel programma</dt>
             <dd className="mt-1 text-neutral-100">
               {exercise.availabilityNote ?? exercise.engineStatusLabel}
             </dd>
@@ -258,8 +258,8 @@ export default async function ExerciseLibraryPage(props: ExerciseLibraryPageProp
             </p>
             <h1 className="mt-3 text-3xl font-bold">Libreria esercizi</h1>
             <p className="mt-3 max-w-3xl text-sm text-neutral-400">
-              Vista di sola revisione degli esercizi interni e di quelli importati da
-              free-exercise-db con stato motore v1 e stato di revisione separati.
+              Vista di controllo degli esercizi disponibili nell&apos;app e di quelli
+              importati, con indicazioni separate su disponibilita e revisione.
             </p>
           </div>
 

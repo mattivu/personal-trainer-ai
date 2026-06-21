@@ -26,14 +26,14 @@ function buildProgramConsistencyErrorMessage(report: {
   warnings: string[];
 }) {
   if (report.warnings.includes("workout_count_exceeds_weekly_training_days")) {
-    return `Non sono riuscito a creare un blocco coerente con i giorni selezionati (${report.expectedWeeklyTrainingDays}). Il builder ha prodotto ${report.actualWorkoutCount} sedute. Controlla il questionario o riprova.`;
+    return `Non sono riuscito a creare un programma coerente con i giorni selezionati (${report.expectedWeeklyTrainingDays}). Sono state preparate ${report.actualWorkoutCount} sedute invece di quelle attese. Controlla le tue risposte iniziali o riprova.`;
   }
 
   if (report.warnings.includes("cardio_missing_from_generated_program")) {
-    return "Non sono riuscito a integrare il cardio nel blocco senza rompere la struttura del programma. Controlla il questionario o riprova.";
+    return "Non sono riuscito a integrare il cardio mantenendo il programma coerente. Controlla le tue risposte iniziali o riprova.";
   }
 
-  return "Non sono riuscito a creare un blocco coerente con i giorni selezionati. Controlla il questionario o riprova.";
+  return "Non sono riuscito a creare un programma coerente con i giorni selezionati. Controlla le tue risposte iniziali o riprova.";
 }
 
 function resolveDemoExercise(
@@ -86,7 +86,7 @@ export async function POST() {
       return NextResponse.json(
         {
           ok: false,
-          message: "Completa il questionario prima di creare il programma.",
+          message: "Completa le risposte iniziali prima di creare il programma.",
         },
         { status: 403 }
       );
@@ -201,7 +201,7 @@ export async function POST() {
           ok: false,
           code: "ACTIVE_PROGRAM_ALREADY_CURRENT",
           message:
-            "Il programma attivo è già allineato al questionario attuale.",
+            "Il programma attivo e gia allineato alle tue risposte attuali.",
         },
         { status: 409 }
       );
@@ -289,7 +289,7 @@ export async function POST() {
     const message =
       error instanceof Error
         ? error.message
-        : "Errore durante la creazione del blocco di allenamento.";
+        : "Errore durante la creazione del programma.";
 
     return NextResponse.json(
       {

@@ -60,7 +60,7 @@ export default async function CoachPage(props: CoachPageProps) {
             </p>
             <h1 className="mt-3 text-3xl font-bold">Coach</h1>
             <p className="mt-3 max-w-2xl text-sm text-neutral-400">
-              Chat read-only basata sul tuo contesto reale: onboarding, programma
+              Chat basata sul tuo contesto reale: risposte iniziali, programma
               attivo, progressi, sedute, nutrizione, peso e cardio recente.
             </p>
           </div>
@@ -86,7 +86,7 @@ export default async function CoachPage(props: CoachPageProps) {
             <div>
               <h2 className="text-base font-semibold">Revisione settimanale</h2>
               <p className="mt-1 text-sm text-neutral-400">
-                Un riepilogo prudente e rule-based su aderenza, fatica, progressi e criticita.
+                Un riepilogo prudente su aderenza, fatica, progressi e criticita.
               </p>
             </div>
 

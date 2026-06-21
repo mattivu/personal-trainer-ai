@@ -17,7 +17,7 @@ export function EmptyState({
   return (
     <div
       className={cn(
-        "rounded-[22px] border border-dashed border-white/10 bg-[var(--app-surface-soft)] p-5",
+        "rounded-[22px] border border-dashed border-white/10 bg-[var(--app-surface-soft)] p-[18px]",
         className
       )}
     >

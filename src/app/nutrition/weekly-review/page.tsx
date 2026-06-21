@@ -251,7 +251,7 @@ export default async function NutritionWeeklyReviewPage() {
             )}
 
             <div className="mt-5 rounded-xl border border-neutral-800 bg-neutral-950 p-4">
-              <p className="text-sm text-neutral-500">Stime AI sui pasti</p>
+              <p className="text-sm text-neutral-500">Stime automatiche sui pasti</p>
               <p className="mt-2 text-lg font-semibold">
                 {review.metrics.aiEstimatedMealPercent === null
                   ? "Dati insufficienti"

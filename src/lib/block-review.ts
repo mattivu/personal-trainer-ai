@@ -21,21 +21,21 @@ export type BlockReviewSignal =
   | "possibile necessita di scarico";
 
 export type BlockReviewSummaryStatus =
-  | "Blocco solido"
-  | "Blocco incompleto"
+  | "Percorso solido"
+  | "Percorso incompleto"
   | "Fatica elevata"
   | "Progressi limitati"
   | "Dati insufficienti"
   | "Pronto per revisione";
 
 export type BlockReviewRecommendation =
-  | "Continua il blocco"
+  | "Continua con il programma attuale"
   | "Completa prima le sedute mancanti"
-  | "Ripeti il blocco con piu continuita"
+  | "Riparti da questa fase con piu continuita"
   | "Mantieni i carichi e consolida"
   | "Valuta una settimana piu leggera"
-  | "Aggiorna obiettivo/questionario prima del prossimo blocco"
-  | "Puoi preparare un nuovo blocco";
+  | "Aggiorna obiettivo e risposte iniziali prima della prossima fase"
+  | "Puoi preparare la fase successiva";
 
 type ExerciseProgressBucket = "positive" | "stagnant" | "insufficient";
 
@@ -429,13 +429,13 @@ function buildEmptyBlockReview(referenceDate: Date): BlockReviewData {
       {
         label: "Sedute previste fino a oggi",
         value: "0",
-        hint: "Serve un blocco attivo per iniziare la revisione.",
+        hint: "Serve un programma attivo per iniziare la revisione.",
       },
     ],
     signals: ["dati insufficienti"],
     summaries: {
-      adherence: "Non c'e un blocco attivo da rivedere.",
-      progress: "Mancano dati utili per leggere l'andamento del ciclo.",
+      adherence: "Non c'e un programma attivo da rivedere.",
+      progress: "Mancano dati utili per leggere l'andamento del percorso.",
       criticality: "Serve prima un programma attivo con sedute registrate.",
     },
     cautions: [],
@@ -838,7 +838,7 @@ export async function getBlockReviewForUser(
     blockStatus = "Quasi concluso";
   }
 
-  let summaryStatus: BlockReviewSummaryStatus = "Blocco solido";
+  let summaryStatus: BlockReviewSummaryStatus = "Percorso solido";
 
   if (insufficientDataSignal) {
     summaryStatus = "Dati insufficienti";
@@ -847,25 +847,25 @@ export async function getBlockReviewForUser(
   } else if (persistentHighFatigue || possibleDeloadNeed) {
     summaryStatus = "Fatica elevata";
   } else if (lowAdherence || tooManySkipped || missedSessions > 0) {
-    summaryStatus = "Blocco incompleto";
+    summaryStatus = "Percorso incompleto";
   } else if (diffuseStagnation) {
     summaryStatus = "Progressi limitati";
   }
 
-  let recommendation: BlockReviewRecommendation = "Continua il blocco";
+  let recommendation: BlockReviewRecommendation = "Continua con il programma attuale";
 
   if (onboardingChanged && blockStatus === "Da revisionare") {
-    recommendation = "Aggiorna obiettivo/questionario prima del prossimo blocco";
+    recommendation = "Aggiorna obiettivo e risposte iniziali prima della prossima fase";
   } else if (insufficientDataSignal && plannedSessionsToDate > completedSessions) {
     recommendation = "Completa prima le sedute mancanti";
   } else if (persistentHighFatigue || possibleDeloadNeed) {
     recommendation = "Valuta una settimana piu leggera";
   } else if (blockStatus === "Da revisionare" && lowAdherence) {
-    recommendation = "Ripeti il blocco con piu continuita";
+    recommendation = "Riparti da questa fase con piu continuita";
   } else if (diffuseStagnation) {
     recommendation = "Mantieni i carichi e consolida";
   } else if (blockStatus === "Da revisionare" && !lowAdherence && !persistentHighFatigue) {
-    recommendation = "Puoi preparare un nuovo blocco";
+    recommendation = "Puoi preparare la fase successiva";
   } else if (missedSessions > 0 || skippedSessions > 0) {
     recommendation = "Completa prima le sedute mancanti";
   }
@@ -884,7 +884,7 @@ export async function getBlockReviewForUser(
     {
       label: "Fatica percepita",
       value: averagePerceivedEffort !== null ? `${averagePerceivedEffort}/10` : "n/d",
-      hint: "Media sulle sedute completate del blocco.",
+      hint: "Media sulle sedute completate in questa fase del programma.",
     },
     {
       label: "Progressione esercizi",
@@ -906,18 +906,18 @@ export async function getBlockReviewForUser(
   const adherenceSummary = `${completedSessions} sedute completate su ${plannedSessionsToDate} previste fino a oggi. ${skippedSessions} risultano saltate e ${missedSessions} non risultano ancora chiuse.`;
   const progressSummary =
     positiveProgressExercises > 0
-      ? `${positiveProgressExercises} esercizi mostrano segnali positivi nell'intero blocco.`
+      ? `${positiveProgressExercises} esercizi mostrano segnali positivi nell'intera fase del programma.`
       : trackedExercises > 0
         ? "Non emergono ancora progressi solidi abbastanza diffusi per forzare il prossimo passo."
         : "Mancano riferimenti utili per interpretare l'andamento degli esercizi.";
   const criticalitySummary =
     signals.includes("dati insufficienti")
-      ? "La lettura del blocco resta parziale: i dati disponibili non bastano per una revisione affidabile."
+      ? "La lettura del programma resta parziale: i dati disponibili non bastano per una revisione affidabile."
       : signals.includes("possibile necessita di scarico")
         ? "L'accumulo di fatica richiede prudenza prima di spingere ulteriormente."
         : signals.includes("troppe sedute saltate")
-          ? "La continuita del blocco e il primo punto da sistemare prima di cambiare struttura."
-          : "Il blocco puo essere letto con sufficiente chiarezza sui dati attuali.";
+          ? "La continuita del programma e il primo punto da sistemare prima di cambiare struttura."
+          : "Il programma puo essere letto con sufficiente chiarezza sui dati attuali.";
 
   return {
     activeProgram: {

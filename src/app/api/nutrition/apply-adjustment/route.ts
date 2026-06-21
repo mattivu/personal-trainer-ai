@@ -30,7 +30,7 @@ export async function POST(request: Request) {
     } catch (error) {
       if (isJsonSyntaxError(error)) {
         return NextResponse.json(
-          { ok: false, message: "Payload JSON non valido." },
+          { ok: false, message: "Richiesta non valida. Riprova." },
           { status: 400 }
         );
       }
@@ -91,4 +91,3 @@ export async function POST(request: Request) {
     );
   }
 }
-

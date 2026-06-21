@@ -272,7 +272,7 @@ export async function generateCoachActions({
         "Apri revisione nutrizionale",
         "/nutrition/weekly-review",
         "navigation",
-        `Apri la revisione rule-based di calorie, macro, attivita stimata e trend peso. Stato attuale: ${nutritionWeeklyReview.status}.`
+        `Apri la revisione nutrizionale di calorie, macro, attivita stimata e andamento del peso. Stato attuale: ${nutritionWeeklyReview.status}.`
       )
     );
   }
@@ -364,10 +364,10 @@ export async function generateCoachActions({
       actions,
       createAction(
         "open-block-review",
-        "Apri revisione blocco",
+        "Apri revisione del programma",
         "/block-review",
         "navigation",
-        `Controlla il blocco attivo con una revisione rule-based. Stato attuale: ${blockReview.summaryStatus}.`
+        `Controlla la fase attuale del programma con una revisione guidata dai dati disponibili. Stato attuale: ${blockReview.summaryStatus}.`
       )
     );
   }

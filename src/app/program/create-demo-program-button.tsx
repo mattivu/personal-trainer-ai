@@ -17,11 +17,11 @@ type CreateDemoProgramButtonProps = {
 
 function getProgramCreationErrorMessage(message: string | undefined) {
   if (!message) {
-    return "Errore durante la creazione del blocco di allenamento.";
+    return "Errore durante la creazione del programma.";
   }
 
   if (message.toLowerCase().includes("programma incoerente")) {
-    return "Non sono riuscito a creare un blocco coerente con i giorni selezionati. Controlla il questionario o riprova.";
+    return "Non sono riuscito a creare un programma coerente con i giorni selezionati. Controlla le tue risposte iniziali o riprova.";
   }
 
   return message;
@@ -44,8 +44,8 @@ async function parseApiResponse(response: Response) {
       return {
         data: null,
         message: trimmedBody
-          ? `Il server ha restituito JSON non valido: ${trimmedBody}`
-          : "Il server ha restituito JSON non valido.",
+          ? `Il server ha restituito una risposta non valida: ${trimmedBody}`
+          : "Il server ha restituito una risposta non valida.",
       };
     }
   }
@@ -72,7 +72,7 @@ async function parseApiResponse(response: Response) {
 }
 
 export function CreateDemoProgramButton({
-  label = "Crea il tuo primo blocco di allenamento",
+  label = "Crea il tuo primo programma",
 }: CreateDemoProgramButtonProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -95,7 +95,7 @@ export function CreateDemoProgramButton({
           data?.code === "ACTIVE_PROGRAM_ALREADY_CURRENT"
         ) {
           throw new Error(
-            "Il programma attivo è già allineato al questionario attuale."
+            "Il programma attivo e gia allineato alle tue risposte attuali."
           );
         }
 
@@ -134,7 +134,7 @@ export function CreateDemoProgramButton({
         disabled={loading}
         className="inline-flex justify-center rounded-xl bg-white px-5 py-3 font-semibold text-neutral-950 disabled:opacity-50"
       >
-        {loading ? "Creazione blocco..." : label}
+        {loading ? "Creazione programma..." : label}
       </button>
 
       {error ? (

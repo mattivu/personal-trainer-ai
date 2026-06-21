@@ -5,7 +5,7 @@ type AppBadgeTone = "neutral" | "accent" | "success" | "warning";
 
 const toneClasses: Record<AppBadgeTone, string> = {
   neutral:
-    "border border-[var(--app-border)] bg-white/[0.04] text-[var(--app-muted)]",
+    "border border-[var(--app-border)] bg-white/[0.05] text-white/70",
   accent:
     "border border-[var(--app-primary-border)] bg-[var(--app-primary-soft)] text-[var(--app-primary)]",
   success:
@@ -25,7 +25,7 @@ export function AppBadge({
   return (
     <span
       className={cn(
-        "inline-flex min-h-8 items-center rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em]",
+        "inline-flex min-h-8 items-center rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-[0.1em]",
         toneClasses[tone],
         className
       )}

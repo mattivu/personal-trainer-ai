@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ExerciseInstructionsModal } from "@/components/exercises/exercise-instructions-modal";
+import { RecoveryTimerOverlay } from "@/components/workouts/recovery-timer-overlay";
 import { AppCard } from "@/components/ui/app-card";
 import { PrimaryButton, SecondaryButton } from "@/components/ui/buttons";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -74,6 +75,12 @@ type ExerciseState = {
 type CompletionCardState = {
   visible: boolean;
   completedAtLabel: string | null;
+};
+
+type ActiveRecoveryTimer = {
+  exerciseId: number;
+  exerciseName: string;
+  durationSeconds: number;
 };
 
 type WorkoutLogApiResponse = {
@@ -332,6 +339,20 @@ function CheckIcon({ active }: { active: boolean }) {
   );
 }
 
+function TimerIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden="true">
+      <path
+        d="M9 2.75h6M12 6.25v2.5M12 13.25l2.25 1.5M19 13a7 7 0 1 1-14 0 7 7 0 0 1 14 0Z"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 function ExercisePreviewImage({
   name,
   imageUrls,
@@ -498,6 +519,9 @@ export function WorkoutLogForm({
     visible: false,
     completedAtLabel: existingLog?.completedAt ?? null,
   });
+  const [activeRecoveryTimer, setActiveRecoveryTimer] = useState<ActiveRecoveryTimer | null>(
+    null,
+  );
   const [activeSwapExerciseId, setActiveSwapExerciseId] = useState<number | null>(
     null,
   );
@@ -553,6 +577,22 @@ export function WorkoutLogForm({
     }));
   }, [existingLog?.completedAt]);
 
+  useEffect(() => {
+    setActiveRecoveryTimer((currentState) => {
+      if (currentState === null) {
+        return null;
+      }
+
+      const activeExercise = exercises.find((exercise) => exercise.id === currentState.exerciseId);
+
+      if (!activeExercise) {
+        return null;
+      }
+
+      return currentState;
+    });
+  }, [exercises]);
+
   function updateSetLog(
     exerciseId: number,
     setNumber: number,
@@ -594,6 +634,18 @@ export function WorkoutLogForm({
       const nextState = new Set(currentState);
       nextState.add(exerciseId);
       return nextState;
+    });
+  }
+
+  function openRecoveryTimer(exercise: ExerciseState) {
+    if (exercise.restSeconds === null) {
+      return;
+    }
+
+    setActiveRecoveryTimer({
+      exerciseId: exercise.id,
+      exerciseName: getExerciseDisplayName(exercise),
+      durationSeconds: exercise.restSeconds,
     });
   }
 
@@ -804,6 +856,14 @@ export function WorkoutLogForm({
 
   return (
     <section className="mt-5 space-y-5">
+      {activeRecoveryTimer ? (
+        <RecoveryTimerOverlay
+          durationSeconds={activeRecoveryTimer.durationSeconds}
+          exerciseName={activeRecoveryTimer.exerciseName}
+          onClose={() => setActiveRecoveryTimer(null)}
+        />
+      ) : null}
+
       {completionCard.visible ? (
         <AppCard
           soft
@@ -1383,6 +1443,17 @@ export function WorkoutLogForm({
                           ))}
                         </div>
                       </div>
+
+                      {exercise.restSeconds !== null ? (
+                        <button
+                          type="button"
+                          onClick={() => openRecoveryTimer(exercise)}
+                          className="mt-4 inline-flex min-h-[56px] w-full items-center justify-center gap-2 rounded-[18px] border border-white/10 bg-white/[0.035] px-4 py-3 text-sm font-semibold text-[var(--app-text)] transition hover:border-white/16 hover:bg-white/[0.05]"
+                        >
+                          <TimerIcon />
+                          Avvia timer recupero
+                        </button>
+                      ) : null}
 
                       <button
                         type="button"
