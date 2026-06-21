@@ -256,7 +256,7 @@ export function MealEntryList({ meals: initialMeals }: MealEntryListProps) {
           return (
             <article
               key={meal.id}
-              className="rounded-2xl border border-neutral-800 bg-neutral-950 p-4"
+              className="rounded-[22px] border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-4"
             >
               {isEditing ? (
                 <div className="space-y-4">
@@ -284,7 +284,7 @@ export function MealEntryList({ meals: initialMeals }: MealEntryListProps) {
                               : current
                           )
                         }
-                        className="w-full rounded-xl border border-neutral-700 bg-neutral-950 px-4 py-3 text-white outline-none"
+                        className="w-full rounded-2xl border border-[var(--app-border)] bg-[rgba(10,13,13,0.65)] px-4 py-3 text-[var(--app-text)] outline-none transition-colors focus:border-[var(--app-primary-border)]"
                       >
                         {MEAL_TYPE_OPTIONS.map((option) => (
                           <option key={option.value} value={option.value}>
@@ -308,7 +308,7 @@ export function MealEntryList({ meals: initialMeals }: MealEntryListProps) {
                               : current
                           )
                         }
-                        className="w-full rounded-xl border border-neutral-700 bg-neutral-950 px-4 py-3 text-white outline-none"
+                        className="w-full rounded-2xl border border-[var(--app-border)] bg-[rgba(10,13,13,0.65)] px-4 py-3 text-[var(--app-text)] outline-none transition-colors focus:border-[var(--app-primary-border)]"
                       />
                     </label>
                   </div>
@@ -329,7 +329,7 @@ export function MealEntryList({ meals: initialMeals }: MealEntryListProps) {
                               : current
                           )
                         }
-                        className="w-full rounded-xl border border-neutral-700 bg-neutral-950 px-4 py-3 text-white outline-none"
+                        className="w-full rounded-2xl border border-[var(--app-border)] bg-[rgba(10,13,13,0.65)] px-4 py-3 text-[var(--app-text)] outline-none transition-colors focus:border-[var(--app-primary-border)]"
                       />
                     </label>
 
@@ -347,7 +347,7 @@ export function MealEntryList({ meals: initialMeals }: MealEntryListProps) {
                               : current
                           )
                         }
-                        className="w-full rounded-xl border border-neutral-700 bg-neutral-950 px-4 py-3 text-white outline-none"
+                        className="w-full rounded-2xl border border-[var(--app-border)] bg-[rgba(10,13,13,0.65)] px-4 py-3 text-[var(--app-text)] outline-none transition-colors focus:border-[var(--app-primary-border)]"
                       >
                         <option value="">Seleziona</option>
                         {QUANTITY_UNIT_OPTIONS.map((option) => (
@@ -375,7 +375,7 @@ export function MealEntryList({ meals: initialMeals }: MealEntryListProps) {
                               : current
                           )
                         }
-                        className="w-full rounded-xl border border-neutral-700 bg-neutral-950 px-4 py-3 text-white outline-none"
+                        className="w-full rounded-2xl border border-[var(--app-border)] bg-[rgba(10,13,13,0.65)] px-4 py-3 text-[var(--app-text)] outline-none transition-colors focus:border-[var(--app-primary-border)]"
                       />
                     </label>
 
@@ -395,34 +395,34 @@ export function MealEntryList({ meals: initialMeals }: MealEntryListProps) {
                               : current
                           )
                         }
-                        className="w-full rounded-xl border border-neutral-700 bg-neutral-950 px-4 py-3 text-white outline-none"
+                        className="w-full rounded-2xl border border-[var(--app-border)] bg-[rgba(10,13,13,0.65)] px-4 py-3 text-[var(--app-text)] outline-none transition-colors focus:border-[var(--app-primary-border)]"
                       />
                     </label>
                   </div>
 
-                  <div className="rounded-2xl border border-neutral-800 bg-neutral-950/60">
+                  <div className="rounded-[22px] border border-[var(--app-border)] bg-[rgba(15,18,19,0.84)]">
                     <button
                       type="button"
                       onClick={() => setShowNutritionFields((current) => !current)}
                       className="flex w-full items-center justify-between px-4 py-4 text-left"
                     >
                       <div>
-                        <p className="font-semibold text-white">
-                          Valori nutrizionali stimati
+                        <p className="font-semibold text-[var(--app-text)]">
+                          Valori nutrizionali
                         </p>
-                        <p className="mt-1 text-sm text-neutral-400">
+                        <p className="mt-1 text-sm text-[var(--app-muted)]">
                           Controlla e correggi i valori prima di salvare.
                         </p>
                       </div>
-                      <span className="text-sm text-neutral-400">
+                      <span className="text-sm text-[var(--app-muted)]">
                         {showNutritionFields ? "Chiudi" : "Apri"}
                       </span>
                     </button>
 
                     {showNutritionFields ? (
-                      <div className="grid grid-cols-2 gap-4 border-t border-neutral-800 px-4 py-4 sm:grid-cols-4">
-                        <label className="space-y-2 text-sm text-neutral-200">
-                          <span>Calorie</span>
+                      <div className="grid grid-cols-2 gap-4 border-t border-[var(--app-border)] px-4 py-4 sm:grid-cols-4">
+                        <label className="space-y-2 text-sm text-[var(--app-text)]">
+                          <span className="font-medium text-[var(--app-muted)]">Calorie</span>
                           <input
                             inputMode="decimal"
                             value={form.calories}
@@ -437,12 +437,12 @@ export function MealEntryList({ meals: initialMeals }: MealEntryListProps) {
                                   : current
                               )
                             }
-                            className="w-full rounded-xl border border-neutral-700 bg-neutral-950 px-4 py-3 text-white outline-none"
+                            className="w-full rounded-2xl border border-[var(--app-border)] bg-[rgba(10,13,13,0.65)] px-4 py-3 text-[var(--app-text)] outline-none transition-colors focus:border-[var(--app-primary-border)]"
                           />
                         </label>
 
-                        <label className="space-y-2 text-sm text-neutral-200">
-                          <span>Proteine g</span>
+                        <label className="space-y-2 text-sm text-[var(--app-text)]">
+                          <span className="font-medium text-[var(--app-muted)]">Proteine</span>
                           <input
                             inputMode="decimal"
                             value={form.protein}
@@ -457,12 +457,14 @@ export function MealEntryList({ meals: initialMeals }: MealEntryListProps) {
                                   : current
                               )
                             }
-                            className="w-full rounded-xl border border-neutral-700 bg-neutral-950 px-4 py-3 text-white outline-none"
+                            className="w-full rounded-2xl border border-[var(--app-border)] bg-[rgba(10,13,13,0.65)] px-4 py-3 text-[var(--app-text)] outline-none transition-colors focus:border-[var(--app-primary-border)]"
                           />
                         </label>
 
-                        <label className="space-y-2 text-sm text-neutral-200">
-                          <span>Carboidrati g</span>
+                        <label className="space-y-2 text-sm text-[var(--app-text)]">
+                          <span className="font-medium text-[var(--app-muted)]">
+                            Carboidrati
+                          </span>
                           <input
                             inputMode="decimal"
                             value={form.carbs}
@@ -477,12 +479,12 @@ export function MealEntryList({ meals: initialMeals }: MealEntryListProps) {
                                   : current
                               )
                             }
-                            className="w-full rounded-xl border border-neutral-700 bg-neutral-950 px-4 py-3 text-white outline-none"
+                            className="w-full rounded-2xl border border-[var(--app-border)] bg-[rgba(10,13,13,0.65)] px-4 py-3 text-[var(--app-text)] outline-none transition-colors focus:border-[var(--app-primary-border)]"
                           />
                         </label>
 
-                        <label className="space-y-2 text-sm text-neutral-200">
-                          <span>Grassi g</span>
+                        <label className="space-y-2 text-sm text-[var(--app-text)]">
+                          <span className="font-medium text-[var(--app-muted)]">Grassi</span>
                           <input
                             inputMode="decimal"
                             value={form.fat}
@@ -497,7 +499,7 @@ export function MealEntryList({ meals: initialMeals }: MealEntryListProps) {
                                   : current
                               )
                             }
-                            className="w-full rounded-xl border border-neutral-700 bg-neutral-950 px-4 py-3 text-white outline-none"
+                            className="w-full rounded-2xl border border-[var(--app-border)] bg-[rgba(10,13,13,0.65)] px-4 py-3 text-[var(--app-text)] outline-none transition-colors focus:border-[var(--app-primary-border)]"
                           />
                         </label>
                       </div>
@@ -509,7 +511,7 @@ export function MealEntryList({ meals: initialMeals }: MealEntryListProps) {
                       type="button"
                       disabled={isMutating || isRefreshing}
                       onClick={() => handleSave(meal.id)}
-                      className="inline-flex justify-center rounded-xl bg-white px-5 py-3 font-semibold text-neutral-950 disabled:cursor-not-allowed disabled:bg-neutral-300"
+                      className="inline-flex min-h-[48px] justify-center rounded-2xl bg-[var(--app-primary)] px-5 py-3 font-semibold text-[var(--app-bg)] disabled:cursor-not-allowed disabled:opacity-70"
                     >
                       {isPendingMeal && pendingAction === "save"
                         ? "Salvataggio..."
@@ -520,7 +522,7 @@ export function MealEntryList({ meals: initialMeals }: MealEntryListProps) {
                       type="button"
                       disabled={isMutating || isRefreshing}
                       onClick={cancelEditing}
-                      className="inline-flex justify-center rounded-xl border border-neutral-700 px-5 py-3 font-semibold text-neutral-100 disabled:cursor-not-allowed disabled:text-neutral-500"
+                      className="inline-flex min-h-[48px] justify-center rounded-2xl border border-[var(--app-border)] px-5 py-3 font-semibold text-[var(--app-text)] disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       Annulla
                     </button>
@@ -535,7 +537,7 @@ export function MealEntryList({ meals: initialMeals }: MealEntryListProps) {
                       </p>
                       <h3 className="mt-2 font-semibold text-white">{meal.name}</h3>
                     </div>
-                    <p className="text-sm font-semibold text-neutral-200">
+                    <p className="font-metrics text-sm font-semibold text-[var(--app-text)]">
                       {formatNutritionNumber(meal.calories)} kcal
                     </p>
                   </div>
@@ -563,7 +565,7 @@ export function MealEntryList({ meals: initialMeals }: MealEntryListProps) {
                       type="button"
                       disabled={isMutating || isRefreshing}
                       onClick={() => startEditing(meal)}
-                      className="inline-flex justify-center rounded-xl border border-neutral-700 px-4 py-2 text-sm font-semibold text-neutral-100 disabled:cursor-not-allowed disabled:text-neutral-500"
+                      className="inline-flex min-h-[42px] justify-center rounded-2xl border border-[var(--app-border)] px-4 py-2 text-sm font-semibold text-[var(--app-text)] disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       Modifica
                     </button>
@@ -585,7 +587,7 @@ export function MealEntryList({ meals: initialMeals }: MealEntryListProps) {
           );
         })
       ) : (
-        <div className="rounded-2xl border border-dashed border-neutral-700 bg-neutral-950 p-5 text-sm text-neutral-400">
+        <div className="rounded-[22px] border border-dashed border-[var(--app-border)] bg-[var(--app-surface-soft)] p-5 text-sm text-[var(--app-muted)]">
           Nessun pasto registrato per questo giorno.
         </div>
       )}

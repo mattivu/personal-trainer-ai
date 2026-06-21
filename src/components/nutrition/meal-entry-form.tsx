@@ -1,11 +1,11 @@
 "use client";
 
+import type { MealType } from "@prisma/client";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import {
   formatNutritionNumber,
   getMealTypeLabel,
-  MEAL_TYPE_OPTIONS,
   getQuantityLabel,
   QUANTITY_UNIT_OPTIONS,
 } from "@/lib/nutrition/meals";
@@ -15,12 +15,18 @@ import {
   validateMealInput,
 } from "@/lib/nutrition/validation";
 
+export type MealEntryTab = "estimate" | "manual" | "barcode";
+
 type MealEntryFormProps = {
   date: string;
+  mealType: MealType;
+  activeTab: MealEntryTab;
+  onTabChange: (tab: MealEntryTab) => void;
+  onSaved?: () => void;
 };
 
 type FormState = {
-  mealType: string;
+  mealType: MealType;
   name: string;
   quantityValue: string;
   quantityUnit: string;
@@ -65,6 +71,12 @@ type EstimateApiResponse =
       ok: false;
       message?: string;
     };
+
+const NUTRITION_GRID_CLASS = "grid grid-cols-2 gap-3";
+const NUTRITION_LABEL_CLASS =
+  "block break-words text-[10px] font-medium uppercase leading-tight tracking-[0.14em] text-[var(--app-muted)]";
+const NUTRITION_PREVIEW_LABEL_CLASS =
+  "block break-words text-[10px] uppercase leading-tight tracking-[0.14em] text-[var(--app-muted-2)]";
 
 const INITIAL_STATE: FormState = {
   mealType: "breakfast",
@@ -131,9 +143,168 @@ function hasNutritionValues(form: FormState) {
   );
 }
 
-export function MealEntryForm({ date }: MealEntryFormProps) {
+function getResetState(mealType: MealType): FormState {
+  return {
+    ...INITIAL_STATE,
+    mealType,
+  };
+}
+
+function NutritionFields({
+  form,
+  onChange,
+}: {
+  form: FormState;
+  onChange: (field: "calories" | "protein" | "carbs" | "fat", value: string) => void;
+}) {
+  return (
+    <div className={`${NUTRITION_GRID_CLASS} border-t border-white/8 px-4 py-4`}>
+      <label className="min-w-0 space-y-2 text-sm text-[var(--app-text)]">
+        <span className={NUTRITION_LABEL_CLASS}>Calorie</span>
+        <input
+          inputMode="decimal"
+          value={form.calories}
+          onChange={(event) => onChange("calories", event.target.value)}
+          className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-[var(--app-text)] outline-none transition-colors placeholder:text-[var(--app-muted-2)] focus:border-[var(--app-primary-border)]"
+          placeholder="420"
+        />
+      </label>
+
+      <label className="min-w-0 space-y-2 text-sm text-[var(--app-text)]">
+        <span className={NUTRITION_LABEL_CLASS}>Proteine</span>
+        <input
+          inputMode="decimal"
+          value={form.protein}
+          onChange={(event) => onChange("protein", event.target.value)}
+          className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-[var(--app-text)] outline-none transition-colors placeholder:text-[var(--app-muted-2)] focus:border-[var(--app-primary-border)]"
+          placeholder="25"
+        />
+      </label>
+
+      <label className="min-w-0 space-y-2 text-sm text-[var(--app-text)]">
+        <span className={NUTRITION_LABEL_CLASS}>Carboidrati</span>
+        <input
+          inputMode="decimal"
+          value={form.carbs}
+          onChange={(event) => onChange("carbs", event.target.value)}
+          className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-[var(--app-text)] outline-none transition-colors placeholder:text-[var(--app-muted-2)] focus:border-[var(--app-primary-border)]"
+          placeholder="48"
+        />
+      </label>
+
+      <label className="min-w-0 space-y-2 text-sm text-[var(--app-text)]">
+        <span className={NUTRITION_LABEL_CLASS}>Grassi</span>
+        <input
+          inputMode="decimal"
+          value={form.fat}
+          onChange={(event) => onChange("fat", event.target.value)}
+          className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-[var(--app-text)] outline-none transition-colors placeholder:text-[var(--app-muted-2)] focus:border-[var(--app-primary-border)]"
+          placeholder="14"
+        />
+      </label>
+    </div>
+  );
+}
+
+function EstimatePreview({
+  estimate,
+  mealType,
+}: {
+  estimate: FoodEstimate;
+  mealType: MealType;
+}) {
+  const quantityLabel = getQuantityLabel(
+    estimate.quantityValue,
+    estimate.quantityUnit
+  );
+
+  return (
+    <div className="rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02))] p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-base font-semibold text-[var(--app-text)]">
+            {estimate.name}
+          </p>
+          <p className="mt-1 text-sm text-[var(--app-muted)]">
+            Salvato in {getMealTypeLabel(mealType)}
+          </p>
+        </div>
+        <div className="rounded-full border border-[var(--app-primary-border)] bg-[rgba(208,216,43,0.12)] px-3 py-1 text-xs font-semibold text-[var(--app-primary)]">
+          Affidabilità {getConfidenceLabel(estimate.confidence)}
+        </div>
+      </div>
+
+      <div className={`mt-4 ${NUTRITION_GRID_CLASS}`}>
+        <div className="min-w-0 rounded-2xl border border-white/8 bg-black/20 p-3">
+          <p className={NUTRITION_PREVIEW_LABEL_CLASS}>
+            Calorie
+          </p>
+          <p className="font-metrics mt-2 text-lg font-semibold text-[var(--app-text)]">
+            {formatNutritionNumber(estimate.calories)}
+          </p>
+        </div>
+        <div className="min-w-0 rounded-2xl border border-white/8 bg-black/20 p-3">
+          <p className={NUTRITION_PREVIEW_LABEL_CLASS}>
+            Proteine
+          </p>
+          <p className="font-metrics mt-2 text-lg font-semibold text-[var(--app-text)]">
+            {formatNutritionNumber(estimate.protein)} g
+          </p>
+        </div>
+        <div className="min-w-0 rounded-2xl border border-white/8 bg-black/20 p-3">
+          <p className={NUTRITION_PREVIEW_LABEL_CLASS}>
+            Carboidrati
+          </p>
+          <p className="font-metrics mt-2 text-lg font-semibold text-[var(--app-text)]">
+            {formatNutritionNumber(estimate.carbs)} g
+          </p>
+        </div>
+        <div className="min-w-0 rounded-2xl border border-white/8 bg-black/20 p-3">
+          <p className={NUTRITION_PREVIEW_LABEL_CLASS}>
+            Grassi
+          </p>
+          <p className="font-metrics mt-2 text-lg font-semibold text-[var(--app-text)]">
+            {formatNutritionNumber(estimate.fat)} g
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-4 space-y-2 text-sm text-[var(--app-muted)]">
+        <p>Porzione stimata: {estimate.portionDescription}</p>
+        {quantityLabel ? <p>Quantità stimata: {quantityLabel}</p> : null}
+        {estimate.brand ? <p>Marca stimata: {estimate.brand}</p> : null}
+      </div>
+
+      {estimate.confidence === "low" ? (
+        <div className="mt-4 rounded-2xl border border-amber-700/40 bg-amber-950/30 px-4 py-3 text-sm text-amber-100">
+          Controlla i valori prima di salvare.
+        </div>
+      ) : null}
+
+      {estimate.assumptions.length > 0 ? (
+        <div className="mt-4 rounded-2xl border border-white/8 bg-black/20 p-4">
+          <p className="text-sm font-semibold text-[var(--app-text)]">Assunzioni usate</p>
+          <ul className="mt-2 space-y-1 text-sm text-[var(--app-muted)]">
+            {estimate.assumptions.map((assumption) => (
+              <li key={assumption}>• {assumption}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+export function MealEntryForm({
+  date,
+  mealType,
+  activeTab,
+  onTabChange,
+  onSaved,
+}: MealEntryFormProps) {
   const router = useRouter();
-  const [form, setForm] = useState<FormState>(INITIAL_STATE);
+  const [form, setForm] = useState<FormState>(getResetState(mealType));
+  const [description, setDescription] = useState("");
   const [saving, setSaving] = useState(false);
   const [estimating, setEstimating] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -141,14 +312,94 @@ export function MealEntryForm({ date }: MealEntryFormProps) {
   const [estimate, setEstimate] = useState<FoodEstimate | null>(null);
   const [showNutritionFields, setShowNutritionFields] = useState(false);
 
-  async function handleEstimate() {
+  function applyEstimate(nextEstimate: FoodEstimate) {
+    const estimatedNotes = buildEstimateNotes(nextEstimate);
+
+    setEstimate(nextEstimate);
+    setShowNutritionFields(true);
+    setForm((current) => ({
+      ...current,
+      mealType,
+      name: nextEstimate.name || current.name,
+      quantityValue:
+        nextEstimate.quantityValue !== null
+          ? String(nextEstimate.quantityValue)
+          : current.quantityValue,
+      quantityUnit: nextEstimate.quantityUnit ?? current.quantityUnit,
+      brand: nextEstimate.brand ?? current.brand,
+      calories: String(nextEstimate.calories),
+      protein: String(nextEstimate.protein),
+      carbs: String(nextEstimate.carbs),
+      fat: String(nextEstimate.fat),
+      notes: current.notes.trim()
+        ? current.notes
+        : estimatedNotes.slice(0, MEAL_NOTES_MAX_LENGTH),
+      nutritionSource: "ai_estimate",
+    }));
+  }
+
+  async function requestEstimate(body: Record<string, string | number | undefined>) {
+    const response = await fetch("/api/nutrition/estimate", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        ...body,
+        mealType,
+      }),
+    });
+    const payload = await parseApiResponse<EstimateApiResponse>(response);
+
+    if (!response.ok || !payload.ok) {
+      setEstimateError(
+        !payload.ok
+          ? payload.message ?? "Impossibile stimare il pasto."
+          : "Impossibile stimare il pasto."
+      );
+      return null;
+    }
+
+    return payload.estimate;
+  }
+
+  async function handleDescriptionEstimate() {
+    const normalizedDescription = description.trim();
+
+    if (!normalizedDescription) {
+      setEstimateError("Descrivi il pasto prima di avviare la stima.");
+      return;
+    }
+
+    setEstimateError(null);
+    setSaveError(null);
+    setEstimating(true);
+
+    try {
+      const nextEstimate = await requestEstimate({
+        description: normalizedDescription,
+      });
+
+      if (!nextEstimate) {
+        return;
+      }
+
+      applyEstimate(nextEstimate);
+    } catch {
+      setEstimateError("Errore di rete durante la stima del pasto.");
+    } finally {
+      setEstimating(false);
+    }
+  }
+
+  async function handleManualEstimate() {
     const name = form.name.trim();
     const quantityValue = form.quantityValue.trim();
     const quantityUnit = form.quantityUnit;
 
     if (!name || !quantityValue || !quantityUnit) {
       setEstimateError(
-        "Inserisci alimento, quantità e unità prima di calcolare i valori."
+        "Inserisci alimento, quantità e unità prima di stimare il pasto."
       );
       return;
     }
@@ -158,53 +409,19 @@ export function MealEntryForm({ date }: MealEntryFormProps) {
     setEstimating(true);
 
     try {
-      const response = await fetch("/api/nutrition/estimate", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name,
-          mealType: form.mealType,
-          quantityValue,
-          quantityUnit,
-          brand: form.brand.trim() || undefined,
-          notes: form.notes.trim() || undefined,
-        }),
+      const nextEstimate = await requestEstimate({
+        name,
+        quantityValue,
+        quantityUnit,
+        brand: form.brand.trim() || undefined,
+        notes: form.notes.trim() || undefined,
       });
-      const payload = await parseApiResponse<EstimateApiResponse>(response);
 
-      if (!response.ok || !payload.ok) {
-        setEstimateError(
-          !payload.ok
-            ? payload.message ?? "Impossibile stimare il pasto."
-            : "Impossibile stimare il pasto."
-        );
+      if (!nextEstimate) {
         return;
       }
 
-      const estimatedNotes = buildEstimateNotes(payload.estimate);
-
-      setEstimate(payload.estimate);
-      setShowNutritionFields(true);
-      setForm((current) => ({
-        ...current,
-        name: payload.estimate.name || current.name,
-        quantityValue:
-          payload.estimate.quantityValue !== null
-            ? String(payload.estimate.quantityValue)
-            : current.quantityValue,
-        quantityUnit: payload.estimate.quantityUnit ?? current.quantityUnit,
-        brand: payload.estimate.brand ?? current.brand,
-        calories: String(payload.estimate.calories),
-        protein: String(payload.estimate.protein),
-        carbs: String(payload.estimate.carbs),
-        fat: String(payload.estimate.fat),
-        notes: current.notes.trim()
-          ? current.notes
-          : estimatedNotes.slice(0, MEAL_NOTES_MAX_LENGTH),
-        nutritionSource: "ai_estimate",
-      }));
+      applyEstimate(nextEstimate);
     } catch {
       setEstimateError("Errore di rete durante la stima del pasto.");
     } finally {
@@ -266,9 +483,14 @@ export function MealEntryForm({ date }: MealEntryFormProps) {
         return;
       }
 
-      setForm(INITIAL_STATE);
+      setForm(getResetState(mealType));
+      setDescription("");
       setEstimate(null);
       setShowNutritionFields(false);
+      if (onSaved) {
+        onSaved();
+        return;
+      }
       router.refresh();
     } catch {
       setSaveError("Errore di rete durante il salvataggio del pasto.");
@@ -277,218 +499,33 @@ export function MealEntryForm({ date }: MealEntryFormProps) {
     }
   }
 
+  function updateNutritionField(
+    field: "calories" | "protein" | "carbs" | "fat",
+    value: string
+  ) {
+    setForm((current) => ({
+      ...current,
+      [field]: value,
+      nutritionSource: "manual",
+    }));
+  }
+
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="grid gap-4 sm:grid-cols-2">
-        <label className="space-y-2 text-sm text-neutral-200">
-          <span>Tipo pasto</span>
-          <select
-            value={form.mealType}
-            onChange={(event) =>
-              setForm((current) => ({
-                ...current,
-                mealType: event.target.value,
-              }))
-            }
-            className="w-full rounded-xl border border-neutral-700 bg-neutral-950 px-4 py-3 text-white outline-none"
-          >
-            {MEAL_TYPE_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label className="space-y-2 text-sm text-neutral-200">
-          <span>Nome alimento/pasto</span>
-          <input
-            value={form.name}
-            onChange={(event) =>
-              setForm((current) => ({
-                ...current,
-                name: event.target.value,
-              }))
-            }
-            className="w-full rounded-xl border border-neutral-700 bg-neutral-950 px-4 py-3 text-white outline-none"
-            placeholder="Esempio: Yogurt e frutta"
-          />
-        </label>
+      <div className="rounded-[28px] border border-white/8 bg-white/[0.03] p-4">
+        <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--app-muted-2)]">
+          Pasto selezionato
+        </p>
+        <p className="mt-2 text-lg font-semibold text-[var(--app-text)]">
+          {getMealTypeLabel(mealType)}
+        </p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_220px]">
-        <label className="space-y-2 text-sm text-neutral-200">
-          <span>Quantità</span>
-          <input
-            inputMode="decimal"
-            value={form.quantityValue}
-            onChange={(event) =>
-              setForm((current) => ({
-                ...current,
-                quantityValue: event.target.value,
-              }))
-            }
-            className="w-full rounded-xl border border-neutral-700 bg-neutral-950 px-4 py-3 text-white outline-none"
-            placeholder="Esempio: 120"
-          />
-        </label>
-
-        <label className="space-y-2 text-sm text-neutral-200">
-          <span>Unità</span>
-          <select
-            value={form.quantityUnit}
-            onChange={(event) =>
-              setForm((current) => ({
-                ...current,
-                quantityUnit: event.target.value,
-              }))
-            }
-            className="w-full rounded-xl border border-neutral-700 bg-neutral-950 px-4 py-3 text-white outline-none"
-          >
-            <option value="">Seleziona</option>
-            {QUANTITY_UNIT_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-2">
-        <label className="space-y-2 text-sm text-neutral-200">
-          <span>Marca</span>
-          <input
-            value={form.brand}
-            maxLength={MEAL_BRAND_MAX_LENGTH}
-            onChange={(event) =>
-              setForm((current) => ({
-                ...current,
-                brand: event.target.value,
-              }))
-            }
-            className="w-full rounded-xl border border-neutral-700 bg-neutral-950 px-4 py-3 text-white outline-none"
-            placeholder="Opzionale"
-          />
-        </label>
-
-        <label className="block space-y-2 text-sm text-neutral-200">
-          <span>Note opzionali</span>
-          <textarea
-            rows={3}
-            value={form.notes}
-            maxLength={MEAL_NOTES_MAX_LENGTH}
-            onChange={(event) =>
-              setForm((current) => ({
-                ...current,
-                notes: event.target.value,
-              }))
-            }
-            className="w-full rounded-xl border border-neutral-700 bg-neutral-950 px-4 py-3 text-white outline-none"
-            placeholder="Dettagli utili sulla preparazione o sulla porzione"
-          />
-        </label>
-      </div>
-
-      <div className="rounded-2xl border border-sky-800/60 bg-sky-950/20 p-4">
-        <div className="flex flex-col gap-3">
-          <div>
-            <p className="text-sm font-semibold text-sky-100">
-              Calcolo valori nutrizionali
-            </p>
-            <p className="mt-1 text-sm text-sky-50/80">
-              Uso alimento, quantità, unità e marca per stimare calorie e macro.
-            </p>
-          </div>
-
-          {estimateError ? (
-            <div className="rounded-2xl border border-rose-800 bg-rose-950/40 px-4 py-3 text-sm text-rose-200">
-              {estimateError}
-            </div>
-          ) : null}
-
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <button
-              type="button"
-              disabled={estimating || saving}
-              onClick={handleEstimate}
-              className="inline-flex justify-center rounded-xl bg-sky-300 px-5 py-3 font-semibold text-sky-950 disabled:cursor-not-allowed disabled:bg-sky-100 sm:w-auto"
-            >
-              {estimating ? "Calcolo in corso..." : "Calcola valori con AI"}
-            </button>
-
-            {estimate ? (
-              <p className="text-sm text-sky-100">
-                Affidabilità stima: {getConfidenceLabel(estimate.confidence)}
-              </p>
-            ) : null}
-          </div>
-
-          {estimate ? (
-            <div className="rounded-2xl border border-neutral-800 bg-neutral-950/80 p-4 text-sm text-neutral-200">
-              <p className="font-semibold text-white">{estimate.name}</p>
-              <p className="mt-2 text-neutral-400">
-                Tipo pasto: {getMealTypeLabel(form.mealType as (typeof MEAL_TYPE_OPTIONS)[number]["value"])}
-              </p>
-              <p className="mt-2 text-neutral-400">
-                Porzione stimata: {estimate.portionDescription}
-              </p>
-              {getQuantityLabel(estimate.quantityValue, estimate.quantityUnit) ? (
-                <p className="mt-2 text-neutral-400">
-                  Quantità stimata:{" "}
-                  {getQuantityLabel(estimate.quantityValue, estimate.quantityUnit)}
-                </p>
-              ) : null}
-              {estimate.brand ? (
-                <p className="mt-1 text-neutral-400">Marca stimata: {estimate.brand}</p>
-              ) : null}
-              <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                <div>
-                  <p className="text-neutral-500">Calorie</p>
-                  <p className="mt-1 font-semibold text-white">
-                    {formatNutritionNumber(estimate.calories)}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-neutral-500">Proteine</p>
-                  <p className="mt-1 font-semibold text-white">
-                    {formatNutritionNumber(estimate.protein)} g
-                  </p>
-                </div>
-                <div>
-                  <p className="text-neutral-500">Carboidrati</p>
-                  <p className="mt-1 font-semibold text-white">
-                    {formatNutritionNumber(estimate.carbs)} g
-                  </p>
-                </div>
-                <div>
-                  <p className="text-neutral-500">Grassi</p>
-                  <p className="mt-1 font-semibold text-white">
-                    {formatNutritionNumber(estimate.fat)} g
-                  </p>
-                </div>
-              </div>
-
-              {estimate.confidence === "low" ? (
-                <div className="mt-3 rounded-xl border border-amber-700/50 bg-amber-950/30 px-3 py-2 text-amber-100">
-                  Quantità poco precisa: controlla i valori.
-                </div>
-              ) : null}
-
-              {estimate.assumptions.length > 0 ? (
-                <div className="mt-3">
-                  <p className="font-medium text-white">Assunzioni usate</p>
-                  <ul className="mt-2 space-y-1 text-neutral-400">
-                    {estimate.assumptions.map((assumption) => (
-                      <li key={assumption}>• {assumption}</li>
-                    ))}
-                  </ul>
-                </div>
-              ) : null}
-            </div>
-          ) : null}
+      {estimateError ? (
+        <div className="rounded-2xl border border-rose-800 bg-rose-950/40 px-4 py-3 text-sm text-rose-200">
+          {estimateError}
         </div>
-      </div>
+      ) : null}
 
       {saveError ? (
         <div className="rounded-2xl border border-rose-800 bg-rose-950/40 px-4 py-3 text-sm text-rose-200">
@@ -496,103 +533,272 @@ export function MealEntryForm({ date }: MealEntryFormProps) {
         </div>
       ) : null}
 
-      <div className="rounded-2xl border border-neutral-800 bg-neutral-950/60">
-        <button
-          type="button"
-          onClick={() => setShowNutritionFields((current) => !current)}
-          className="flex w-full items-center justify-between px-4 py-4 text-left"
-        >
+      {activeTab === "estimate" ? (
+        <section className="space-y-4">
           <div>
-            <p className="font-semibold text-white">Valori nutrizionali stimati</p>
-            <p className="mt-1 text-sm text-neutral-400">
-              Controlla e correggi i valori prima di salvare.
+            <h2 className="text-[22px] font-semibold tracking-[-0.03em] text-[var(--app-text)]">
+              Descrivi cosa hai mangiato
+            </h2>
+            <p className="mt-2 text-sm text-[var(--app-muted)]">
+              La stima è orientativa. Puoi correggere i valori prima di salvare.
             </p>
           </div>
-          <span className="text-sm text-neutral-400">
-            {showNutritionFields ? "Chiudi" : "Apri"}
-          </span>
-        </button>
 
-        {showNutritionFields ? (
-          <div className="grid grid-cols-2 gap-4 border-t border-neutral-800 px-4 py-4 sm:grid-cols-4">
-            <label className="space-y-2 text-sm text-neutral-200">
-              <span>Calorie</span>
+          <label className="block space-y-2 text-sm text-[var(--app-text)]">
+            <span className="font-medium text-[var(--app-muted)]">Descrizione libera</span>
+            <textarea
+              rows={6}
+              value={description}
+              onChange={(event) => setDescription(event.target.value)}
+              className="w-full rounded-[26px] border border-white/10 bg-white/[0.03] px-4 py-4 text-[var(--app-text)] outline-none transition-colors placeholder:text-[var(--app-muted-2)] focus:border-[var(--app-primary-border)]"
+              placeholder="Ho mangiato 80 g di pasta al pomodoro, un cucchiaio d'olio e una mela"
+            />
+          </label>
+
+          <button
+            type="button"
+            disabled={estimating || saving}
+            onClick={handleDescriptionEstimate}
+            className="inline-flex min-h-[54px] w-full items-center justify-center rounded-2xl bg-[var(--app-primary)] px-5 py-3 font-semibold text-[var(--app-bg)] shadow-[0_14px_32px_rgba(208,216,43,0.18)] disabled:cursor-not-allowed disabled:opacity-70"
+          >
+            {estimating ? "Stima in corso..." : "Stima pasto"}
+          </button>
+
+          {estimate ? (
+            <>
+              <EstimatePreview estimate={estimate} mealType={mealType} />
+
+              <div className="rounded-[24px] border border-white/8 bg-white/[0.03]">
+                <button
+                  type="button"
+                  onClick={() => setShowNutritionFields((current) => !current)}
+                  className="flex w-full items-center justify-between px-4 py-4 text-left"
+                >
+                  <div>
+                    <p className="font-semibold text-[var(--app-text)]">
+                      Valori nutrizionali
+                    </p>
+                    <p className="mt-1 text-sm text-[var(--app-muted)]">
+                      Controlla e correggi i valori prima di salvare.
+                    </p>
+                  </div>
+                  <span className="text-sm text-[var(--app-muted)]">
+                    {showNutritionFields ? "Chiudi" : "Apri"}
+                  </span>
+                </button>
+
+                {showNutritionFields ? (
+                  <NutritionFields form={form} onChange={updateNutritionField} />
+                ) : null}
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <button
+                  type="button"
+                  onClick={() => onTabChange("manual")}
+                  className="inline-flex min-h-[52px] items-center justify-center rounded-2xl border border-white/10 bg-white/[0.03] px-5 py-3 font-semibold text-[var(--app-text)] transition-colors hover:bg-white/[0.05]"
+                >
+                  Correggi a mano
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving || estimating}
+                  className="inline-flex min-h-[52px] items-center justify-center rounded-2xl bg-[var(--app-primary)] px-5 py-3 font-semibold text-[var(--app-bg)] shadow-[0_14px_32px_rgba(208,216,43,0.18)] disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  {saving ? "Salvataggio..." : "Salva pasto"}
+                </button>
+              </div>
+            </>
+          ) : null}
+        </section>
+      ) : null}
+
+      {activeTab === "manual" ? (
+        <section className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="space-y-2 text-sm text-[var(--app-text)]">
+              <span className="font-medium text-[var(--app-muted)]">
+                Nome pasto o alimento
+              </span>
               <input
-                inputMode="decimal"
-                value={form.calories}
+                value={form.name}
                 onChange={(event) =>
                   setForm((current) => ({
                     ...current,
-                    calories: event.target.value,
-                    nutritionSource: "manual",
+                    name: event.target.value,
                   }))
                 }
-                className="w-full rounded-xl border border-neutral-700 bg-neutral-950 px-4 py-3 text-white outline-none"
-                placeholder="420"
+                className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3.5 text-[var(--app-text)] outline-none transition-colors placeholder:text-[var(--app-muted-2)] focus:border-[var(--app-primary-border)]"
+                placeholder="Esempio: Yogurt e frutta"
               />
             </label>
 
-            <label className="space-y-2 text-sm text-neutral-200">
-              <span>Proteine g</span>
+            <label className="space-y-2 text-sm text-[var(--app-text)]">
+              <span className="font-medium text-[var(--app-muted)]">Marca</span>
               <input
-                inputMode="decimal"
-                value={form.protein}
+                value={form.brand}
+                maxLength={MEAL_BRAND_MAX_LENGTH}
                 onChange={(event) =>
                   setForm((current) => ({
                     ...current,
-                    protein: event.target.value,
-                    nutritionSource: "manual",
+                    brand: event.target.value,
                   }))
                 }
-                className="w-full rounded-xl border border-neutral-700 bg-neutral-950 px-4 py-3 text-white outline-none"
-                placeholder="25"
-              />
-            </label>
-
-            <label className="space-y-2 text-sm text-neutral-200">
-              <span>Carboidrati g</span>
-              <input
-                inputMode="decimal"
-                value={form.carbs}
-                onChange={(event) =>
-                  setForm((current) => ({
-                    ...current,
-                    carbs: event.target.value,
-                    nutritionSource: "manual",
-                  }))
-                }
-                className="w-full rounded-xl border border-neutral-700 bg-neutral-950 px-4 py-3 text-white outline-none"
-                placeholder="48"
-              />
-            </label>
-
-            <label className="space-y-2 text-sm text-neutral-200">
-              <span>Grassi g</span>
-              <input
-                inputMode="decimal"
-                value={form.fat}
-                onChange={(event) =>
-                  setForm((current) => ({
-                    ...current,
-                    fat: event.target.value,
-                    nutritionSource: "manual",
-                  }))
-                }
-                className="w-full rounded-xl border border-neutral-700 bg-neutral-950 px-4 py-3 text-white outline-none"
-                placeholder="14"
+                className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3.5 text-[var(--app-text)] outline-none transition-colors placeholder:text-[var(--app-muted-2)] focus:border-[var(--app-primary-border)]"
+                placeholder="Opzionale"
               />
             </label>
           </div>
-        ) : null}
-      </div>
 
-      <button
-        type="submit"
-        disabled={saving || estimating}
-        className="inline-flex w-full justify-center rounded-xl bg-white px-5 py-3 font-semibold text-neutral-950 disabled:cursor-not-allowed disabled:bg-neutral-300 sm:w-auto"
-      >
-        {saving ? "Salvataggio..." : "Aggiungi pasto"}
-      </button>
+          <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_200px]">
+            <label className="space-y-2 text-sm text-[var(--app-text)]">
+              <span className="font-medium text-[var(--app-muted)]">Quantità</span>
+              <input
+                inputMode="decimal"
+                value={form.quantityValue}
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    quantityValue: event.target.value,
+                  }))
+                }
+                className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3.5 text-[var(--app-text)] outline-none transition-colors placeholder:text-[var(--app-muted-2)] focus:border-[var(--app-primary-border)]"
+                placeholder="Esempio: 120"
+              />
+            </label>
+
+            <label className="space-y-2 text-sm text-[var(--app-text)]">
+              <span className="font-medium text-[var(--app-muted)]">Unità</span>
+              <select
+                value={form.quantityUnit}
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    quantityUnit: event.target.value,
+                  }))
+                }
+                className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3.5 text-[var(--app-text)] outline-none transition-colors focus:border-[var(--app-primary-border)]"
+              >
+                <option value="">Seleziona</option>
+                {QUANTITY_UNIT_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+
+          <label className="block space-y-2 text-sm text-[var(--app-text)]">
+            <span className="font-medium text-[var(--app-muted)]">Note opzionali</span>
+            <textarea
+              rows={4}
+              value={form.notes}
+              maxLength={MEAL_NOTES_MAX_LENGTH}
+              onChange={(event) =>
+                setForm((current) => ({
+                  ...current,
+                  notes: event.target.value,
+                }))
+              }
+              className="w-full rounded-[24px] border border-white/10 bg-white/[0.03] px-4 py-4 text-[var(--app-text)] outline-none transition-colors placeholder:text-[var(--app-muted-2)] focus:border-[var(--app-primary-border)]"
+              placeholder="Dettagli utili sulla preparazione o sulla porzione"
+            />
+          </label>
+
+          <div className="rounded-[24px] border border-[var(--app-primary-border)] bg-[linear-gradient(160deg,rgba(208,216,43,0.12),rgba(208,216,43,0.03))] p-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-semibold text-[var(--app-text)]">
+                  Stima con AI
+                </p>
+                <p className="mt-1 text-sm text-[var(--app-muted)]">
+                  Completa i campi essenziali e ottieni una stima rapida.
+                </p>
+              </div>
+              <button
+                type="button"
+                disabled={estimating || saving}
+                onClick={handleManualEstimate}
+                className="inline-flex min-h-[48px] items-center justify-center rounded-2xl bg-[var(--app-primary)] px-5 py-3 font-semibold text-[var(--app-bg)] shadow-[0_12px_28px_rgba(208,216,43,0.18)] disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                {estimating ? "Stima in corso..." : "Stima con AI"}
+              </button>
+            </div>
+          </div>
+
+          {estimate ? <EstimatePreview estimate={estimate} mealType={mealType} /> : null}
+
+          <div className="rounded-[24px] border border-white/8 bg-white/[0.03]">
+            <button
+              type="button"
+              onClick={() => setShowNutritionFields((current) => !current)}
+              className="flex w-full items-center justify-between px-4 py-4 text-left"
+            >
+              <div>
+                <p className="font-semibold text-[var(--app-text)]">
+                  Valori nutrizionali
+                </p>
+                <p className="mt-1 text-sm text-[var(--app-muted)]">
+                  Controlla e correggi i valori prima di salvare.
+                </p>
+              </div>
+              <span className="text-sm text-[var(--app-muted)]">
+                {showNutritionFields ? "Chiudi" : "Apri"}
+              </span>
+            </button>
+
+            {showNutritionFields ? (
+              <NutritionFields form={form} onChange={updateNutritionField} />
+            ) : null}
+          </div>
+
+          <button
+            type="submit"
+            disabled={saving || estimating}
+            className="inline-flex min-h-[54px] w-full items-center justify-center rounded-2xl bg-[var(--app-primary)] px-5 py-3 font-semibold text-[var(--app-bg)] shadow-[0_14px_32px_rgba(208,216,43,0.18)] disabled:cursor-not-allowed disabled:opacity-70"
+          >
+            {saving ? "Salvataggio..." : "Salva pasto"}
+          </button>
+        </section>
+      ) : null}
+
+      {activeTab === "barcode" ? (
+        <section className="space-y-5">
+          <div>
+            <h2 className="text-[22px] font-semibold tracking-[-0.03em] text-[var(--app-text)]">
+              Inquadra barcode
+            </h2>
+            <p className="mt-2 text-sm text-[var(--app-muted)]">
+              Posiziona il codice a barre dentro il riquadro.
+            </p>
+          </div>
+
+          <div className="rounded-[32px] border border-white/8 bg-[radial-gradient(circle_at_top,rgba(208,216,43,0.08),transparent_45%)] p-5">
+            <div className="relative overflow-hidden rounded-[28px] border border-white/8 bg-black/35 px-4 py-10">
+              <div className="absolute inset-x-8 top-1/2 h-px -translate-y-1/2 bg-[linear-gradient(90deg,transparent,rgba(208,216,43,0.65),transparent)]" />
+              <div className="relative mx-auto h-52 max-w-[280px] rounded-[28px] border border-[rgba(208,216,43,0.35)] bg-black/30">
+                <span className="absolute left-4 top-4 h-8 w-8 rounded-tl-2xl border-l-2 border-t-2 border-[var(--app-primary)]" />
+                <span className="absolute right-4 top-4 h-8 w-8 rounded-tr-2xl border-r-2 border-t-2 border-[var(--app-primary)]" />
+                <span className="absolute bottom-4 left-4 h-8 w-8 rounded-bl-2xl border-b-2 border-l-2 border-[var(--app-primary)]" />
+                <span className="absolute bottom-4 right-4 h-8 w-8 rounded-br-2xl border-b-2 border-r-2 border-[var(--app-primary)]" />
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-[24px] border border-white/8 bg-white/[0.03] px-4 py-4 text-sm text-[var(--app-muted)]">
+            La scansione barcode sarà disponibile in una versione successiva.
+          </div>
+
+          <button
+            type="button"
+            onClick={() => onTabChange("manual")}
+            className="inline-flex min-h-[52px] w-full items-center justify-center rounded-2xl border border-white/10 bg-white/[0.03] px-5 py-3 font-semibold text-[var(--app-text)] transition-colors hover:bg-white/[0.05]"
+          >
+            Inserisci manualmente
+          </button>
+        </section>
+      ) : null}
     </form>
   );
 }
