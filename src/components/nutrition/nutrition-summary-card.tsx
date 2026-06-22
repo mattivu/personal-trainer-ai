@@ -36,7 +36,7 @@ export function NutritionSummaryCard({
   activityTitle,
 }: NutritionSummaryCardProps) {
   const safeProgress = clampPercent(progressPercent);
-  const circleRadius = 46;
+  const circleRadius = 50;
   const circleLength = 2 * Math.PI * circleRadius;
   const dashOffset = circleLength - (safeProgress / 100) * circleLength;
   const showActivityCard = activityCalories > 0 || Boolean(activityTitle);
@@ -44,8 +44,8 @@ export function NutritionSummaryCard({
   return (
     <div className="space-y-2.5">
       <AppCard className="overflow-hidden border-white/8 bg-[#101515] p-4 sm:p-4.5">
-        <div className="grid grid-cols-[120px_minmax(0,1fr)] items-center gap-4 sm:grid-cols-[140px_minmax(0,1fr)] sm:gap-5">
-          <div className="relative mx-auto h-[120px] w-[120px] sm:h-[140px] sm:w-[140px]">
+        <div className="grid grid-cols-[132px_minmax(0,1fr)] items-center gap-4 sm:grid-cols-[154px_minmax(0,1fr)] sm:gap-5">
+          <div className="relative mx-auto h-[132px] w-[132px] sm:h-[154px] sm:w-[154px]">
             <svg viewBox="0 0 128 128" className="h-full w-full -rotate-90">
               <circle
                 cx="64"
@@ -70,11 +70,11 @@ export function NutritionSummaryCard({
               ) : null}
             </svg>
             <div className="absolute inset-0 flex items-center justify-center">
-              <div className="flex w-[72%] flex-col items-center justify-center gap-1 text-center">
+              <div className="flex w-[76%] flex-col items-center justify-center gap-1.5 text-center">
                 <p className="font-metrics text-[24px] font-semibold leading-none tracking-[-0.05em] text-[var(--app-text)] sm:text-[28px]">
                   {formatNumber(remainingCalories)}
                 </p>
-                <p className="text-[11px] font-medium uppercase leading-none tracking-[0.12em] text-[var(--app-muted)] sm:text-[12px]">
+                <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-[var(--app-muted)] sm:text-[12px]">
                   Rimanenti
                 </p>
               </div>
