@@ -1,10 +1,32 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AppBottomNav } from "@/components/app-bottom-nav";
 import { CoachChat } from "@/components/coach-chat";
+import { AppPage } from "@/components/ui/app-page";
 import { getCurrentUser } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
+
+function CoachPageIcon() {
+  return (
+    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--app-primary)] text-[#0A0D0D] shadow-[0_10px_30px_rgba(208,216,43,0.24)]">
+      <svg viewBox="0 0 24 24" fill="none" className="h-7 w-7">
+        <path
+          d="M7 6.25h10A2.75 2.75 0 0 1 19.75 9v5A2.75 2.75 0 0 1 17 16.75h-5.2l-3.87 2.9c-.45.34-1.08.02-1.08-.54v-2.36H7A2.75 2.75 0 0 1 4.25 14V9A2.75 2.75 0 0 1 7 6.25Z"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M8.75 11.5h6.5M8.75 8.9h4.25"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+        />
+      </svg>
+    </div>
+  );
+}
 
 type CoachPageProps = {
   searchParams?: Promise<{
@@ -51,58 +73,24 @@ export default async function CoachPage(props: CoachPageProps) {
   const currentWorkoutId = parseWorkoutId(getSingleSearchParam(searchParams.workoutId));
 
   return (
-    <main className="min-h-screen bg-neutral-950 px-4 py-6 pb-28 text-white sm:px-6 sm:py-10">
-      <section className="mx-auto w-full max-w-4xl">
-        <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="text-sm uppercase tracking-[0.3em] text-neutral-500">
-              Personal Trainer AI
+    <AppPage className="bg-neutral-950 pt-5" contentClassName="flex min-h-[100dvh] flex-col">
+      <section className="flex min-h-0 flex-1 flex-col pb-4">
+        <header className="mb-4 flex items-start gap-4">
+          <CoachPageIcon />
+          <div className="min-w-0 pt-1">
+            <h1 className="text-3xl font-semibold tracking-[-0.03em] text-white">
+              Coach
+            </h1>
+            <p className="mt-2 text-sm text-neutral-400">
+              Conosce i tuoi dati · solo consigli
             </p>
-            <h1 className="mt-3 text-3xl font-bold">Coach</h1>
-            <p className="mt-3 max-w-2xl text-sm text-neutral-400">
-              Chat basata sul tuo contesto reale: risposte iniziali, programma
-              attivo, progressi, sedute, nutrizione, peso e cardio recente.
-            </p>
           </div>
-
-          <div className="flex gap-3">
-            <Link
-              href="/dashboard"
-              className="inline-flex justify-center rounded-xl border border-neutral-700 px-4 py-2.5 text-sm font-semibold text-neutral-100"
-            >
-              Dashboard
-            </Link>
-            <Link
-              href="/program"
-              className="inline-flex justify-center rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-neutral-950"
-            >
-              Programma
-            </Link>
-          </div>
-        </div>
-
-        <section className="mb-5 rounded-2xl border border-neutral-800 bg-neutral-900 p-4">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h2 className="text-base font-semibold">Revisione settimanale</h2>
-              <p className="mt-1 text-sm text-neutral-400">
-                Un riepilogo prudente su aderenza, fatica, progressi e criticita.
-              </p>
-            </div>
-
-            <Link
-              href="/weekly-review"
-              className="inline-flex justify-center rounded-xl border border-neutral-700 px-4 py-2.5 text-sm font-semibold text-neutral-100"
-            >
-              Apri revisione
-            </Link>
-          </div>
-        </section>
+        </header>
 
         <CoachChat currentWorkoutId={currentWorkoutId} />
       </section>
 
       <AppBottomNav />
-    </main>
+    </AppPage>
   );
 }
