@@ -29,6 +29,8 @@ type BarcodeLookupState =
   | { kind: "external_error"; barcode: string }
   | { kind: "error"; barcode: string; message: string };
 
+type CameraIssue = "permission_denied" | "not_available" | "error";
+
 type BarcodeScannerProps = {
   active: boolean;
   disabled?: boolean;
@@ -47,6 +49,7 @@ type BarcodeScannerProps = {
 };
 
 const SCAN_COOLDOWN_MS = 2500;
+const SCANNER_START_DELAY_MS = 300;
 
 function buildSourceLabel(source: "local" | "open_food_facts") {
   return source === "local" ? "Archivio prodotti" : "Database alimenti";
@@ -59,7 +62,7 @@ function parseLookupError(error: unknown) {
     "name" in error &&
     error.name === "NotAllowedError"
   ) {
-    return "Permesso fotocamera negato. Puoi inserire il prodotto manualmente.";
+    return "Permesso fotocamera negato";
   }
 
   if (
@@ -70,10 +73,43 @@ function parseLookupError(error: unknown) {
       error.name === "DevicesNotFoundError" ||
       error.name === "OverconstrainedError")
   ) {
-    return "Fotocamera non disponibile su questo dispositivo.";
+    return "Fotocamera non disponibile";
   }
 
-  return "Impossibile avviare la fotocamera in questo momento.";
+  return "Fotocamera non disponibile";
+}
+
+function getCameraIssue(error: unknown): CameraIssue {
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "name" in error &&
+    error.name === "NotAllowedError"
+  ) {
+    return "permission_denied";
+  }
+
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "name" in error &&
+    (error.name === "NotFoundError" ||
+      error.name === "DevicesNotFoundError" ||
+      error.name === "OverconstrainedError")
+  ) {
+    return "not_available";
+  }
+
+  return "error";
+}
+
+function isAbortError(error: unknown) {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "name" in error &&
+    error.name === "AbortError"
+  );
 }
 
 export function BarcodeScanner({
@@ -84,13 +120,22 @@ export function BarcodeScanner({
 }: BarcodeScannerProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const controlsRef = useRef<IScannerControls | null>(null);
-  const readerRef = useRef<BrowserMultiFormatReader | null>(null);
   const cooldownRef = useRef<{ barcode: string; at: number } | null>(null);
   const lookupAbortRef = useRef<AbortController | null>(null);
+  const startTimerRef = useRef<number | null>(null);
+  const isMountedRef = useRef(false);
+  const isStartingRef = useRef(false);
+  const isActiveRef = useRef(false);
+  const startTokenRef = useRef(0);
+  const activeRef = useRef(active);
+  const disabledRef = useRef(disabled);
+  const onInsertManualRef = useRef(onInsertManual);
+  const onUseProductRef = useRef(onUseProduct);
 
   const [scannerActive, setScannerActive] = useState(false);
   const [scannerStarting, setScannerStarting] = useState(false);
   const [scannerError, setScannerError] = useState<string | null>(null);
+  const [cameraIssue, setCameraIssue] = useState<CameraIssue | null>(null);
   const [detectedBarcode, setDetectedBarcode] = useState<string | null>(null);
   const [lookupState, setLookupState] = useState<BarcodeLookupState>({ kind: "idle" });
   const [quantity, setQuantity] = useState("100");
@@ -109,46 +154,71 @@ export function BarcodeScanner({
       }
     : null;
 
-  function stopScanner() {
-    controlsRef.current?.stop();
-    controlsRef.current = null;
-    readerRef.current = null;
-    setScannerActive(false);
-    setScannerStarting(false);
-
-    if (videoRef.current) {
-      const stream = videoRef.current.srcObject;
-
-      if (stream instanceof MediaStream) {
-        for (const track of stream.getTracks()) {
-          track.stop();
-        }
-      }
-
-      videoRef.current.srcObject = null;
-    }
-  }
-
-  useEffect(() => {
-    if (active) {
+  function clearStartTimer() {
+    if (startTimerRef.current === null) {
       return;
     }
 
+    window.clearTimeout(startTimerRef.current);
+    startTimerRef.current = null;
+  }
+
+  function abortLookup() {
     lookupAbortRef.current?.abort();
     lookupAbortRef.current = null;
-    stopScanner();
-  }, [active]);
+  }
 
-  useEffect(() => {
-    return () => {
-      lookupAbortRef.current?.abort();
-      lookupAbortRef.current = null;
-      stopScanner();
-    };
-  }, []);
+  function cleanupVideoStream(videoElement: HTMLVideoElement | null) {
+    if (!videoElement) {
+      return;
+    }
+
+    const stream = videoElement.srcObject;
+
+    if (stream instanceof MediaStream) {
+      for (const track of stream.getTracks()) {
+        track.stop();
+      }
+    }
+
+    videoElement.srcObject = null;
+  }
+
+  function isStartStale(startToken: number) {
+    return (
+      !isMountedRef.current ||
+      !activeRef.current ||
+      disabledRef.current ||
+      startTokenRef.current !== startToken
+    );
+  }
+
+  function isIgnorableScannerError(error: unknown, startToken: number) {
+    if (isAbortError(error)) {
+      return true;
+    }
+
+    return isStartStale(startToken);
+  }
+
+  function stopScanner() {
+    clearStartTimer();
+    startTokenRef.current += 1;
+    isStartingRef.current = false;
+    isActiveRef.current = false;
+    controlsRef.current?.stop();
+    controlsRef.current = null;
+
+    cleanupVideoStream(videoRef.current);
+
+    if (isMountedRef.current) {
+      setScannerActive(false);
+      setScannerStarting(false);
+    }
+  }
 
   async function lookupBarcode(barcode: string) {
-    lookupAbortRef.current?.abort();
+    abortLookup();
 
     const controller = new AbortController();
     lookupAbortRef.current = controller;
@@ -197,12 +267,7 @@ export function BarcodeScanner({
         message: "Archivio prodotti momentaneamente non disponibile.",
       });
     } catch (error) {
-      if (
-        typeof error === "object" &&
-        error !== null &&
-        "name" in error &&
-        error.name === "AbortError"
-      ) {
+      if (isAbortError(error)) {
         return;
       }
 
@@ -219,18 +284,30 @@ export function BarcodeScanner({
   }
 
   async function startScanner() {
-    if (disabled || scannerActive || scannerStarting || !videoRef.current) {
+    if (
+      !activeRef.current ||
+      disabledRef.current ||
+      isActiveRef.current ||
+      isStartingRef.current ||
+      controlsRef.current ||
+      !videoRef.current
+    ) {
       return;
     }
 
+    const videoElement = videoRef.current;
+    const startToken = startTokenRef.current + 1;
+
+    startTokenRef.current = startToken;
+    isStartingRef.current = true;
     setScannerError(null);
+    setCameraIssue(null);
     setDetectedBarcode(null);
     setLookupState({ kind: "idle" });
     setScannerStarting(true);
 
     try {
       const reader = new BrowserMultiFormatReader();
-      readerRef.current = reader;
 
       const controls = await reader.decodeFromConstraints(
         {
@@ -239,8 +316,12 @@ export function BarcodeScanner({
             facingMode: { ideal: "environment" },
           },
         },
-        videoRef.current,
+        videoElement,
         (result, error) => {
+          if (startTokenRef.current !== startToken) {
+            return;
+          }
+
           if (result) {
             const barcode = result.getText().trim();
             const now = Date.now();
@@ -264,20 +345,48 @@ export function BarcodeScanner({
             return;
           }
 
-          if (error && !(error instanceof NotFoundException)) {
+          if (
+            error &&
+            !(error instanceof NotFoundException) &&
+            !isIgnorableScannerError(error, startToken)
+          ) {
+            setCameraIssue("error");
             setScannerError("Scansione non disponibile in questo momento.");
+            stopScanner();
           }
         }
       );
 
+      if (isStartStale(startToken)) {
+        controls.stop();
+        cleanupVideoStream(videoElement);
+        return;
+      }
+
       controlsRef.current = controls;
+      isActiveRef.current = true;
       setScannerActive(true);
     } catch (error) {
+      if (isIgnorableScannerError(error, startToken)) {
+        cleanupVideoStream(videoElement);
+        return;
+      }
+
+      setCameraIssue(getCameraIssue(error));
       setScannerError(parseLookupError(error));
       stopScanner();
     } finally {
-      setScannerStarting(false);
+      if (startTokenRef.current === startToken) {
+        isStartingRef.current = false;
+        if (isMountedRef.current) {
+          setScannerStarting(false);
+        }
+      }
     }
+  }
+
+  function handleInsertManual() {
+    onInsertManualRef.current();
   }
 
   function handleUseProduct() {
@@ -288,7 +397,7 @@ export function BarcodeScanner({
     const brand = foundProduct.brand?.trim() ?? "";
     const name = brand ? `${foundProduct.name} ${brand}` : foundProduct.name;
 
-    onUseProduct({
+    onUseProductRef.current({
       name,
       brand,
       quantityValue: String(safeQuantity),
@@ -301,6 +410,48 @@ export function BarcodeScanner({
     });
   }
 
+  useEffect(() => {
+    activeRef.current = active;
+    disabledRef.current = disabled;
+  }, [active, disabled]);
+
+  useEffect(() => {
+    onInsertManualRef.current = onInsertManual;
+  }, [onInsertManual]);
+
+  useEffect(() => {
+    onUseProductRef.current = onUseProduct;
+  }, [onUseProduct]);
+
+  useEffect(() => {
+    if (!active || disabled) {
+      abortLookup();
+      stopScanner();
+      return;
+    }
+
+    clearStartTimer();
+    startTimerRef.current = window.setTimeout(() => {
+      startTimerRef.current = null;
+      void startScanner();
+    }, SCANNER_START_DELAY_MS);
+
+    return () => {
+      abortLookup();
+      stopScanner();
+    };
+  }, [active, disabled]);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+
+    return () => {
+      isMountedRef.current = false;
+      abortLookup();
+      stopScanner();
+    };
+  }, []);
+
   return (
     <section className="space-y-5">
       <div>
@@ -308,86 +459,78 @@ export function BarcodeScanner({
           Inquadra barcode
         </h2>
         <p className="mt-2 text-sm text-[var(--app-muted)]">
-          Posiziona il codice a barre dentro il riquadro.
+          Inquadra il codice a barre.
         </p>
       </div>
 
-      <div className="rounded-[32px] border border-white/8 bg-[radial-gradient(circle_at_top,rgba(208,216,43,0.08),transparent_45%)] p-5">
-        <div className="relative overflow-hidden rounded-[28px] border border-white/8 bg-black/35 px-4 py-10">
-          <div className="absolute inset-x-8 top-1/2 h-px -translate-y-1/2 bg-[linear-gradient(90deg,transparent,rgba(208,216,43,0.65),transparent)]" />
-          <div className="relative mx-auto h-52 max-w-[280px] overflow-hidden rounded-[28px] border border-[rgba(208,216,43,0.35)] bg-black/50">
-            <video
-              ref={videoRef}
-              muted
-              playsInline
-              autoPlay
-              className={`h-full w-full object-cover ${scannerActive ? "opacity-100" : "opacity-0"}`}
-            />
-            {!scannerActive ? (
-              <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-                <span className="text-sm text-[var(--app-muted)]">
-                  {scannerStarting ? "Apertura fotocamera..." : "Scanner pronto"}
-                </span>
-              </div>
-            ) : null}
-            <span className="absolute left-4 top-4 h-8 w-8 rounded-tl-2xl border-l-2 border-t-2 border-[var(--app-primary)]" />
-            <span className="absolute right-4 top-4 h-8 w-8 rounded-tr-2xl border-r-2 border-t-2 border-[var(--app-primary)]" />
-            <span className="absolute bottom-4 left-4 h-8 w-8 rounded-bl-2xl border-b-2 border-l-2 border-[var(--app-primary)]" />
-            <span className="absolute bottom-4 right-4 h-8 w-8 rounded-br-2xl border-b-2 border-r-2 border-[var(--app-primary)]" />
-          </div>
+      <div className="space-y-3">
+        <div className="relative mx-auto aspect-[4/3] w-full max-w-[320px] overflow-hidden rounded-[28px] border border-white/10 bg-black/45">
+          <video
+            ref={videoRef}
+            muted
+            playsInline
+            autoPlay
+            className={`h-full w-full object-cover transition-opacity ${
+              scannerActive ? "opacity-100" : "opacity-0"
+            }`}
+          />
+
+          {scannerStarting ? (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/45">
+              <span className="text-sm text-[var(--app-muted)]">
+                Attivazione fotocamera...
+              </span>
+            </div>
+          ) : null}
+
+          {!scannerActive && !scannerStarting ? (
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(208,216,43,0.08),transparent_52%)]" />
+          ) : null}
+
+          <span className="absolute left-4 top-4 h-8 w-8 rounded-tl-2xl border-l-2 border-t-2 border-[var(--app-primary)]" />
+          <span className="absolute right-4 top-4 h-8 w-8 rounded-tr-2xl border-r-2 border-t-2 border-[var(--app-primary)]" />
+          <span className="absolute bottom-4 left-4 h-8 w-8 rounded-bl-2xl border-b-2 border-l-2 border-[var(--app-primary)]" />
+          <span className="absolute bottom-4 right-4 h-8 w-8 rounded-br-2xl border-b-2 border-r-2 border-[var(--app-primary)]" />
         </div>
-      </div>
 
-      <div className="rounded-[24px] border border-white/8 bg-white/[0.03] px-4 py-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="space-y-1 text-sm">
-            <p className="font-semibold text-[var(--app-text)]">
-              {scannerActive ? "Inquadra il codice a barre" : "Scansione da fotocamera"}
-            </p>
-            <p className="text-[var(--app-muted)]">
-              {scannerStarting
-                ? "Avvio in corso..."
-                : scannerActive
-                  ? "Mantieni fermo il telefono sul barcode."
-                  : "Apri la fotocamera per leggere il prodotto."}
-            </p>
-          </div>
-
-          {scannerActive ? (
+        {scannerActive ? (
+          <div className="flex items-center justify-between gap-3 text-sm">
+            <p className="text-[var(--app-muted)]">Inquadra il codice a barre</p>
             <button
               type="button"
               onClick={stopScanner}
-              className="inline-flex min-h-[48px] items-center justify-center rounded-2xl border border-white/10 bg-white/[0.03] px-5 py-3 font-semibold text-[var(--app-text)] transition-colors hover:bg-white/[0.05]"
+              className="inline-flex min-h-[40px] items-center justify-center rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-2 font-semibold text-[var(--app-text)] transition-colors hover:bg-white/[0.05]"
             >
               Ferma scansione
             </button>
-          ) : (
-            <button
-              type="button"
-              disabled={disabled || scannerStarting}
-              onClick={startScanner}
-              className="inline-flex min-h-[48px] items-center justify-center rounded-2xl bg-[var(--app-primary)] px-5 py-3 font-semibold text-[var(--app-bg)] shadow-[0_12px_28px_rgba(208,216,43,0.18)] disabled:cursor-not-allowed disabled:opacity-70"
-            >
-              Avvia scansione
-            </button>
-          )}
-        </div>
-
-        {(scannerActive || scannerStarting) && !scannerError ? (
-          <div className="mt-4 flex items-center gap-2 text-sm text-[var(--app-muted)]">
-            <span className="h-2 w-2 rounded-full bg-[var(--app-primary)] animate-pulse" />
-            <span>Inquadra il codice a barre</span>
           </div>
         ) : null}
 
         {detectedBarcode ? (
-          <p className="mt-4 text-sm text-[var(--app-text)]">
+          <p className="text-sm text-[var(--app-text)]">
             Barcode rilevato: <span className="font-metrics">{detectedBarcode}</span>
           </p>
         ) : null}
 
         {scannerError ? (
-          <p className="mt-4 text-sm text-rose-200">{scannerError}</p>
+          <div className="space-y-3 rounded-[24px] border border-white/8 bg-white/[0.03] px-4 py-4">
+            <p
+              className={`text-sm ${
+                cameraIssue === "error" ? "text-rose-200" : "text-[var(--app-muted)]"
+              }`}
+            >
+              {scannerError}
+            </p>
+            {(cameraIssue === "permission_denied" || cameraIssue === "not_available") && (
+              <button
+                type="button"
+                onClick={handleInsertManual}
+                className="inline-flex min-h-[48px] w-full items-center justify-center rounded-2xl border border-white/10 bg-white/[0.03] px-5 py-3 font-semibold text-[var(--app-text)] transition-colors hover:bg-white/[0.05]"
+              >
+                Inserisci manualmente
+              </button>
+            )}
+          </div>
         ) : null}
       </div>
 
@@ -519,7 +662,7 @@ export function BarcodeScanner({
           </div>
           <button
             type="button"
-            onClick={onInsertManual}
+            onClick={handleInsertManual}
             className="inline-flex min-h-[52px] w-full items-center justify-center rounded-2xl border border-white/10 bg-white/[0.03] px-5 py-3 font-semibold text-[var(--app-text)] transition-colors hover:bg-white/[0.05]"
           >
             Inserisci manualmente
@@ -547,7 +690,7 @@ export function BarcodeScanner({
 
       <button
         type="button"
-        onClick={onInsertManual}
+        onClick={handleInsertManual}
         className="inline-flex min-h-[52px] w-full items-center justify-center rounded-2xl border border-white/10 bg-white/[0.03] px-5 py-3 font-semibold text-[var(--app-text)] transition-colors hover:bg-white/[0.05]"
       >
         Inserisci manualmente

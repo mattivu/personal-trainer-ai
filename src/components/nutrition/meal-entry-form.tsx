@@ -312,6 +312,7 @@ export function MealEntryForm({
   const [estimateError, setEstimateError] = useState<string | null>(null);
   const [estimate, setEstimate] = useState<FoodEstimate | null>(null);
   const [showNutritionFields, setShowNutritionFields] = useState(false);
+  const isBarcodeTabActive = activeTab === "barcode";
 
   function applyEstimate(nextEstimate: FoodEstimate) {
     const estimatedNotes = buildEstimateNotes(nextEstimate);
@@ -796,9 +797,9 @@ export function MealEntryForm({
         </section>
       ) : null}
 
-      {activeTab === "barcode" ? (
+      {isBarcodeTabActive ? (
         <BarcodeScanner
-          active={activeTab === "barcode"}
+          active={isBarcodeTabActive}
           disabled={saving || estimating}
           onInsertManual={() => onTabChange("manual")}
           onUseProduct={applyBarcodeProduct}
