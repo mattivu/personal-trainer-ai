@@ -3,6 +3,7 @@
 import type { MealType } from "@prisma/client";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { BarcodeScanner } from "@/components/nutrition/barcode-scanner";
 import {
   formatNutritionNumber,
   getMealTypeLabel,
@@ -336,6 +337,38 @@ export function MealEntryForm({
         : estimatedNotes.slice(0, MEAL_NOTES_MAX_LENGTH),
       nutritionSource: "ai_estimate",
     }));
+  }
+
+  function applyBarcodeProduct(payload: {
+    name: string;
+    brand: string;
+    quantityValue: string;
+    quantityUnit: string;
+    calories: string;
+    protein: string;
+    carbs: string;
+    fat: string;
+    notes: string;
+  }) {
+    setEstimate(null);
+    setEstimateError(null);
+    setSaveError(null);
+    setShowNutritionFields(true);
+    setForm((current) => ({
+      ...current,
+      mealType,
+      name: payload.name,
+      brand: payload.brand,
+      quantityValue: payload.quantityValue,
+      quantityUnit: payload.quantityUnit,
+      calories: payload.calories,
+      protein: payload.protein,
+      carbs: payload.carbs,
+      fat: payload.fat,
+      notes: current.notes.trim() ? current.notes : payload.notes,
+      nutritionSource: "manual",
+    }));
+    onTabChange("manual");
   }
 
   async function requestEstimate(body: Record<string, string | number | undefined>) {
@@ -764,40 +797,12 @@ export function MealEntryForm({
       ) : null}
 
       {activeTab === "barcode" ? (
-        <section className="space-y-5">
-          <div>
-            <h2 className="text-[22px] font-semibold tracking-[-0.03em] text-[var(--app-text)]">
-              Inquadra barcode
-            </h2>
-            <p className="mt-2 text-sm text-[var(--app-muted)]">
-              Posiziona il codice a barre dentro il riquadro.
-            </p>
-          </div>
-
-          <div className="rounded-[32px] border border-white/8 bg-[radial-gradient(circle_at_top,rgba(208,216,43,0.08),transparent_45%)] p-5">
-            <div className="relative overflow-hidden rounded-[28px] border border-white/8 bg-black/35 px-4 py-10">
-              <div className="absolute inset-x-8 top-1/2 h-px -translate-y-1/2 bg-[linear-gradient(90deg,transparent,rgba(208,216,43,0.65),transparent)]" />
-              <div className="relative mx-auto h-52 max-w-[280px] rounded-[28px] border border-[rgba(208,216,43,0.35)] bg-black/30">
-                <span className="absolute left-4 top-4 h-8 w-8 rounded-tl-2xl border-l-2 border-t-2 border-[var(--app-primary)]" />
-                <span className="absolute right-4 top-4 h-8 w-8 rounded-tr-2xl border-r-2 border-t-2 border-[var(--app-primary)]" />
-                <span className="absolute bottom-4 left-4 h-8 w-8 rounded-bl-2xl border-b-2 border-l-2 border-[var(--app-primary)]" />
-                <span className="absolute bottom-4 right-4 h-8 w-8 rounded-br-2xl border-b-2 border-r-2 border-[var(--app-primary)]" />
-              </div>
-            </div>
-          </div>
-
-          <div className="rounded-[24px] border border-white/8 bg-white/[0.03] px-4 py-4 text-sm text-[var(--app-muted)]">
-            La scansione barcode sarà disponibile in una versione successiva.
-          </div>
-
-          <button
-            type="button"
-            onClick={() => onTabChange("manual")}
-            className="inline-flex min-h-[52px] w-full items-center justify-center rounded-2xl border border-white/10 bg-white/[0.03] px-5 py-3 font-semibold text-[var(--app-text)] transition-colors hover:bg-white/[0.05]"
-          >
-            Inserisci manualmente
-          </button>
-        </section>
+        <BarcodeScanner
+          active={activeTab === "barcode"}
+          disabled={saving || estimating}
+          onInsertManual={() => onTabChange("manual")}
+          onUseProduct={applyBarcodeProduct}
+        />
       ) : null}
     </form>
   );
