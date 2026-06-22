@@ -66,6 +66,22 @@ function formatDelta(value: number | null) {
   return `${value > 0 ? "+" : "-"}${formatted} kg`;
 }
 
+function getWeightDeltaDirection(value: number | null) {
+  if (value === null) {
+    return "insufficient";
+  }
+
+  if (value > 0) {
+    return "up";
+  }
+
+  if (value < 0) {
+    return "down";
+  }
+
+  return "stable";
+}
+
 function getGreeting(name: string | null) {
   if (!name) {
     return "Ciao";
@@ -272,36 +288,39 @@ function NutritionRing({
   centerValue: string;
 }) {
   const safeProgress = Math.max(0, Math.min(progress, 100));
-  const radius = 27;
+  const size = 78;
+  const strokeWidth = 7;
+  const center = size / 2;
+  const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const dashOffset = circumference - (safeProgress / 100) * circumference;
 
   return (
-    <div className="relative h-[64px] w-[64px] shrink-0">
-      <svg width="64" height="64" viewBox="0 0 64 64">
+    <div className="relative h-[78px] w-[78px] shrink-0">
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
         <circle
-          cx="32"
-          cy="32"
+          cx={center}
+          cy={center}
           r={radius}
           fill="none"
           stroke="rgba(247,249,250,0.1)"
-          strokeWidth="6"
+          strokeWidth={strokeWidth}
         />
         <circle
-          cx="32"
-          cy="32"
+          cx={center}
+          cy={center}
           r={radius}
           fill="none"
           stroke="var(--app-primary)"
-          strokeWidth="6"
+          strokeWidth={strokeWidth}
           strokeLinecap="round"
           strokeDasharray={circumference}
           strokeDashoffset={dashOffset}
-          transform="rotate(-90 32 32)"
+          transform={`rotate(-90 ${center} ${center})`}
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="font-metrics text-[15px] font-semibold leading-none text-[var(--app-text)]">
+        <span className="font-metrics text-[17px] font-semibold leading-none text-[var(--app-text)]">
           {centerValue}
         </span>
         <span className="mt-1 text-[9px] uppercase tracking-[0.08em] text-white/40">
@@ -309,6 +328,48 @@ function NutritionRing({
         </span>
       </div>
     </div>
+  );
+}
+
+function WeightDeltaIcon({ direction }: { direction: ReturnType<typeof getWeightDeltaDirection> }) {
+  if (direction === "up") {
+    return (
+      <svg viewBox="0 0 12 12" fill="none" className="h-3.5 w-3.5">
+        <path
+          d="M6 10V2M6 2 3.5 4.5M6 2l2.5 2.5"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    );
+  }
+
+  if (direction === "down") {
+    return (
+      <svg viewBox="0 0 12 12" fill="none" className="h-3.5 w-3.5">
+        <path
+          d="M6 2v8M6 10 3.5 7.5M6 10l2.5-2.5"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    );
+  }
+
+  return (
+    <svg viewBox="0 0 12 12" fill="none" className="h-3.5 w-3.5">
+      <path
+        d="M3 6h6"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }
 
@@ -359,10 +420,10 @@ type CompactCardProps = {
 
 function CompactInfoCard({ title, href, children }: CompactCardProps) {
   return (
-    <Link href={href} className="block">
+    <Link href={href} className="block h-full">
       <AppCard
         soft
-        className="flex min-h-[176px] flex-col rounded-[22px] border-white/8 bg-[var(--app-surface)] px-4 py-4 shadow-none transition hover:border-white/12"
+        className="flex h-full min-h-[196px] flex-col rounded-[22px] border-white/8 bg-[var(--app-surface)] px-4 py-4 shadow-none transition hover:border-white/12"
       >
         <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--app-muted-2)]">
           {title}
@@ -638,17 +699,17 @@ export default async function DashboardPage() {
             )}
           </section>
 
-          <section className="grid grid-cols-2 gap-3">
+          <section className="grid grid-cols-2 items-stretch gap-3">
             <CompactInfoCard title="Nutrizione oggi" href="/nutrition">
-              {nutritionProfile && nutritionSummary && dailyNutritionData.meals.length > 0 ? (
-                <>
-                  <div className="flex items-center gap-3">
+              {nutritionProfile && nutritionSummary ? (
+                <div className="flex h-full flex-col justify-between">
+                  <div className="flex items-center gap-3.5">
                     <NutritionRing
                       progress={nutritionSummary.progressPercent}
                       centerValue={formatNumber(nutritionSummary.caloriesConsumed)}
                     />
-                    <div className="min-w-0">
-                      <p className="font-metrics text-[22px] font-semibold tracking-[-0.03em]">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-metrics text-[24px] font-semibold tracking-[-0.03em]">
                         {formatNumber(nutritionSummary.caloriesRemaining)}
                       </p>
                       <p className="text-[11px] text-[var(--app-muted)]">rimanenti</p>
@@ -657,21 +718,15 @@ export default async function DashboardPage() {
                       </p>
                     </div>
                   </div>
-                  <div className="mt-4 space-y-2">
+                  <div className="mt-4">
                     <div className="flex items-center justify-between text-[12px]">
                       <span className="text-[var(--app-muted)]">Consumate</span>
                       <span className="font-metrics font-semibold text-[var(--app-text)]">
                         {formatNumber(nutritionSummary.caloriesConsumed)} kcal
                       </span>
                     </div>
-                    <div className="flex items-center justify-between text-[12px]">
-                      <span className="text-[var(--app-muted)]">Pasti oggi</span>
-                      <span className="font-metrics font-semibold text-[var(--app-text)]">
-                        {dailyNutritionData.meals.length}
-                      </span>
-                    </div>
                   </div>
-                </>
+                </div>
               ) : (
                 <>
                   <div className="space-y-1">
@@ -691,7 +746,7 @@ export default async function DashboardPage() {
 
             <CompactInfoCard title="Peso" href="/body-weight">
               {bodyWeightOverview.summary.latestWeightKg !== null ? (
-                <>
+                <div className="flex h-full flex-col">
                   <div>
                     <p className="font-metrics text-[28px] font-semibold tracking-[-0.04em] text-[var(--app-text)]">
                       {formatWeight(bodyWeightOverview.summary.latestWeightKg)}
@@ -699,15 +754,22 @@ export default async function DashboardPage() {
                         kg
                       </span>
                     </p>
-                    <div className="mt-2 flex items-center gap-2">
-                      <span className="font-metrics text-[13px] font-semibold text-[var(--app-primary)]">
+                    <div className="mt-2 flex items-center gap-2 text-[var(--app-primary)]">
+                      <WeightDeltaIcon
+                        direction={getWeightDeltaDirection(
+                          bodyWeightOverview.summary.change7DaysKg,
+                        )}
+                      />
+                      <span className="font-metrics text-[14px] font-semibold">
                         {formatDelta(bodyWeightOverview.summary.change7DaysKg) ?? "—"}
                       </span>
-                      <span className="text-[11px] text-[var(--app-muted-2)]">7 giorni</span>
                     </div>
+                    <div className="mt-1 text-[11px] text-[var(--app-muted-2)]">7 giorni</div>
                   </div>
-                  <Sparkline values={weightValues} />
-                </>
+                  <div className="mt-auto pt-4">
+                    <Sparkline values={weightValues} />
+                  </div>
+                </div>
               ) : (
                 <>
                   <div className="space-y-1">
