@@ -15,7 +15,7 @@ type NutritionSummaryCardProps = {
   targetCalories: number;
   progressPercent: number;
   macroSummaries: MacroSummary[];
-  statusNote?: string | null;
+  activityTitle?: string | null;
 };
 
 function formatNumber(value: number) {
@@ -33,60 +33,36 @@ export function NutritionSummaryCard({
   targetCalories,
   progressPercent,
   macroSummaries,
-  statusNote,
+  activityTitle,
 }: NutritionSummaryCardProps) {
   const safeProgress = clampPercent(progressPercent);
-  const circleRadius = 66;
+  const circleRadius = 46;
   const circleLength = 2 * Math.PI * circleRadius;
   const dashOffset = circleLength - (safeProgress / 100) * circleLength;
+  const showActivityCard = activityCalories > 0 || Boolean(activityTitle);
 
   return (
-    <AppCard className="overflow-hidden p-0">
-      <div className="bg-[radial-gradient(circle_at_top,_rgba(208,216,43,0.2),_transparent_48%)] p-5">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--app-muted-2)]">
-              Riepilogo calorie
-            </p>
-            <p className="mt-1 text-sm text-[var(--app-muted)]">
-              Target {formatNumber(targetCalories)} kcal
-            </p>
-          </div>
-          <div className="rounded-full border border-[var(--app-border)] bg-black/20 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--app-primary)]">
-            {formatNumber(safeProgress)}%
-          </div>
-        </div>
-
-        <div className="mt-5 grid grid-cols-[minmax(0,1fr)_180px_minmax(0,1fr)] items-center gap-3">
-          <div className="space-y-1 text-left">
-            <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--app-muted-2)]">
-              Mangiate
-            </p>
-            <p className="font-metrics text-[28px] font-semibold tracking-[-0.04em] text-[var(--app-text)]">
-              {formatNumber(consumedCalories)}
-            </p>
-            <p className="text-xs text-[var(--app-muted)]">kcal registrate</p>
-          </div>
-
-          <div className="relative mx-auto h-[180px] w-[180px]">
-            <svg viewBox="0 0 180 180" className="h-full w-full -rotate-90">
+    <div className="space-y-2.5">
+      <AppCard className="overflow-hidden border-white/8 bg-[#101515] p-4 sm:p-4.5">
+        <div className="grid grid-cols-[120px_minmax(0,1fr)] items-center gap-4 sm:grid-cols-[140px_minmax(0,1fr)] sm:gap-5">
+          <div className="relative mx-auto h-[120px] w-[120px] sm:h-[140px] sm:w-[140px]">
+            <svg viewBox="0 0 128 128" className="h-full w-full -rotate-90">
               <circle
-                cx="90"
-                cy="90"
+                cx="64"
+                cy="64"
                 r={circleRadius}
                 fill="none"
                 stroke="rgba(247,249,250,0.08)"
-                strokeWidth="14"
-                strokeLinecap="round"
+                strokeWidth="9"
               />
               {safeProgress > 0 ? (
                 <circle
-                  cx="90"
-                  cy="90"
+                  cx="64"
+                  cy="64"
                   r={circleRadius}
                   fill="none"
                   stroke="var(--app-primary)"
-                  strokeWidth="14"
+                  strokeWidth="9"
                   strokeLinecap="round"
                   strokeDasharray={circleLength}
                   strokeDashoffset={dashOffset}
@@ -94,54 +70,122 @@ export function NutritionSummaryCard({
               ) : null}
             </svg>
             <div className="absolute inset-0 flex items-center justify-center">
-              <div className="flex flex-col items-center justify-center gap-1 text-center">
-                <p className="font-metrics text-[36px] font-semibold leading-[0.9] tracking-[-0.05em] text-[var(--app-text)]">
+              <div className="flex w-[72%] flex-col items-center justify-center gap-1 text-center">
+                <p className="font-metrics text-[24px] font-semibold leading-none tracking-[-0.05em] text-[var(--app-text)] sm:text-[28px]">
                   {formatNumber(remainingCalories)}
                 </p>
-                <p className="text-sm font-medium leading-none text-[var(--app-muted)]">
+                <p className="text-[11px] font-medium uppercase leading-none tracking-[0.12em] text-[var(--app-muted)] sm:text-[12px]">
                   Rimanenti
                 </p>
               </div>
             </div>
           </div>
-
-          <div className="space-y-1 text-right">
-            <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--app-muted-2)]">
-              Attività
+          <div className="min-w-0">
+            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--app-muted-2)]">
+              Riepilogo calorie
             </p>
-            <p className="font-metrics text-[28px] font-semibold tracking-[-0.04em] text-[var(--app-text)]">
-              {formatNumber(activityCalories)}
-            </p>
-            <p className="text-xs text-[var(--app-muted)]">kcal stimate</p>
+            <div className="mt-3 space-y-3">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--app-muted-2)]">
+                  Target
+                </p>
+                <p className="font-metrics mt-1 text-[22px] font-semibold leading-none tracking-[-0.05em] text-[var(--app-text)] sm:text-[24px]">
+                  {formatNumber(targetCalories)} kcal
+                </p>
+              </div>
+              <div className="h-px w-full bg-white/8" />
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--app-muted-2)]">
+                  Consumate
+                </p>
+                <p
+                  className={`font-metrics mt-1 text-[22px] font-semibold leading-none tracking-[-0.05em] sm:text-[24px] ${
+                    consumedCalories > 0
+                      ? "text-[var(--app-primary)]"
+                      : "text-[var(--app-text)]"
+                  }`}
+                >
+                  {formatNumber(consumedCalories)} kcal
+                </p>
+              </div>
+            </div>
           </div>
         </div>
+      </AppCard>
 
-        <div className="mt-4 rounded-[20px] border border-[var(--app-border)] bg-black/20 p-4">
-          <div className="grid gap-4 sm:grid-cols-3">
-            {macroSummaries.map((macro) => {
-              const percent =
-                macro.target > 0 ? clampPercent((macro.consumed / macro.target) * 100) : 0;
+      <div className="grid grid-cols-3 gap-2">
+        {macroSummaries.map((macro) => {
+          const percent =
+            macro.target > 0 ? clampPercent((macro.consumed / macro.target) * 100) : 0;
 
-              return (
-                <div key={macro.label} className="space-y-3">
-                  <p className="text-sm font-semibold text-[var(--app-text)]">
-                    {macro.label}
-                  </p>
-                  <p className="font-metrics text-sm text-[var(--app-muted)]">
-                    {formatNutritionNumber(macro.consumed)} /{" "}
-                    {formatNutritionNumber(macro.target)} g
-                  </p>
-                  <ProgressBar value={percent} className="h-[8px] bg-white/6" />
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {statusNote ? (
-          <p className="mt-3 text-sm text-[var(--app-muted)]">{statusNote}</p>
-        ) : null}
+          return (
+            <AppCard
+              key={macro.label}
+              className="border-white/8 bg-[#101515] p-2.5 sm:p-3"
+            >
+              <div className="space-y-2">
+                <p className="truncate text-xs font-semibold text-[var(--app-text)] sm:text-[13px]">
+                  {macro.label}
+                </p>
+                <ProgressBar value={percent} className="h-[6px] bg-white/6" />
+                <p className="font-metrics text-[11px] text-[var(--app-muted)] sm:text-xs">
+                  {formatNutritionNumber(macro.consumed)} /{" "}
+                  {formatNutritionNumber(macro.target)} g
+                </p>
+              </div>
+            </AppCard>
+          );
+        })}
       </div>
-    </AppCard>
+
+      {showActivityCard ? (
+        <AppCard className="border-white/8 bg-[#101515] p-3.5">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[18px] border border-[rgba(208,216,43,0.18)] bg-[rgba(208,216,43,0.08)] text-[var(--app-primary)]">
+                <svg
+                  aria-hidden="true"
+                  viewBox="0 0 24 24"
+                  className="h-5 w-5"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M3 10v4" />
+                  <path d="M7 7v10" />
+                  <path d="M17 7v10" />
+                  <path d="M21 10v4" />
+                  <path d="M5 10h4" />
+                  <path d="M15 10h4" />
+                  <path d="M9 6h6" />
+                  <path d="M9 18h6" />
+                </svg>
+              </div>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-[var(--app-text)]">
+                  {activityTitle ? `Attivita · ${activityTitle}` : "Attivita"}
+                </p>
+                <p className="text-xs text-[var(--app-muted)]">
+                  Stimate dall&apos;allenamento
+                </p>
+              </div>
+            </div>
+            <p
+              className={`font-metrics shrink-0 text-[22px] font-semibold tracking-[-0.05em] ${
+                activityCalories > 0
+                  ? "text-[var(--app-primary)]"
+                  : "text-[var(--app-text)]"
+              }`}
+            >
+              {activityCalories > 0
+                ? `+${formatNumber(activityCalories)}`
+                : `${formatNumber(activityCalories)} kcal`}
+            </p>
+          </div>
+        </AppCard>
+      ) : null}
+    </div>
   );
 }
