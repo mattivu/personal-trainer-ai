@@ -228,18 +228,6 @@ export default async function NutritionPage({ searchParams }: NutritionPageProps
             </div>
           </AppCard>
 
-          <AppCard className="p-4">
-            <SectionHeader eyebrow="Azioni rapide" title="Aggiungi in fretta" />
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <PrimaryButton href={buildNutritionHref(dailyData.date, initialMealType, true)}>
-                Aggiungi pasto
-              </PrimaryButton>
-              <SecondaryButton href={buildNutritionHref(dailyData.date, initialMealType, true)}>
-                Stima con AI
-              </SecondaryButton>
-            </div>
-          </AppCard>
-
           <div className="grid gap-3 sm:grid-cols-2">
             <AppCard className="p-4">
               <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--app-muted-2)]">

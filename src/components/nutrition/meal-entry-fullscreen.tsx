@@ -14,7 +14,7 @@ type MealEntryFullscreenProps = {
 };
 
 const TABS: Array<{ value: MealEntryTab; label: string }> = [
-  { value: "estimate", label: "Stima con AI" },
+  { value: "estimate", label: "Stima AI" },
   { value: "manual", label: "Seleziona" },
   { value: "barcode", label: "Barcode" },
 ];
@@ -107,7 +107,7 @@ export function MealEntryFullscreen({
                       key={tab.value}
                       type="button"
                       onClick={() => setActiveTab(tab.value)}
-                      className={`min-h-11 rounded-full px-3 text-sm font-semibold transition-colors ${
+                      className={`min-h-11 whitespace-nowrap rounded-full px-3 text-sm font-semibold transition-colors ${
                         isActive
                           ? "bg-[var(--app-primary)] text-[#0A0D0D]"
                           : "text-[var(--app-muted)] hover:bg-white/[0.05] hover:text-[var(--app-text)]"

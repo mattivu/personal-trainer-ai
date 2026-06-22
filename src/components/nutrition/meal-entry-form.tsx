@@ -710,7 +710,7 @@ export function MealEntryForm({
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-sm font-semibold text-[var(--app-text)]">
-                  Stima con AI
+                  Stima AI
                 </p>
                 <p className="mt-1 text-sm text-[var(--app-muted)]">
                   Completa i campi essenziali e ottieni una stima rapida.
@@ -722,7 +722,7 @@ export function MealEntryForm({
                 onClick={handleManualEstimate}
                 className="inline-flex min-h-[48px] items-center justify-center rounded-2xl bg-[var(--app-primary)] px-5 py-3 font-semibold text-[var(--app-bg)] shadow-[0_12px_28px_rgba(208,216,43,0.18)] disabled:cursor-not-allowed disabled:opacity-70"
               >
-                {estimating ? "Stima in corso..." : "Stima con AI"}
+                {estimating ? "Stima in corso..." : "Stima AI"}
               </button>
             </div>
           </div>

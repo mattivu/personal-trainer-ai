@@ -52,6 +52,18 @@ type DeleteApiResponse =
     }
   | ApiErrorResponse;
 
+const COLLAPSIBLE_NOTES_MIN_LENGTH = 120;
+
+function getExtendedMealDescription(meal: MealEntry) {
+  const notes = meal.notes?.trim();
+
+  if (!notes || notes.length < COLLAPSIBLE_NOTES_MIN_LENGTH) {
+    return null;
+  }
+
+  return notes;
+}
+
 function createFormState(meal: MealEntry): FormState {
   return {
     mealType: meal.mealType,
@@ -104,9 +116,14 @@ export function MealEntryList({ meals: initialMeals }: MealEntryListProps) {
   const [pendingMealId, setPendingMealId] = useState<number | null>(null);
   const [pendingAction, setPendingAction] = useState<"save" | "delete" | null>(null);
   const [showNutritionFields, setShowNutritionFields] = useState(false);
+  const [expandedMealIds, setExpandedMealIds] = useState<Record<number, boolean>>({});
 
   useEffect(() => {
     setMeals(initialMeals);
+  }, [initialMeals]);
+
+  useEffect(() => {
+    setExpandedMealIds({});
   }, [initialMeals]);
 
   function refreshPage() {
@@ -128,6 +145,13 @@ export function MealEntryList({ meals: initialMeals }: MealEntryListProps) {
     setForm(null);
     setShowNutritionFields(false);
     setError(null);
+  }
+
+  function toggleMealDescription(mealId: number) {
+    setExpandedMealIds((current) => ({
+      ...current,
+      [mealId]: !current[mealId],
+    }));
   }
 
   async function handleSave(mealId: number) {
@@ -252,6 +276,8 @@ export function MealEntryList({ meals: initialMeals }: MealEntryListProps) {
           const isEditing = editingMealId === meal.id && form !== null;
           const isPendingMeal = pendingMealId === meal.id;
           const quantityLabel = getQuantityLabel(meal.quantityValue, meal.quantityUnit);
+          const extendedDescription = getExtendedMealDescription(meal);
+          const isDescriptionExpanded = expandedMealIds[meal.id] ?? false;
 
           return (
             <article
@@ -556,8 +582,39 @@ export function MealEntryList({ meals: initialMeals }: MealEntryListProps) {
                     <p className="mt-3 text-sm text-neutral-400">Marca: {meal.brand}</p>
                   ) : null}
 
-                  {meal.notes ? (
+                  {meal.notes && !extendedDescription ? (
                     <p className="mt-3 text-sm text-neutral-500">{meal.notes}</p>
+                  ) : null}
+
+                  {extendedDescription ? (
+                    <div className="mt-3 rounded-[18px] border border-white/8 bg-white/[0.02]">
+                      <button
+                        type="button"
+                        onClick={() => toggleMealDescription(meal.id)}
+                        className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left text-sm font-semibold text-[var(--app-text)] transition-colors hover:bg-white/[0.03]"
+                        aria-expanded={isDescriptionExpanded}
+                      >
+                        <span>
+                          {isDescriptionExpanded ? "Mostra meno" : "Leggi di più"}
+                        </span>
+                        <span
+                          className={`text-base text-[var(--app-muted)] transition-transform ${
+                            isDescriptionExpanded ? "rotate-180" : ""
+                          }`}
+                          aria-hidden="true"
+                        >
+                          ↓
+                        </span>
+                      </button>
+
+                      {isDescriptionExpanded ? (
+                        <div className="border-t border-white/8 px-4 py-3">
+                          <p className="text-sm leading-6 text-neutral-500">
+                            {extendedDescription}
+                          </p>
+                        </div>
+                      ) : null}
+                    </div>
                   ) : null}
 
                   <div className="mt-4 flex flex-col gap-3 sm:flex-row">
