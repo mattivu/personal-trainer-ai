@@ -30,10 +30,10 @@ type CoachChatApiResponse =
     };
 
 const QUICK_PROMPTS = [
-  "Come sto andando con alimentazione e allenamento?",
-  "Devo cambiare calorie?",
-  "Sto recuperando bene?",
-  "Il cardio e sufficiente?",
+  "Come sto andando?",
+  "Cosa faccio oggi?",
+  "Devo cambiare qualcosa?",
+  "Come va la nutrizione?",
 ] as const;
 
 const INITIAL_MESSAGE =
@@ -153,124 +153,124 @@ export function CoachChat({ currentWorkoutId }: CoachChatProps) {
   }
 
   return (
-    <div className="flex min-h-[70vh] flex-col rounded-3xl border border-neutral-800 bg-neutral-900">
-      <div className="border-b border-neutral-800 px-5 py-4 sm:px-6">
-        <p className="text-sm uppercase tracking-[0.28em] text-neutral-500">
-          Coach
-        </p>
-        <h2 className="mt-2 text-2xl font-semibold text-white">Chat coach</h2>
-        <p className="mt-2 max-w-2xl text-sm text-neutral-400">
-          Domande su programma, sedute, progressi, alimentazione, peso, cardio e recupero.
-          Nessuna modifica viene applicata.
-        </p>
-      </div>
-
-      <div className="flex flex-wrap gap-2 border-b border-neutral-800 px-5 py-4 sm:px-6">
+    <div className="flex min-h-0 flex-1 flex-col overflow-x-hidden">
+      <div className="-mx-1 mb-3 flex gap-2 overflow-x-auto px-1 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {QUICK_PROMPTS.map((prompt) => (
           <button
             key={prompt}
             type="button"
             onClick={() => void sendMessage(prompt)}
             disabled={loading}
-            className="rounded-full border border-neutral-700 px-3 py-2 text-left text-sm text-neutral-200 transition hover:border-neutral-500 hover:bg-neutral-800 disabled:cursor-not-allowed disabled:border-neutral-800 disabled:text-neutral-500"
+            className="shrink-0 rounded-full border border-[rgba(208,216,43,0.28)] bg-[rgba(208,216,43,0.08)] px-3.5 py-2 text-sm font-medium text-[var(--app-primary)] transition hover:border-[rgba(208,216,43,0.48)] hover:bg-[rgba(208,216,43,0.14)] disabled:cursor-not-allowed disabled:border-white/8 disabled:bg-white/[0.03] disabled:text-neutral-500"
           >
             {prompt}
           </button>
         ))}
       </div>
 
-      <div className="flex-1 space-y-4 overflow-y-auto px-5 py-5 sm:px-6">
-        {messages.map((message) => (
-          <div
-            key={message.id}
-            className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
-          >
-            <div
-              className={`max-w-[88%] rounded-2xl px-4 py-3 text-sm leading-6 sm:max-w-[75%] ${
-                message.role === "user"
-                  ? "bg-white text-neutral-950"
-                  : "border border-neutral-800 bg-neutral-950 text-neutral-100"
-              }`}
-            >
-              <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-neutral-500">
-                {message.role === "user" ? "Tu" : "Coach"}
-              </p>
-              <p className="whitespace-pre-wrap">{message.content}</p>
-              {message.role === "assistant" && message.actions?.length ? (
-                <div className="mt-4 border-t border-neutral-800 pt-4">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-neutral-500">
-                    Azioni consigliate
+      <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-[32px] border border-white/8 bg-[linear-gradient(180deg,rgba(17,19,19,0.96),rgba(10,13,13,0.98))]">
+        <div className="pointer-events-none absolute inset-0 rounded-[32px] bg-[radial-gradient(circle_at_top,rgba(208,216,43,0.08),transparent_34%)]" />
+
+        <div className="relative flex min-h-0 flex-1 flex-col">
+          <div className="flex-1 space-y-4 overflow-y-auto overflow-x-hidden px-3 pt-3 pb-6">
+            {messages.map((message) => (
+              <div
+                key={message.id}
+                className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
+              >
+                <div
+                  className={`max-w-[88%] rounded-[24px] px-4 py-3.5 text-sm leading-6 shadow-[0_14px_40px_rgba(0,0,0,0.18)] sm:max-w-[75%] ${
+                    message.role === "user"
+                      ? "bg-[var(--app-primary)] text-[#0A0D0D]"
+                      : "border border-white/8 bg-[rgba(17,19,19,0.88)] text-neutral-100"
+                  }`}
+                >
+                  <p
+                    className={`mb-2 text-[11px] font-semibold uppercase tracking-[0.22em] ${
+                      message.role === "user"
+                        ? "text-[#0A0D0D]/60"
+                        : "text-neutral-500"
+                    }`}
+                  >
+                    {message.role === "user" ? "Tu" : "Coach"}
                   </p>
-                  <div className="mt-3 space-y-2">
-                    {message.actions.map((action) => (
-                      <Link
-                        key={action.id}
-                        href={action.href}
-                        className="block rounded-2xl border border-neutral-700 bg-neutral-900 px-4 py-3 text-left transition hover:border-neutral-500 hover:bg-neutral-800"
-                      >
-                        <div className="flex items-center justify-between gap-3">
-                          <span className="text-sm font-semibold text-white">
+                  <p className="whitespace-pre-wrap break-words">{message.content}</p>
+                  {message.role === "assistant" && message.actions?.length ? (
+                    <div className="mt-4 border-t border-white/8 pt-4">
+                      <div className="flex flex-wrap gap-2">
+                        {message.actions.map((action) => (
+                          <Link
+                            key={action.id}
+                            href={action.href}
+                            className="inline-flex min-h-11 items-center rounded-full border border-[rgba(208,216,43,0.24)] bg-[rgba(208,216,43,0.08)] px-4 py-2 text-sm font-medium text-[var(--app-primary)] transition hover:border-[rgba(208,216,43,0.44)] hover:bg-[rgba(208,216,43,0.14)]"
+                          >
                             {action.label}
-                          </span>
-                          <span className="text-[10px] uppercase tracking-[0.18em] text-neutral-500">
-                            {action.kind === "guided" ? "Guidata" : "Apri"}
-                          </span>
-                        </div>
-                        {action.description ? (
-                          <p className="mt-2 text-sm text-neutral-300">
-                            {action.description}
-                          </p>
-                        ) : null}
-                      </Link>
-                    ))}
-                  </div>
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
-              ) : null}
-            </div>
-          </div>
-        ))}
+              </div>
+            ))}
 
-        {loading ? (
-          <div className="flex justify-start">
-            <div className="max-w-[88%] rounded-2xl border border-neutral-800 bg-neutral-950 px-4 py-3 text-sm text-neutral-300 sm:max-w-[75%]">
-              Il coach sta preparando la risposta...
-            </div>
-          </div>
-        ) : null}
+            {loading ? (
+              <div className="flex justify-start">
+                <div className="max-w-[88%] rounded-[24px] border border-white/8 bg-[rgba(17,19,19,0.88)] px-4 py-3.5 text-sm text-neutral-300 shadow-[0_14px_40px_rgba(0,0,0,0.18)] sm:max-w-[75%]">
+                  Il coach sta preparando la risposta...
+                </div>
+              </div>
+            ) : null}
 
-        <div ref={scrollAnchorRef} />
+            <div ref={scrollAnchorRef} />
+          </div>
+        </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="border-t border-neutral-800 px-5 py-4 sm:px-6">
-        {error ? (
-          <div className="mb-3 rounded-2xl border border-rose-800 bg-rose-950/40 px-4 py-3 text-sm text-rose-200">
-            {error}
+      <form
+        onSubmit={handleSubmit}
+        className="pointer-events-auto sticky bottom-[calc(74px+env(safe-area-inset-bottom,0px))] z-20 mt-4"
+      >
+        <div className="w-full rounded-[28px] border border-white/8 bg-[rgba(10,13,13,0.9)] p-3 shadow-[0_18px_54px_rgba(0,0,0,0.42)] backdrop-blur-xl">
+          {error ? (
+            <div className="mb-3 rounded-2xl border border-rose-900/80 bg-rose-950/40 px-4 py-3 text-sm text-rose-200">
+              {error}
+            </div>
+          ) : null}
+
+          <label htmlFor="coach-chat-input" className="sr-only">
+            Messaggio al coach
+          </label>
+
+          <div className="flex items-end gap-3">
+            <textarea
+              id="coach-chat-input"
+              ref={textareaRef}
+              value={draft}
+              onChange={(event) => setDraft(event.target.value)}
+              rows={1}
+              placeholder="Scrivi al coach..."
+              disabled={loading}
+              className="max-h-36 min-h-[52px] flex-1 resize-none rounded-[22px] border border-white/8 bg-[rgba(255,255,255,0.03)] px-4 py-3 text-sm text-white outline-none transition placeholder:text-neutral-500 focus:border-[rgba(208,216,43,0.4)] disabled:cursor-not-allowed disabled:text-neutral-500"
+            />
+
+            <button
+              type="submit"
+              disabled={loading || !draft.trim()}
+              className="inline-flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-2xl bg-[var(--app-primary)] text-[#0A0D0D] transition hover:brightness-105 disabled:cursor-not-allowed disabled:bg-neutral-700 disabled:text-neutral-400"
+              aria-label={loading ? "Invio in corso" : "Invia messaggio"}
+            >
+              <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5">
+                <path
+                  d="M5 12h12M13 6l6 6-6 6"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </button>
           </div>
-        ) : null}
-
-        <label htmlFor="coach-chat-input" className="sr-only">
-          Messaggio al coach
-        </label>
-        <textarea
-          id="coach-chat-input"
-          ref={textareaRef}
-          value={draft}
-          onChange={(event) => setDraft(event.target.value)}
-          rows={4}
-          placeholder="Scrivi una domanda sul tuo allenamento..."
-          disabled={loading}
-          className="w-full resize-none rounded-2xl border border-neutral-700 bg-neutral-950 px-4 py-3 text-sm text-white outline-none transition placeholder:text-neutral-500 focus:border-neutral-500 disabled:cursor-not-allowed disabled:border-neutral-800 disabled:text-neutral-500"
-        />
-
-        <div className="mt-3 flex items-center justify-between gap-3">
-          <p className="text-xs text-neutral-500">Invio solo dal bottone. Enter va a capo.</p>
-          <button
-            type="submit"
-            disabled={loading || !draft.trim()}
-            className="inline-flex min-w-24 justify-center rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-neutral-950 transition disabled:cursor-not-allowed disabled:bg-neutral-700 disabled:text-neutral-300"
-          >
-            {loading ? "Invio..." : "Invia"}
-          </button>
         </div>
       </form>
     </div>
