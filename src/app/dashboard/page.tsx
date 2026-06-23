@@ -297,7 +297,7 @@ function NutritionRing({
   const dashOffset = circumference - (safeProgress / 100) * circumference;
 
   return (
-    <div className="relative h-[78px] w-[78px] shrink-0">
+    <div className="relative h-[78px] w-[78px] shrink-0 scale-90 sm:scale-100">
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
         <circle
           cx={center}
@@ -321,10 +321,10 @@ function NutritionRing({
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="font-metrics text-[17px] font-semibold leading-none text-[var(--app-text)]">
+        <span className="font-metrics text-[15px] font-semibold leading-none text-[var(--app-text)] sm:text-[17px]">
           {centerValue}
         </span>
-        <span className="mt-1 text-[9px] uppercase tracking-[0.08em] text-white/40">
+        <span className="mt-0.5 text-[8px] uppercase tracking-[0.08em] text-white/40 sm:mt-1 sm:text-[9px]">
           kcal
         </span>
       </div>
@@ -421,10 +421,10 @@ type CompactCardProps = {
 
 function CompactInfoCard({ title, href, children }: CompactCardProps) {
   return (
-    <Link href={href} className="block h-full">
+    <Link href={href} className="block h-full min-w-0">
       <AppCard
         soft
-        className="flex h-full min-h-[204px] flex-col rounded-[22px] border-white/8 bg-[var(--app-surface)] px-[18px] py-4 shadow-none transition hover:border-white/12"
+        className="flex h-full min-h-[204px] min-w-0 flex-col rounded-[22px] border-white/8 bg-[var(--app-surface)] px-4 py-3.5 shadow-none transition hover:border-white/12 sm:px-[18px] sm:py-4"
       >
         <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--app-muted-2)]">
           {title}
@@ -706,18 +706,18 @@ export default async function DashboardPage() {
             </section>
           ) : null}
 
-          <section className="grid grid-cols-1 items-stretch gap-3 min-[380px]:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
+          <section className="grid grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] items-stretch gap-3 [&>*]:min-w-0">
             <CompactInfoCard title="Nutrizione oggi" href="/nutrition">
               {nutritionProfile && nutritionSummary ? (
-                <div className="flex h-full items-center gap-3">
+                <div className="flex h-full min-w-0 items-center gap-2.5 sm:gap-3">
                   <div className="shrink-0">
                     <NutritionRing
                       progress={nutritionSummary.progressPercent}
                       centerValue={formatNumber(nutritionSummary.caloriesConsumed)}
                     />
                   </div>
-                  <div className="flex min-w-0 flex-1 flex-col justify-center pr-1">
-                    <p className="font-metrics text-[28px] font-semibold leading-[0.92] tracking-[-0.04em] text-[var(--app-text)]">
+                  <div className="flex min-w-0 flex-1 flex-col justify-center">
+                    <p className="font-metrics text-[24px] font-semibold leading-[0.92] tracking-[-0.04em] text-[var(--app-text)] sm:text-[28px]">
                       <span className="block truncate">
                         {formatNumber(nutritionSummary.caloriesRemaining)}
                       </span>
@@ -725,11 +725,11 @@ export default async function DashboardPage() {
                     <p className="mt-1 text-[11px] uppercase tracking-[0.08em] text-[var(--app-muted)]">
                       rimanenti
                     </p>
-                    <div className="mt-3 space-y-1">
+                    <div className="mt-2.5 space-y-1 sm:mt-3">
                       <p className="text-[11px] uppercase tracking-[0.08em] text-[var(--app-muted-2)]">
                         Target
                       </p>
-                      <p className="font-metrics text-[22px] font-semibold leading-none tracking-[-0.03em] text-[var(--app-text)]">
+                      <p className="font-metrics text-[19px] font-semibold leading-none tracking-[-0.03em] text-[var(--app-text)] sm:text-[22px]">
                         {formatNumber(nutritionSummary.calorieTarget)}
                       </p>
                     </div>
@@ -754,27 +754,27 @@ export default async function DashboardPage() {
 
             <CompactInfoCard title="Peso" href="/body-weight">
               {bodyWeightOverview.summary.latestWeightKg !== null ? (
-                <div className="flex h-full flex-col justify-between">
-                  <div>
-                    <p className="font-metrics text-[28px] font-semibold tracking-[-0.04em] text-[var(--app-text)]">
+                <div className="flex h-full min-w-0 flex-col justify-between">
+                  <div className="min-w-0">
+                    <p className="font-metrics text-[24px] font-semibold tracking-[-0.04em] text-[var(--app-text)] sm:text-[28px]">
                       {formatWeight(bodyWeightOverview.summary.latestWeightKg)}
-                      <span className="ml-1 text-[12px] font-medium text-[var(--app-muted)]">
+                      <span className="ml-1 text-[11px] font-medium text-[var(--app-muted)] sm:text-[12px]">
                         kg
                       </span>
                     </p>
-                    <div className="mt-2 flex items-center gap-2 text-[var(--app-primary)]">
+                    <div className="mt-2 flex min-w-0 items-center gap-1.5 text-[var(--app-primary)] sm:gap-2">
                       <WeightDeltaIcon
                         direction={getWeightDeltaDirection(
                           bodyWeightOverview.summary.change7DaysKg,
                         )}
                       />
-                      <span className="font-metrics text-[14px] font-semibold">
+                      <span className="font-metrics truncate text-[13px] font-semibold sm:text-[14px]">
                         {formatDelta(bodyWeightOverview.summary.change7DaysKg) ?? "—"}
                       </span>
                     </div>
                     <div className="mt-1 text-[11px] text-[var(--app-muted-2)]">7 giorni</div>
                   </div>
-                  <div className="pt-4">
+                  <div className="min-w-0 pt-3 sm:pt-4">
                     <Sparkline values={weightValues} />
                   </div>
                 </div>
