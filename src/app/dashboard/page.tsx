@@ -289,15 +289,15 @@ function NutritionRing({
   centerValue: string;
 }) {
   const safeProgress = Math.max(0, Math.min(progress, 100));
-  const size = 78;
-  const strokeWidth = 7;
+  const size = 72;
+  const strokeWidth = 6;
   const center = size / 2;
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const dashOffset = circumference - (safeProgress / 100) * circumference;
 
   return (
-    <div className="relative h-[78px] w-[78px] shrink-0 scale-90 sm:scale-100">
+    <div className="relative h-[72px] w-[72px] shrink-0">
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
         <circle
           cx={center}
@@ -321,10 +321,10 @@ function NutritionRing({
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="font-metrics text-[15px] font-semibold leading-none text-[var(--app-text)] sm:text-[17px]">
+        <span className="font-metrics text-[14px] font-semibold leading-none text-[var(--app-text)] sm:text-[16px]">
           {centerValue}
         </span>
-        <span className="mt-0.5 text-[8px] uppercase tracking-[0.08em] text-white/40 sm:mt-1 sm:text-[9px]">
+        <span className="mt-0.5 text-[8px] uppercase tracking-[0.08em] text-white/40">
           kcal
         </span>
       </div>
@@ -377,7 +377,7 @@ function WeightDeltaIcon({ direction }: { direction: ReturnType<typeof getWeight
 function Sparkline({ values }: { values: number[] }) {
   if (values.length < 2) {
     return (
-      <div className="mt-auto h-8 rounded-[12px] bg-[linear-gradient(90deg,rgba(208,216,43,0.18),rgba(208,216,43,0.02))]" />
+      <div className="mt-auto h-7 rounded-[12px] bg-[linear-gradient(90deg,rgba(208,216,43,0.18),rgba(208,216,43,0.02))]" />
     );
   }
 
@@ -398,7 +398,7 @@ function Sparkline({ values }: { values: number[] }) {
     <svg
       viewBox={`0 0 ${width} ${height}`}
       preserveAspectRatio="none"
-      className="mt-auto h-8 w-full"
+      className="mt-auto h-7 w-full"
     >
       <polyline
         points={points}
@@ -424,12 +424,12 @@ function CompactInfoCard({ title, href, children }: CompactCardProps) {
     <Link href={href} className="block h-full min-w-0">
       <AppCard
         soft
-        className="flex h-full min-h-[204px] min-w-0 flex-col rounded-[22px] border-white/8 bg-[var(--app-surface)] px-4 py-3.5 shadow-none transition hover:border-white/12 sm:px-[18px] sm:py-4"
+        className="flex h-full min-h-[172px] min-w-0 flex-col rounded-[22px] border-white/8 bg-[var(--app-surface)] px-4 py-3 shadow-none transition hover:border-white/12 sm:px-[18px] sm:py-3.5"
       >
         <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--app-muted-2)]">
           {title}
         </p>
-        <div className="mt-3 flex min-h-0 flex-1 flex-col">{children}</div>
+        <div className="mt-2 flex min-h-0 flex-1 flex-col">{children}</div>
       </AppCard>
     </Link>
   );
@@ -709,7 +709,7 @@ export default async function DashboardPage() {
           <section className="grid grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] items-stretch gap-3 [&>*]:min-w-0">
             <CompactInfoCard title="Nutrizione oggi" href="/nutrition">
               {nutritionProfile && nutritionSummary ? (
-                <div className="flex h-full min-w-0 items-center gap-2.5 sm:gap-3">
+                <div className="flex h-full min-w-0 items-center gap-2 sm:gap-2.5">
                   <div className="shrink-0">
                     <NutritionRing
                       progress={nutritionSummary.progressPercent}
@@ -717,19 +717,19 @@ export default async function DashboardPage() {
                     />
                   </div>
                   <div className="flex min-w-0 flex-1 flex-col justify-center">
-                    <p className="font-metrics text-[24px] font-semibold leading-[0.92] tracking-[-0.04em] text-[var(--app-text)] sm:text-[28px]">
+                    <p className="font-metrics text-[22px] font-semibold leading-[0.92] tracking-[-0.04em] text-[var(--app-text)] sm:text-[26px]">
                       <span className="block truncate">
                         {formatNumber(nutritionSummary.caloriesRemaining)}
                       </span>
                     </p>
-                    <p className="mt-1 text-[11px] uppercase tracking-[0.08em] text-[var(--app-muted)]">
+                    <p className="mt-0.5 text-[11px] uppercase tracking-[0.08em] text-[var(--app-muted)]">
                       rimanenti
                     </p>
-                    <div className="mt-2.5 space-y-1 sm:mt-3">
+                    <div className="mt-2 space-y-0.5 sm:mt-2.5">
                       <p className="text-[11px] uppercase tracking-[0.08em] text-[var(--app-muted-2)]">
                         Target
                       </p>
-                      <p className="font-metrics text-[19px] font-semibold leading-none tracking-[-0.03em] text-[var(--app-text)] sm:text-[22px]">
+                      <p className="font-metrics text-[18px] font-semibold leading-none tracking-[-0.03em] text-[var(--app-text)] sm:text-[20px]">
                         {formatNumber(nutritionSummary.calorieTarget)}
                       </p>
                     </div>
@@ -745,7 +745,7 @@ export default async function DashboardPage() {
                       Aggiungi oggi
                     </p>
                   </div>
-                  <div className="mt-auto pt-4 text-[12px] font-semibold text-[var(--app-primary)]">
+                  <div className="mt-auto pt-3 text-[12px] font-semibold text-[var(--app-primary)]">
                     Apri nutrizione
                   </div>
                 </>
@@ -756,13 +756,13 @@ export default async function DashboardPage() {
               {bodyWeightOverview.summary.latestWeightKg !== null ? (
                 <div className="flex h-full min-w-0 flex-col justify-between">
                   <div className="min-w-0">
-                    <p className="font-metrics text-[24px] font-semibold tracking-[-0.04em] text-[var(--app-text)] sm:text-[28px]">
+                    <p className="font-metrics text-[22px] font-semibold tracking-[-0.04em] text-[var(--app-text)] sm:text-[26px]">
                       {formatWeight(bodyWeightOverview.summary.latestWeightKg)}
                       <span className="ml-1 text-[11px] font-medium text-[var(--app-muted)] sm:text-[12px]">
                         kg
                       </span>
                     </p>
-                    <div className="mt-2 flex min-w-0 items-center gap-1.5 text-[var(--app-primary)] sm:gap-2">
+                    <div className="mt-1.5 flex min-w-0 items-center gap-1.5 text-[var(--app-primary)] sm:gap-2">
                       <WeightDeltaIcon
                         direction={getWeightDeltaDirection(
                           bodyWeightOverview.summary.change7DaysKg,
@@ -772,9 +772,9 @@ export default async function DashboardPage() {
                         {formatDelta(bodyWeightOverview.summary.change7DaysKg) ?? "—"}
                       </span>
                     </div>
-                    <div className="mt-1 text-[11px] text-[var(--app-muted-2)]">7 giorni</div>
+                    <div className="mt-0.5 text-[11px] text-[var(--app-muted-2)]">7 giorni</div>
                   </div>
-                  <div className="min-w-0 pt-3 sm:pt-4">
+                  <div className="min-w-0 pt-2 sm:pt-2.5">
                     <Sparkline values={weightValues} />
                   </div>
                 </div>
@@ -788,7 +788,7 @@ export default async function DashboardPage() {
                       Registra peso
                     </p>
                   </div>
-                  <div className="mt-auto pt-4 text-[12px] font-semibold text-[var(--app-primary)]">
+                  <div className="mt-auto pt-3 text-[12px] font-semibold text-[var(--app-primary)]">
                     Apri peso
                   </div>
                 </>
