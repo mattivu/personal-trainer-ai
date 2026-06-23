@@ -56,6 +56,7 @@ async function parseApiResponse<T>(response: Response) {
 }
 
 export function BodyWeightList({ entries: initialEntries }: BodyWeightListProps) {
+  const PAGE_SIZE = 3;
   const router = useRouter();
   const [isRefreshing, startRefresh] = useTransition();
   const [entries, setEntries] = useState(initialEntries);
@@ -63,10 +64,20 @@ export function BodyWeightList({ entries: initialEntries }: BodyWeightListProps)
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pendingEntryId, setPendingEntryId] = useState<number | null>(null);
+  const [pageStart, setPageStart] = useState(0);
 
   useEffect(() => {
     setEntries(initialEntries);
   }, [initialEntries]);
+
+  useEffect(() => {
+    const maxPageStart = Math.max(0, Math.floor((entries.length - 1) / PAGE_SIZE) * PAGE_SIZE);
+    setPageStart((current) => Math.min(current, maxPageStart));
+  }, [entries.length, PAGE_SIZE]);
+
+  const visibleEntries = entries.slice(pageStart, pageStart + PAGE_SIZE);
+  const hasOlderEntries = pageStart + PAGE_SIZE < entries.length;
+  const hasNewerEntries = pageStart > 0;
 
   function refreshPage() {
     startRefresh(() => {
@@ -114,119 +125,195 @@ export function BodyWeightList({ entries: initialEntries }: BodyWeightListProps)
   return (
     <div className="space-y-3">
       {message ? (
-        <div className="rounded-2xl border border-emerald-800 bg-emerald-950/40 px-4 py-3 text-sm text-emerald-200">
+        <div className="rounded-[18px] border border-[var(--app-primary-border)] bg-[var(--app-primary-soft)] px-4 py-3 text-sm text-[var(--app-primary)]">
           {message}
         </div>
       ) : null}
 
       {error ? (
-        <div className="rounded-2xl border border-rose-800 bg-rose-950/40 px-4 py-3 text-sm text-rose-200">
+        <div className="rounded-[18px] border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
           {error}
         </div>
       ) : null}
 
       {entries.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-neutral-800 bg-neutral-950 px-5 py-6 text-sm text-neutral-400">
-          Nessuna pesata disponibile negli ultimi 90 giorni.
+        <div className="rounded-[20px] border border-dashed border-white/10 bg-[var(--app-surface-soft)] px-5 py-6 text-sm text-[var(--app-muted)]">
+          Nessuna pesata disponibile.
         </div>
       ) : (
-        entries.map((entry, index) => {
-          const olderEntry = entries[index + 1] ?? null;
-          const variation = olderEntry ? entry.weightKg - olderEntry.weightKg : null;
-          const dateKey = entry.dateKey ?? getBodyWeightDateKey(entry.date);
-          const isEditing = editingEntryId === entry.id;
-          const isPending = pendingEntryId === entry.id || isRefreshing;
+        <div className="space-y-3">
+          {visibleEntries.map((entry) => {
+            const globalIndex = entries.findIndex((candidate) => candidate.id === entry.id);
+            const olderEntry = globalIndex >= 0 ? entries[globalIndex + 1] ?? null : null;
+            const variation = olderEntry ? entry.weightKg - olderEntry.weightKg : null;
+            const dateKey = entry.dateKey ?? getBodyWeightDateKey(entry.date);
+            const isEditing = editingEntryId === entry.id;
+            const isPending = pendingEntryId === entry.id || isRefreshing;
 
-          return (
-            <article
-              key={entry.id}
-              className="rounded-2xl border border-neutral-800 bg-neutral-950 p-4"
-            >
-              {isEditing ? (
-                <div className="space-y-4">
-                  <div>
-                    <p className="text-sm uppercase tracking-[0.18em] text-neutral-500">
-                      Modifica pesata
-                    </p>
-                    <h3 className="mt-2 font-semibold text-white">
-                      {formatNutritionDateLabel(dateKey)}
-                    </h3>
-                  </div>
-
-                  <BodyWeightForm
-                    initialValues={{
-                      date: dateKey,
-                      weightKg: String(entry.weightKg),
-                      notes: entry.notes ?? "",
-                    }}
-                    submitLabel="Salva modifiche"
-                    pendingLabel="Salvataggio..."
-                    endpoint={`/api/body-weight/${entry.id}`}
-                    method="PATCH"
-                    onSaved={() => {
-                      setEditingEntryId(null);
-                      setMessage("Pesata aggiornata.");
-                      setError(null);
-                      refreshPage();
-                    }}
-                    onCancel={() => {
-                      setEditingEntryId(null);
-                      setError(null);
-                    }}
-                  />
-                </div>
-              ) : (
-                <div className="flex flex-col gap-4">
-                  <div className="flex items-start justify-between gap-4">
+            return (
+              <article
+                key={entry.id}
+                className="rounded-[20px] border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-4"
+              >
+                {isEditing ? (
+                  <div className="space-y-4">
                     <div>
-                      <p className="text-sm text-neutral-500">
+                      <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--app-muted-2)]">
+                        Modifica pesata
+                      </p>
+                      <h3 className="mt-2 text-base font-semibold text-[var(--app-text)]">
                         {formatNutritionDateLabel(dateKey)}
-                      </p>
-                      <p className="mt-2 text-2xl font-semibold text-white">
-                        {formatWeight(entry.weightKg)} kg
-                      </p>
+                      </h3>
                     </div>
 
-                    <div className="text-right text-sm text-neutral-400">
-                      <p>Variazione</p>
-                      <p className="mt-2 font-semibold text-neutral-100">
-                        {formatBodyWeightDelta(variation)}
-                      </p>
-                    </div>
-                  </div>
-
-                  {entry.notes ? (
-                    <p className="text-sm text-neutral-400">{entry.notes}</p>
-                  ) : null}
-
-                  <div className="flex flex-col gap-3 sm:flex-row">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEditingEntryId(entry.id);
-                        setMessage(null);
+                    <BodyWeightForm
+                      initialValues={{
+                        date: dateKey,
+                        weightKg: String(entry.weightKg),
+                        notes: entry.notes ?? "",
+                      }}
+                      submitLabel="Salva modifiche"
+                      pendingLabel="Salvataggio..."
+                      endpoint={`/api/body-weight/${entry.id}`}
+                      method="PATCH"
+                      onSaved={() => {
+                        setEditingEntryId(null);
+                        setMessage("Pesata aggiornata.");
+                        setError(null);
+                        refreshPage();
+                      }}
+                      onCancel={() => {
+                        setEditingEntryId(null);
                         setError(null);
                       }}
-                      disabled={isPending}
-                      className="inline-flex justify-center rounded-xl border border-neutral-700 px-4 py-3 text-sm font-semibold text-neutral-100 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      Modifica
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => handleDelete(entry.id)}
-                      disabled={isPending}
-                      className="inline-flex justify-center rounded-xl border border-rose-800 px-4 py-3 text-sm font-semibold text-rose-200 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      Elimina
-                    </button>
+                    />
                   </div>
-                </div>
-              )}
-            </article>
-          );
-        })
+                ) : (
+                  <div className="flex flex-col gap-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <p className="text-sm text-[var(--app-muted)]">
+                          {formatNutritionDateLabel(dateKey)}
+                        </p>
+                        <p className="mt-2 font-metrics text-[26px] font-semibold leading-none tracking-[-0.03em] text-[var(--app-text)]">
+                          {formatWeight(entry.weightKg)} kg
+                        </p>
+                      </div>
+
+                      <div className="rounded-[14px] border border-[var(--app-border)] bg-white/[0.03] px-3 py-2 text-right">
+                        <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--app-muted-2)]">
+                          Variazione
+                        </p>
+                        <p
+                          className={`mt-1 text-sm font-semibold ${
+                            variation === null || variation === 0
+                              ? "text-[var(--app-text)]"
+                              : "text-[var(--app-primary)]"
+                          }`}
+                        >
+                          {formatBodyWeightDelta(variation)}
+                        </p>
+                      </div>
+                    </div>
+
+                    {entry.notes ? (
+                      <p className="rounded-[16px] border border-[var(--app-border)] bg-white/[0.03] px-3 py-3 text-sm leading-6 text-[var(--app-muted)]">
+                        {entry.notes}
+                      </p>
+                    ) : null}
+
+                    <div className="flex gap-3">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingEntryId(entry.id);
+                          setMessage(null);
+                          setError(null);
+                        }}
+                        disabled={isPending}
+                        className="app-secondary-button min-h-[52px] flex-1 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        Modifica
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(entry.id)}
+                        disabled={isPending}
+                        className="inline-flex min-h-[52px] flex-1 items-center justify-center rounded-[16px] border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm font-semibold text-rose-200 transition hover:bg-rose-500/14 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        Elimina
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </article>
+            );
+          })}
+
+          {entries.length > PAGE_SIZE ? (
+            <div className="flex items-center justify-center gap-4 pt-1 text-sm">
+              <button
+                type="button"
+                onClick={() => {
+                  if (hasOlderEntries) {
+                    setPageStart((current) => current + PAGE_SIZE);
+                  }
+                }}
+                disabled={!hasOlderEntries}
+                aria-label="Mostra registrazioni precedenti"
+                className={`inline-flex h-8 w-8 items-center justify-center rounded-full transition ${
+                  hasOlderEntries
+                    ? "text-[var(--app-primary)] hover:text-[var(--app-text)]"
+                    : "cursor-default text-[var(--app-muted-2)]"
+                }`}
+              >
+                <span aria-hidden="true" className="text-base leading-none">
+                  ←
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  if (hasNewerEntries) {
+                    setPageStart(0);
+                  }
+                }}
+                disabled={!hasNewerEntries}
+                className={`min-w-[92px] text-center text-[12px] font-medium transition ${
+                  hasNewerEntries
+                    ? "text-[var(--app-primary)] hover:text-[var(--app-text)]"
+                    : "cursor-default text-[var(--app-muted)]"
+                }`}
+              >
+                {hasNewerEntries
+                  ? "Recenti"
+                  : `${pageStart + 1}-${Math.min(pageStart + PAGE_SIZE, entries.length)} di ${entries.length}`}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  if (hasNewerEntries) {
+                    setPageStart((current) => Math.max(current - PAGE_SIZE, 0));
+                  }
+                }}
+                disabled={!hasNewerEntries}
+                aria-label="Torna alle registrazioni piu recenti"
+                className={`inline-flex h-8 w-8 items-center justify-center rounded-full transition ${
+                  hasNewerEntries
+                    ? "text-[var(--app-primary)] hover:text-[var(--app-text)]"
+                    : "cursor-default text-[var(--app-muted-2)]"
+                }`}
+              >
+                <span aria-hidden="true" className="text-base leading-none">
+                  →
+                </span>
+              </button>
+            </div>
+          ) : null}
+        </div>
       )}
     </div>
   );

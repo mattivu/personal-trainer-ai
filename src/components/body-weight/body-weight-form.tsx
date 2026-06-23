@@ -118,14 +118,16 @@ export function BodyWeightForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {error ? (
-        <div className="rounded-2xl border border-rose-800 bg-rose-950/40 px-4 py-3 text-sm text-rose-200">
+        <div className="rounded-[18px] border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
           {error}
         </div>
       ) : null}
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <label className="space-y-2 text-sm text-neutral-200">
-          <span>Data</span>
+      <div className="grid gap-4 sm:grid-cols-[1fr_1fr]">
+        <label className="space-y-2">
+          <span className="block text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--app-muted-2)]">
+            Data
+          </span>
           <input
             type="date"
             value={form.date}
@@ -135,13 +137,15 @@ export function BodyWeightForm({
                 date: event.target.value,
               }))
             }
-            className="w-full rounded-xl border border-neutral-700 bg-neutral-950 px-4 py-3 text-white outline-none"
+            className="w-full rounded-[16px] border border-[var(--app-border)] bg-[var(--app-surface)] px-4 py-3 text-[15px] font-medium text-[var(--app-text)] outline-none transition focus:border-[var(--app-primary-border)] focus:bg-white/[0.04]"
             required
           />
         </label>
 
-        <label className="space-y-2 text-sm text-neutral-200">
-          <span>Peso kg</span>
+        <label className="space-y-2">
+          <span className="block text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--app-muted-2)]">
+            Peso
+          </span>
           <input
             type="number"
             inputMode="decimal"
@@ -155,14 +159,17 @@ export function BodyWeightForm({
                 weightKg: event.target.value,
               }))
             }
-            className="w-full rounded-xl border border-neutral-700 bg-neutral-950 px-4 py-3 text-white outline-none"
+            className="w-full rounded-[16px] border border-[var(--app-border)] bg-[var(--app-surface)] px-4 py-3 text-[15px] font-medium text-[var(--app-text)] outline-none transition focus:border-[var(--app-primary-border)] focus:bg-white/[0.04]"
+            placeholder="76,0"
             required
           />
         </label>
       </div>
 
-      <label className="block space-y-2 text-sm text-neutral-200">
-        <span>Note opzionali</span>
+      <label className="block space-y-2">
+        <span className="block text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--app-muted-2)]">
+          Note
+        </span>
         <textarea
           rows={3}
           value={form.notes}
@@ -173,19 +180,19 @@ export function BodyWeightForm({
             }))
           }
           maxLength={BODY_WEIGHT_NOTES_MAX_LENGTH}
-          className="w-full rounded-xl border border-neutral-700 bg-neutral-950 px-4 py-3 text-white outline-none"
-          placeholder="Ad esempio: stessa bilancia, mattina a digiuno"
+          className="w-full rounded-[16px] border border-[var(--app-border)] bg-[var(--app-surface)] px-4 py-3 text-[15px] font-medium text-[var(--app-text)] outline-none transition focus:border-[var(--app-primary-border)] focus:bg-white/[0.04]"
+          placeholder="Stessa bilancia, mattina a digiuno"
         />
-        <span className="block text-right text-xs text-neutral-500">
+        <span className="block text-right text-xs text-[var(--app-muted-2)]">
           {form.notes.length}/{BODY_WEIGHT_NOTES_MAX_LENGTH}
         </span>
       </label>
 
-      <div className="flex flex-col gap-3 sm:flex-row">
+      <div className="flex flex-col gap-3">
         <button
           type="submit"
           disabled={saving}
-          className="inline-flex justify-center rounded-xl bg-white px-5 py-3 font-semibold text-neutral-950 disabled:cursor-not-allowed disabled:opacity-60"
+          className="app-primary-button w-full disabled:cursor-not-allowed disabled:opacity-60"
         >
           {saving ? pendingLabel : submitLabel}
         </button>
@@ -195,7 +202,7 @@ export function BodyWeightForm({
             type="button"
             onClick={onCancel}
             disabled={saving}
-            className="inline-flex justify-center rounded-xl border border-neutral-700 px-5 py-3 font-semibold text-neutral-100 disabled:cursor-not-allowed disabled:opacity-60"
+            className="app-secondary-button w-full disabled:cursor-not-allowed disabled:opacity-60"
           >
             Annulla
           </button>
