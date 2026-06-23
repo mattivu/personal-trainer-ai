@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AppBottomNav } from "@/components/app-bottom-nav";
+import { ChangeGoalCard } from "@/components/change-goal-card";
 import { AppCard } from "@/components/ui/app-card";
 import { AppPage } from "@/components/ui/app-page";
 import { ProgressBar } from "@/components/ui/progress-bar";
@@ -642,6 +643,8 @@ export default async function ProgramPage(props: ProgramPageProps) {
                 <ProgressBar value={stripProgressValue} className="mt-3 h-[4px]" />
               </div>
             </AppCard>
+
+            <ChangeGoalCard body="Aggiorna il tuo obiettivo e adatta il programma alla tua nuova direzione." />
 
             <section className="space-y-3">
               <div className="flex items-end justify-between gap-3">

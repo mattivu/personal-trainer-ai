@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import { AppBottomNav } from "@/components/app-bottom-nav";
+import { ChangeGoalCard } from "@/components/change-goal-card";
 import { AppCard } from "@/components/ui/app-card";
 import { AppPage } from "@/components/ui/app-page";
 import { PrimaryButton } from "@/components/ui/buttons";
@@ -423,7 +424,7 @@ function CompactInfoCard({ title, href, children }: CompactCardProps) {
     <Link href={href} className="block h-full">
       <AppCard
         soft
-        className="flex h-full min-h-[196px] flex-col rounded-[22px] border-white/8 bg-[var(--app-surface)] px-4 py-4 shadow-none transition hover:border-white/12"
+        className="flex h-full min-h-[204px] flex-col rounded-[22px] border-white/8 bg-[var(--app-surface)] px-[18px] py-4 shadow-none transition hover:border-white/12"
       >
         <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--app-muted-2)]">
           {title}
@@ -699,31 +700,38 @@ export default async function DashboardPage() {
             )}
           </section>
 
-          <section className="grid grid-cols-2 items-stretch gap-3">
+          {activeProgram ? (
+            <section>
+              <ChangeGoalCard body="Aggiorna il tuo obiettivo e adatta il programma alla tua nuova direzione." />
+            </section>
+          ) : null}
+
+          <section className="grid grid-cols-1 items-stretch gap-3 min-[380px]:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
             <CompactInfoCard title="Nutrizione oggi" href="/nutrition">
               {nutritionProfile && nutritionSummary ? (
-                <div className="flex h-full flex-col justify-between">
-                  <div className="flex items-center gap-3.5">
+                <div className="flex h-full items-center gap-3">
+                  <div className="shrink-0">
                     <NutritionRing
                       progress={nutritionSummary.progressPercent}
                       centerValue={formatNumber(nutritionSummary.caloriesConsumed)}
                     />
-                    <div className="min-w-0 flex-1">
-                      <p className="font-metrics text-[24px] font-semibold tracking-[-0.03em]">
-                        {formatNumber(nutritionSummary.caloriesRemaining)}
-                      </p>
-                      <p className="text-[11px] text-[var(--app-muted)]">rimanenti</p>
-                      <p className="mt-2 text-[11px] text-[var(--app-muted-2)]">
-                        Target <MetricText>{formatNumber(nutritionSummary.calorieTarget)}</MetricText>
-                      </p>
-                    </div>
                   </div>
-                  <div className="mt-4">
-                    <div className="flex items-center justify-between text-[12px]">
-                      <span className="text-[var(--app-muted)]">Consumate</span>
-                      <span className="font-metrics font-semibold text-[var(--app-text)]">
-                        {formatNumber(nutritionSummary.caloriesConsumed)} kcal
+                  <div className="flex min-w-0 flex-1 flex-col justify-center pr-1">
+                    <p className="font-metrics text-[28px] font-semibold leading-[0.92] tracking-[-0.04em] text-[var(--app-text)]">
+                      <span className="block truncate">
+                        {formatNumber(nutritionSummary.caloriesRemaining)}
                       </span>
+                    </p>
+                    <p className="mt-1 text-[11px] uppercase tracking-[0.08em] text-[var(--app-muted)]">
+                      rimanenti
+                    </p>
+                    <div className="mt-3 space-y-1">
+                      <p className="text-[11px] uppercase tracking-[0.08em] text-[var(--app-muted-2)]">
+                        Target
+                      </p>
+                      <p className="font-metrics text-[22px] font-semibold leading-none tracking-[-0.03em] text-[var(--app-text)]">
+                        {formatNumber(nutritionSummary.calorieTarget)}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -746,7 +754,7 @@ export default async function DashboardPage() {
 
             <CompactInfoCard title="Peso" href="/body-weight">
               {bodyWeightOverview.summary.latestWeightKg !== null ? (
-                <div className="flex h-full flex-col">
+                <div className="flex h-full flex-col justify-between">
                   <div>
                     <p className="font-metrics text-[28px] font-semibold tracking-[-0.04em] text-[var(--app-text)]">
                       {formatWeight(bodyWeightOverview.summary.latestWeightKg)}
@@ -766,7 +774,7 @@ export default async function DashboardPage() {
                     </div>
                     <div className="mt-1 text-[11px] text-[var(--app-muted-2)]">7 giorni</div>
                   </div>
-                  <div className="mt-auto pt-4">
+                  <div className="pt-4">
                     <Sparkline values={weightValues} />
                   </div>
                 </div>
