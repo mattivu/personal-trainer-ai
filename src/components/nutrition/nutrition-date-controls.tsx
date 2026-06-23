@@ -5,19 +5,28 @@ import { getTodayLocalDate, shiftNutritionDate } from "@/lib/nutrition/date";
 
 type NutritionDateControlsProps = {
   selectedDate: string;
+  maxDate?: string;
+  onDateChange?: (date: string) => void;
 };
 
 export function NutritionDateControls({
   selectedDate,
+  maxDate,
+  onDateChange,
 }: NutritionDateControlsProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const today = getTodayLocalDate();
+  const today = maxDate ?? getTodayLocalDate();
   const previousDate = shiftNutritionDate(selectedDate, -1);
   const nextDate = shiftNutritionDate(selectedDate, 1);
   const canGoNext = selectedDate < today;
 
   function navigateToDate(date: string) {
+    if (onDateChange) {
+      onDateChange(date >= today ? today : date);
+      return;
+    }
+
     if (date >= today) {
       router.push(pathname);
       return;
@@ -65,7 +74,7 @@ export function NutritionDateControls({
           </p>
           <p className="mt-1 text-xs text-[var(--app-muted)] sm:text-[13px]">{headerDate}</p>
           <label className="relative mt-2 inline-flex items-center justify-center overflow-hidden rounded-full border border-white/8 bg-white/[0.03] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--app-muted)] sm:text-[11px]">
-            <span>{selectedDate === today ? "Seleziona data" : "Cambia data"}</span>
+            <span>Seleziona data</span>
             <input
               type="date"
               value={selectedDate}

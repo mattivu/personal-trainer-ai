@@ -1,25 +1,73 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
-import { AiCoachCard } from "@/components/ai-coach-card";
 import { AppBottomNav } from "@/components/app-bottom-nav";
+import { AppPage } from "@/components/ui/app-page";
 import {
   getWorkoutHistoryForUser,
   getWorkoutStatusLabel,
 } from "@/lib/workout-history";
 import { getCurrentUser } from "@/lib/session";
+import { WorkoutHistoryView } from "./workout-history-view";
 
 export const dynamic = "force-dynamic";
 
-function formatItalianDateTime(date: Date) {
-  return new Intl.DateTimeFormat("it-IT", {
-    dateStyle: "medium",
-    timeStyle: "short",
-    timeZone: "Europe/Rome",
+const ITALY_TIME_ZONE = "Europe/Rome";
+const RECENT_CONSISTENCY_DAYS = 7;
+
+function getDayKey(date: Date) {
+  return new Intl.DateTimeFormat("sv-SE", {
+    timeZone: ITALY_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
   }).format(date);
 }
 
-function formatSetValue(value: number | null, suffix: string) {
-  return value === null ? `${suffix} n/d` : `${value} ${suffix}`;
+function parseDayKey(dayKey: string) {
+  const [year, month, day] = dayKey.split("-").map(Number);
+  return new Date(Date.UTC(year, month - 1, day, 12));
+}
+
+function addDays(dayKey: string, amount: number) {
+  const date = parseDayKey(dayKey);
+  date.setUTCDate(date.getUTCDate() + amount);
+  return getDayKey(date);
+}
+
+function formatHistoryMoment(date: Date) {
+  return new Intl.DateTimeFormat("it-IT", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: ITALY_TIME_ZONE,
+  }).format(date);
+}
+
+function formatHistoryTime(date: Date) {
+  return new Intl.DateTimeFormat("it-IT", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: ITALY_TIME_ZONE,
+  }).format(date);
+}
+
+function calculateConsistency(history: Awaited<ReturnType<typeof getWorkoutHistoryForUser>>) {
+  const todayKey = getDayKey(new Date());
+  const validKeys = new Set<string>();
+
+  for (let offset = 0; offset < RECENT_CONSISTENCY_DAYS; offset += 1) {
+    validKeys.add(addDays(todayKey, -offset));
+  }
+
+  const completedDays = new Set(
+    history
+      .filter((entry) => entry.status === "completed")
+      .map((entry) => getDayKey(entry.performedAt))
+      .filter((dayKey) => validKeys.has(dayKey))
+  );
+
+  return Math.round((completedDays.size / RECENT_CONSISTENCY_DAYS) * 100);
 }
 
 export default async function WorkoutHistoryPage() {
@@ -34,152 +82,65 @@ export default async function WorkoutHistoryPage() {
   }
 
   const history = await getWorkoutHistoryForUser(user.id);
+  const completedSessions = history.filter((entry) => entry.status === "completed").length;
+  const consistency = calculateConsistency(history);
+  const todayKey = getDayKey(new Date());
+
+  const serializedHistory = history.map((entry) => ({
+    id: entry.id,
+    performedAtIso: entry.performedAt.toISOString(),
+    performedAtLabel: formatHistoryMoment(entry.performedAt),
+    timeLabel: formatHistoryTime(entry.performedAt),
+    dayKey: getDayKey(entry.performedAt),
+    startedAtIso: entry.startedAt?.toISOString() ?? null,
+    completedAtIso: entry.completedAt?.toISOString() ?? null,
+    updatedAtIso: entry.updatedAt.toISOString(),
+    status: entry.status,
+    statusLabel: getWorkoutStatusLabel(entry.status),
+    perceivedEffort: entry.perceivedEffort,
+    notes: entry.notes,
+    workoutName: entry.workoutName,
+    programName: entry.programName,
+    exerciseCount: entry.exercises.length,
+    totalSets: entry.exercises.reduce((total, exercise) => total + exercise.sets.length, 0),
+    hasFeedback: Boolean(entry.notes) || entry.perceivedEffort !== null,
+    exercises: entry.exercises.map((exercise) => ({
+      programExerciseId: exercise.programExerciseId,
+      exerciseName: exercise.exerciseName,
+      sets: exercise.sets.map((set) => ({
+        id: set.id,
+        setNumber: set.setNumber,
+        weightKg: set.weightKg,
+        actualReps: set.actualReps,
+        rir: set.rir,
+        completed: set.completed,
+      })),
+    })),
+  }));
 
   return (
-    <main className="min-h-screen bg-neutral-950 px-6 py-12 pb-28 text-white">
-      <section className="mx-auto w-full max-w-5xl">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="text-sm uppercase tracking-[0.3em] text-neutral-500">
-              Personal Trainer AI
-            </p>
-            <h1 className="mt-3 text-3xl font-bold">Storico allenamenti</h1>
-            <p className="mt-3 max-w-2xl text-sm text-neutral-400">
-              Sedute completate, in corso o saltate in ordine dalla piu recente alla piu vecchia.
-            </p>
-          </div>
+    <AppPage className="pt-5" contentClassName="pb-2">
+      <div className="space-y-4 pt-[62px]">
+        <header className="px-1">
+          <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--app-muted-2)]">
+            Progressi e sedute registrate
+          </p>
+          <h1 className="mt-2 text-[30px] font-bold leading-[1.02] tracking-[-0.03em] text-[var(--app-text)]">
+            Storico allenamenti
+          </h1>
+        </header>
 
-          <div className="flex gap-3">
-            <Link
-              href="/dashboard"
-              className="inline-flex justify-center rounded-xl border border-neutral-700 px-4 py-2.5 text-sm font-semibold text-neutral-100"
-            >
-              Dashboard
-            </Link>
-            <Link
-              href="/program"
-              className="inline-flex justify-center rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-neutral-950"
-            >
-              Vai al programma
-            </Link>
-          </div>
-        </div>
-
-        {history.length === 0 ? (
-          <section className="mt-8 rounded-2xl border border-neutral-800 bg-neutral-900 p-6">
-            <h2 className="text-xl font-semibold">Nessuna seduta registrata</h2>
-            <p className="mt-3 text-sm text-neutral-400">
-              Quando salverai i progressi o completerai una seduta, la troverai qui.
-            </p>
-          </section>
-        ) : (
-          <div className="mt-8 space-y-5">
-            {history.map((entry) => (
-              <details
-                key={entry.id}
-                className="group rounded-2xl border border-neutral-800 bg-neutral-900 p-6"
-              >
-                <summary className="cursor-pointer list-none">
-                  <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-                    <div className="max-w-3xl">
-                      <p className="text-sm uppercase tracking-[0.2em] text-neutral-500">
-                        Seduta del {formatItalianDateTime(entry.performedAt)}
-                      </p>
-                      <h2 className="mt-3 text-2xl font-semibold">
-                        {entry.workoutName}
-                      </h2>
-                      <p className="mt-2 text-sm text-neutral-400">
-                        Programma: {entry.programName}
-                      </p>
-                    </div>
-
-                    <div className="grid gap-3 text-sm text-neutral-300 sm:grid-cols-3 lg:min-w-[420px]">
-                      <div className="rounded-xl border border-neutral-800 bg-neutral-950 p-3">
-                        <p className="text-neutral-500">Stato</p>
-                        <p className="mt-1 font-medium text-white">
-                          {getWorkoutStatusLabel(entry.status)}
-                        </p>
-                      </div>
-                      <div className="rounded-xl border border-neutral-800 bg-neutral-950 p-3">
-                        <p className="text-neutral-500">Fatica percepita</p>
-                        <p className="mt-1 font-medium text-white">
-                          {entry.perceivedEffort ?? "Non indicata"}
-                        </p>
-                      </div>
-                      <div className="rounded-xl border border-neutral-800 bg-neutral-950 p-3">
-                        <p className="text-neutral-500">Progressi registrati</p>
-                        <p className="mt-1 font-medium text-white">
-                          {entry.exercises.reduce(
-                            (total, exercise) => total + exercise.sets.length,
-                            0
-                          )}{" "}
-                          serie
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {entry.notes ? (
-                    <div className="mt-5 rounded-xl border border-neutral-800 bg-neutral-950 p-4">
-                      <p className="text-sm text-neutral-500">Note seduta</p>
-                      <p className="mt-2 whitespace-pre-line text-sm text-neutral-200">
-                        {entry.notes}
-                      </p>
-                    </div>
-                  ) : null}
-
-                  <span className="mt-5 inline-flex rounded-xl border border-neutral-700 px-4 py-2 text-sm font-semibold text-neutral-100">
-                    <span className="group-open:hidden">Vedi dettagli ↓</span>
-                    <span className="hidden group-open:inline">Nascondi dettagli ↑</span>
-                  </span>
-                </summary>
-
-                <div className="mt-6 border-t border-neutral-800 pt-6">
-                  <h3 className="text-lg font-semibold">Dettagli delle serie</h3>
-                  {entry.exercises.length === 0 ? (
-                    <p className="mt-4 rounded-xl border border-neutral-800 bg-neutral-950 px-4 py-3 text-sm text-neutral-300">
-                      Nessun dato serie registrato.
-                    </p>
-                  ) : (
-                    <div className="mt-4 space-y-4">
-                      {entry.exercises.map((exercise) => (
-                        <section
-                          key={`${entry.id}-${exercise.programExerciseId ?? exercise.exerciseName}`}
-                          className="rounded-xl border border-neutral-800 bg-neutral-950 p-4"
-                        >
-                          <h4 className="text-base font-semibold text-white">
-                            {exercise.exerciseName}
-                          </h4>
-                          <div className="mt-3 space-y-2 text-sm text-neutral-300">
-                            {exercise.sets.map((set) => (
-                              <p key={set.id}>
-                                Serie {set.setNumber}: {formatSetValue(set.weightKg, "kg")} x{" "}
-                                {set.actualReps ?? "reps n/d"} -{" "}
-                                {set.rir === null ? "RIR n/d" : `RIR ${set.rir}`} -{" "}
-                                {set.completed ? "Completata: si" : "Completata: no"}
-                              </p>
-                            ))}
-                          </div>
-                        </section>
-                      ))}
-                    </div>
-                  )}
-
-                  <div className="mt-6">
-                    <AiCoachCard
-                      mode="post_workout_review"
-                      workoutLogId={entry.id}
-                      buttonLabel="Analizza questa seduta"
-                    />
-                  </div>
-                </div>
-              </details>
-            ))}
-          </div>
-        )}
-      </section>
+        <WorkoutHistoryView
+          history={serializedHistory}
+          completedSessions={completedSessions}
+          consistency={consistency}
+          todayKey={todayKey}
+          weeklyReviewHref="/weekly-review"
+          programHref="/program"
+        />
+      </div>
 
       <AppBottomNav />
-    </main>
+    </AppPage>
   );
 }
