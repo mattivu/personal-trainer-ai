@@ -3,6 +3,11 @@
 import { FormEvent, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AppBottomNav } from "@/components/app-bottom-nav";
+import { AppCard } from "@/components/ui/app-card";
+import { AppPage } from "@/components/ui/app-page";
+import { PrimaryButton, SecondaryButton } from "@/components/ui/buttons";
+import { PageHeader } from "@/components/ui/page-header";
+import { ProgressBar } from "@/components/ui/progress-bar";
 import {
   type SafetyResult,
   type SafetyStatus,
@@ -1295,6 +1300,36 @@ function getAnswerString(value: AnswerValue | undefined) {
   return typeof value === "string" ? value : "";
 }
 
+function getFooterLoadingCopy(isLastStep: boolean, isCompleted: boolean) {
+  if (!isLastStep) {
+    return "Stiamo salvando le tue risposte...";
+  }
+
+  return isCompleted
+    ? "Stiamo aggiornando il tuo programma..."
+    : "Stiamo preparando il tuo programma...";
+}
+
+function getSubmitLabel(isLastStep: boolean, isCompleted: boolean, loading: boolean) {
+  if (loading) {
+    return getFooterLoadingCopy(isLastStep, isCompleted);
+  }
+
+  if (isLastStep) {
+    return isCompleted ? "Aggiorna programma" : "Completa e vai alla dashboard";
+  }
+
+  return "Continua";
+}
+
+function getFieldGridClassName(field: Extract<Field, { type: "select" }>) {
+  if (field.options.length <= 3) {
+    return "grid gap-2";
+  }
+
+  return "grid gap-2 sm:grid-cols-2";
+}
+
 export function OnboardingForm({
   initialAnswersByStep = {},
   onboardingStatus,
@@ -1511,198 +1546,248 @@ export function OnboardingForm({
   }
 
   return (
-    <main className="min-h-screen bg-neutral-950 px-4 py-8 pb-28 text-white sm:px-6 sm:py-10">
-      <section className="mx-auto w-full max-w-4xl">
-        <div className="mb-8 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="mb-3 text-sm uppercase tracking-[0.3em] text-neutral-500">
-              Personal Trainer AI
-            </p>
-            <h1 className="text-3xl font-bold">
-              {isCompleted
-                ? "Aggiorna le tue risposte iniziali"
-                : "Prima di creare il tuo percorso, conosciamoti meglio"}
-            </h1>
-            <p className="mt-3 max-w-2xl text-neutral-400">
-              {isCompleted
-                ? "Hai gia completato questa fase iniziale. Puoi aggiornare le risposte senza perdere l'accesso alle aree gia attive."
-                : `${userName ? `${userName}, ` : ""}rispondi alle domande essenziali per preparare un percorso piu adatto al tuo contesto.`}
-            </p>
-            <p className="mt-4 max-w-2xl rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
-              Le informazioni nutrizionali saranno usate solo per stime
-              indicative e consigli generali, non per creare diete mediche.
-            </p>
-          </div>
+    <AppPage className="relative overflow-x-hidden pt-4" contentClassName="pb-28">
+      <div className="space-y-5 pt-10">
+        <PageHeader
+          eyebrow={isCompleted ? "Aggiornamento percorso" : "Questionario iniziale"}
+          title={isCompleted ? "Cambia obiettivo" : "Aggiorna il tuo percorso"}
+          description="Modifica le informazioni principali e crea un programma piu adatto alla tua nuova direzione."
+          meta={
+            userName && !isCompleted ? (
+              <p className="text-sm text-[var(--app-muted)]">
+                {userName}, bastano pochi passaggi per impostare un percorso piu adatto a te.
+              </p>
+            ) : null
+          }
+        />
 
-          <div className="text-sm text-neutral-400">
-            Step {currentStepIndex + 1} di {steps.length}
-          </div>
-        </div>
-
-        <div className="mb-8 h-2 overflow-hidden rounded-full bg-neutral-800">
-          <div
-            className="h-full rounded-full bg-white transition-all"
-            style={{ width: `${progress}%` }}
-          />
-        </div>
-
-        <div className="rounded-2xl border border-neutral-800 bg-neutral-900 p-5 sm:p-6">
-          <div className="mb-6">
-            <h2 className="text-2xl font-semibold">{currentStep.title}</h2>
-            <p className="mt-2 text-neutral-400">{currentStep.description}</p>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="grid gap-5 sm:grid-cols-2">
-              {visibleFields.map((field) => (
-                <label
-                  key={field.name}
-                  className={field.fullWidth ? "sm:col-span-2" : ""}
-                >
-                  <span className="mb-2 block text-sm text-neutral-300">
-                    {field.label}
-                    {field.required && (
-                      <span className="text-amber-300"> *</span>
-                    )}
-                  </span>
-
-                  {field.helpText && (
-                    <p className="mb-2 text-xs text-neutral-500">{field.helpText}</p>
-                  )}
-
-                  {field.type === "select" ? (
-                    <select
-                      value={getAnswerString(currentAnswers[field.name])}
-                      onChange={(event) =>
-                        updateAnswer(field.name, event.target.value)
-                      }
-                      className="w-full rounded-xl border border-neutral-800 bg-neutral-950 px-4 py-3 text-white outline-none focus:border-white"
-                    >
-                      <option value="">Seleziona</option>
-                      {field.options.map((entry) => (
-                        <option key={entry.value} value={entry.value}>
-                          {entry.label}
-                        </option>
-                      ))}
-                    </select>
-                  ) : field.type === "multiselect" ? (
-                    <div className="grid gap-2 sm:grid-cols-2">
-                      {field.options.map((entry) => {
-                        const selected = getAnswerArray(
-                          currentAnswers[field.name]
-                        ).includes(entry.value);
-
-                        return (
-                          <button
-                            key={entry.value}
-                            type="button"
-                            onClick={() => toggleMultiSelect(field, entry.value)}
-                            className={`rounded-xl border px-4 py-3 text-left text-sm transition ${
-                              selected
-                                ? "border-white bg-white text-neutral-950"
-                                : "border-neutral-800 bg-neutral-950 text-neutral-200"
-                            }`}
-                          >
-                            {entry.label}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  ) : field.type === "textarea" ? (
-                    <textarea
-                      value={getAnswerString(currentAnswers[field.name])}
-                      onChange={(event) =>
-                        updateAnswer(field.name, event.target.value)
-                      }
-                      className="min-h-28 w-full rounded-xl border border-neutral-800 bg-neutral-950 px-4 py-3 text-white outline-none focus:border-white"
-                      placeholder={field.placeholder}
-                    />
-                  ) : (
-                    <input
-                      value={getAnswerString(currentAnswers[field.name])}
-                      onChange={(event) =>
-                        updateAnswer(field.name, event.target.value)
-                      }
-                      className="w-full rounded-xl border border-neutral-800 bg-neutral-950 px-4 py-3 text-white outline-none focus:border-white"
-                      placeholder={field.placeholder}
-                      type={field.type}
-                    />
-                  )}
-                </label>
-              ))}
+        <AppCard
+          soft
+          className="overflow-hidden border-[var(--app-primary-border)] bg-[linear-gradient(160deg,rgba(18,21,22,0.96),rgba(208,216,43,0.08))] p-0 shadow-none"
+        >
+          <div className="space-y-4 p-5">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--app-primary)]">
+                  Step {currentStepIndex + 1} / {steps.length}
+                </p>
+                <h2 className="mt-2 text-[20px] font-bold tracking-[-0.02em] text-[var(--app-text)]">
+                  {currentStep.title}
+                </h2>
+                <p className="mt-2 text-sm leading-6 text-[var(--app-muted)]">
+                  {currentStep.description}
+                </p>
+              </div>
+              <div className="shrink-0 rounded-full border border-[var(--app-border)] bg-black/15 px-3 py-1 text-[12px] font-semibold text-[var(--app-muted)]">
+                {progress}%
+              </div>
             </div>
+            <ProgressBar value={progress} className="h-[7px] bg-white/6" />
+            <div className="flex items-center gap-3 rounded-[18px] border border-[var(--app-border)] bg-[rgba(255,255,255,0.03)] px-4 py-3">
+              <span className="h-10 w-1 shrink-0 rounded-full bg-[var(--app-primary)]" />
+              <div className="min-w-0">
+                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--app-primary)]">
+                  Stai compilando
+                </p>
+                <p className="mt-1 truncate text-sm font-semibold text-[var(--app-text)]">
+                  {currentStep.title}
+                </p>
+              </div>
+            </div>
+          </div>
+        </AppCard>
 
-            <p className="text-sm text-neutral-500">* Campo obbligatorio</p>
+        <AppCard
+          soft
+          className="border-[rgba(243,190,100,0.24)] bg-[rgba(243,190,100,0.08)] text-[var(--app-text)]"
+        >
+          <p className="text-sm leading-6 text-[rgba(255,243,214,0.92)]">
+            Le indicazioni nutrizionali servono solo a personalizzare meglio il percorso e
+            restano generali.
+          </p>
+        </AppCard>
 
-            {displayedSafetyResult && displayedSafetyResult.codes.length > 0 && (
-              <div
-                className={`rounded-xl border px-4 py-4 text-sm ${
-                  displayedSafetyResult.status === "blocked"
-                    ? "border-red-800 bg-red-950 text-red-100"
-                    : displayedSafetyResult.status === "restricted"
-                      ? "border-amber-700 bg-amber-950/60 text-amber-100"
-                      : "border-yellow-700 bg-yellow-950/50 text-yellow-100"
-                }`}
-              >
-                <h3 className="text-base font-semibold">Controllo di sicurezza</h3>
-                <div className="mt-3 space-y-2">
-                  {displayedSafetyResult.messages.map((item) => (
-                    <p key={item}>{item}</p>
-                  ))}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {visibleFields.map((field) => (
+            <AppCard
+              key={field.name}
+              className={field.fullWidth ? "" : ""}
+            >
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <h3 className="text-[16px] font-semibold tracking-[-0.01em] text-[var(--app-text)]">
+                        {field.label}
+                      </h3>
+                      {field.helpText ? (
+                        <p className="mt-1 text-sm leading-6 text-[var(--app-muted)]">
+                          {field.helpText}
+                        </p>
+                      ) : null}
+                    </div>
+                    {field.required ? (
+                      <span className="rounded-full border border-[var(--app-primary-border)] bg-[var(--app-primary-soft)] px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--app-primary)]">
+                        Obbligatorio
+                      </span>
+                    ) : null}
+                  </div>
                 </div>
 
-                {displayedSafetyResult.status === "blocked" && (
-                  <button
+                {field.type === "select" ? (
+                  <div className={getFieldGridClassName(field)}>
+                    {field.options.map((entry) => {
+                      const selected =
+                        getAnswerString(currentAnswers[field.name]) === entry.value;
+
+                      return (
+                        <button
+                          key={entry.value}
+                          type="button"
+                          onClick={() => updateAnswer(field.name, entry.value)}
+                          className={`min-h-14 rounded-[18px] border px-4 py-3 text-left text-sm font-semibold transition ${
+                            selected
+                              ? "border-[var(--app-primary-border)] bg-[var(--app-primary-soft)] text-[var(--app-primary)] shadow-[0_10px_24px_rgba(208,216,43,0.08)]"
+                              : "border-[var(--app-border)] bg-[rgba(255,255,255,0.02)] text-[var(--app-text)] hover:border-[rgba(208,216,43,0.18)] hover:bg-[rgba(255,255,255,0.04)]"
+                          }`}
+                        >
+                          {entry.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : field.type === "multiselect" ? (
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {field.options.map((entry) => {
+                      const selected = getAnswerArray(currentAnswers[field.name]).includes(
+                        entry.value
+                      );
+
+                      return (
+                        <button
+                          key={entry.value}
+                          type="button"
+                          onClick={() => toggleMultiSelect(field, entry.value)}
+                          className={`min-h-14 rounded-[18px] border px-4 py-3 text-left text-sm font-semibold transition ${
+                            selected
+                              ? "border-[var(--app-primary-border)] bg-[var(--app-primary-soft)] text-[var(--app-primary)] shadow-[0_10px_24px_rgba(208,216,43,0.08)]"
+                              : "border-[var(--app-border)] bg-[rgba(255,255,255,0.02)] text-[var(--app-text)] hover:border-[rgba(208,216,43,0.18)] hover:bg-[rgba(255,255,255,0.04)]"
+                          }`}
+                        >
+                          {entry.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : field.type === "textarea" ? (
+                  <textarea
+                    value={getAnswerString(currentAnswers[field.name])}
+                    onChange={(event) => updateAnswer(field.name, event.target.value)}
+                    className="min-h-32 w-full rounded-[18px] border border-[var(--app-border)] bg-[rgba(255,255,255,0.02)] px-4 py-3 text-[15px] text-[var(--app-text)] outline-none transition placeholder:text-[var(--app-muted-2)] focus:border-[var(--app-primary-border)] focus:bg-[rgba(255,255,255,0.04)]"
+                    placeholder={field.placeholder}
+                  />
+                ) : (
+                  <input
+                    value={getAnswerString(currentAnswers[field.name])}
+                    onChange={(event) => updateAnswer(field.name, event.target.value)}
+                    className="h-14 w-full rounded-[18px] border border-[var(--app-border)] bg-[rgba(255,255,255,0.02)] px-4 text-[15px] text-[var(--app-text)] outline-none transition placeholder:text-[var(--app-muted-2)] focus:border-[var(--app-primary-border)] focus:bg-[rgba(255,255,255,0.04)]"
+                    placeholder={field.placeholder}
+                    type={field.type}
+                  />
+                )}
+              </div>
+            </AppCard>
+          ))}
+
+          {displayedSafetyResult && displayedSafetyResult.codes.length > 0 ? (
+            <AppCard
+              soft
+              className={`${
+                displayedSafetyResult.status === "blocked"
+                  ? "border-[rgba(255,122,122,0.34)] bg-[rgba(255,122,122,0.09)]"
+                  : displayedSafetyResult.status === "restricted"
+                    ? "border-[rgba(243,190,100,0.3)] bg-[rgba(243,190,100,0.1)]"
+                    : "border-[rgba(243,190,100,0.24)] bg-[rgba(243,190,100,0.08)]"
+              }`}
+            >
+              <div className="space-y-3 text-sm leading-6">
+                <h3 className="text-base font-semibold text-[var(--app-text)]">
+                  Prima di continuare
+                </h3>
+                {displayedSafetyResult.messages.map((item) => (
+                  <p key={item} className="text-[var(--app-text)]/90">
+                    {item}
+                  </p>
+                ))}
+
+                {displayedSafetyResult.status === "blocked" ? (
+                  <SecondaryButton
                     type="button"
                     onClick={() => {
                       setMessage(null);
                       setSafetyResult(null);
                       setCurrentStepIndex((index) => Math.max(index - 1, 0));
                     }}
-                    className="mt-4 rounded-xl border border-red-700 px-4 py-2 font-semibold text-red-50"
+                    className="mt-2 min-h-11 rounded-[16px] border-[rgba(255,122,122,0.34)] bg-transparent text-[var(--app-text)]"
                   >
                     Torna agli step precedenti
-                  </button>
-                )}
+                  </SecondaryButton>
+                ) : null}
               </div>
-            )}
+            </AppCard>
+          ) : null}
 
-            <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:items-center sm:justify-between">
-              <button
-                type="button"
-                disabled={loading || currentStepIndex === 0}
-                onClick={() => {
-                  setMessage(null);
-                  setSafetyResult(null);
-                  setCurrentStepIndex((index) => index - 1);
-                }}
-                className="rounded-xl border border-neutral-700 px-5 py-3 font-semibold text-neutral-100 disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                Indietro
-              </button>
+          {message ? (
+            <AppCard
+              soft
+              className="border-[rgba(255,122,122,0.34)] bg-[rgba(255,122,122,0.09)]"
+            >
+              <p className="text-sm leading-6 text-[var(--app-text)]">{message}</p>
+            </AppCard>
+          ) : null}
 
-              <button
-                disabled={loading}
-                className="rounded-xl bg-white px-5 py-3 font-semibold text-neutral-950 disabled:opacity-50"
-              >
-                {loading
-                  ? "Salvataggio..."
-                  : isLastStep
-                    ? "Completa e vai alla dashboard"
-                    : "Salva e continua"}
-              </button>
+          <AppCard
+            soft
+            className="sticky bottom-[84px] border-[var(--app-border-strong)] bg-[rgba(10,13,13,0.92)] p-4 backdrop-blur"
+          >
+            <div className="space-y-4">
+              {loading ? (
+                <div className="space-y-2">
+                  <p className="text-sm font-semibold text-[var(--app-text)]">
+                    {getFooterLoadingCopy(isLastStep, isCompleted)}
+                  </p>
+                  <ProgressBar value={Math.max(progress, 12)} className="h-[5px]" />
+                </div>
+              ) : null}
+
+              <div className="flex items-center justify-between gap-3">
+                <SecondaryButton
+                  type="button"
+                  disabled={loading || currentStepIndex === 0}
+                  onClick={() => {
+                    setMessage(null);
+                    setSafetyResult(null);
+                    setCurrentStepIndex((index) => index - 1);
+                  }}
+                  className="min-h-12 rounded-[16px] disabled:opacity-40"
+                >
+                  Indietro
+                </SecondaryButton>
+
+                <PrimaryButton
+                  type="submit"
+                  disabled={loading}
+                  className="min-h-12 rounded-[16px] px-5 disabled:opacity-50"
+                >
+                  {getSubmitLabel(isLastStep, isCompleted, loading)}
+                </PrimaryButton>
+              </div>
             </div>
-          </form>
-
-          {message && (
-            <div className="mt-6 rounded-xl border border-red-800 bg-red-950 px-4 py-3 text-sm text-red-200">
-              {message}
-            </div>
-          )}
-        </div>
-      </section>
+          </AppCard>
+        </form>
+      </div>
 
       <AppBottomNav />
-    </main>
+    </AppPage>
   );
 }
