@@ -23,6 +23,9 @@
   --font-app-ui: var(--font-hanken);
   --font-app-metrics: var(--font-space);
   --app-shell-width: 402px;
+  --app-shell-outer-width: calc(var(--app-shell-width) + 36px);
+  --app-bottom-nav-height: 84px;
+  --app-bottom-nav-clearance: 76px;
 }
 
 @theme inline {
@@ -171,11 +174,15 @@ textarea {
 }
 
 .app-bottom-safe {
-  padding-bottom: calc(94px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(var(--app-bottom-nav-height) + 24px + env(safe-area-inset-bottom, 0px));
 }
 
 .app-shell-nav {
-  width: min(calc(100vw - 16px), var(--app-shell-width));
+  width: 100%;
+}
+
+.app-bottom-nav-frame {
+  padding-inline: 12px;
 }
 
 @keyframes coachBubble {

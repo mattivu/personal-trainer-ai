@@ -229,7 +229,11 @@ export function CoachChat({ currentWorkoutId }: CoachChatProps) {
 
       <form
         onSubmit={handleSubmit}
-        className="pointer-events-auto sticky bottom-[calc(74px+env(safe-area-inset-bottom,0px))] z-20 mt-4"
+        className="pointer-events-auto sticky z-20 mt-4"
+        style={{
+          bottom:
+            "calc(var(--app-bottom-nav-clearance) + env(safe-area-inset-bottom, 0px))",
+        }}
       >
         <div className="w-full rounded-[28px] border border-white/8 bg-[rgba(10,13,13,0.9)] p-3 shadow-[0_18px_54px_rgba(0,0,0,0.42)] backdrop-blur-xl">
           {error ? (
