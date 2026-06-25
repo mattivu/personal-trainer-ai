@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import type { AdaptiveNutritionReview } from "@/lib/nutrition/adaptive-engine";
+import { AppBadge } from "@/components/ui/app-badge";
+import { AppCard } from "@/components/ui/app-card";
 
 type AdaptiveReviewCardProps = {
   review: AdaptiveNutritionReview;
@@ -40,45 +42,53 @@ function formatNumber(value: number, digits = 0) {
 
 function formatPercent(value: number | null) {
   if (value === null) {
-    return "Dati insufficienti";
+    return "—";
   }
 
-  return `${formatNumber(value, 2)}%`;
+  return `${formatNumber(value, 0)}%`;
 }
 
 function formatMetric(value: number | null, unit: string, digits = 0) {
   if (value === null) {
-    return "Dati insufficienti";
+    return "—";
   }
 
   return `${formatNumber(value, digits)} ${unit}`;
 }
 
+function formatDelta(value: number) {
+  if (value === 0) {
+    return "0";
+  }
+
+  return `${value > 0 ? "+" : ""}${formatNumber(value)}`;
+}
+
 function getStatusLabel(status: AdaptiveNutritionReview["status"]) {
   switch (status) {
     case "adjustment_recommended":
-      return "Aggiustamento consigliato";
+      return "Modifica consigliata";
     case "caution":
-      return "Attenzione";
+      return "Da osservare";
     case "insufficient_data":
-      return "Servono piu dati";
+      return "Pochi dati";
     case "on_track":
     default:
       return "In linea";
   }
 }
 
-function getStatusClasses(status: AdaptiveNutritionReview["status"]) {
+function getStatusTone(status: AdaptiveNutritionReview["status"]) {
   switch (status) {
     case "adjustment_recommended":
-      return "border-sky-700 bg-sky-950/40 text-sky-200";
+      return "accent" as const;
     case "caution":
-      return "border-amber-700 bg-amber-950/40 text-amber-100";
+      return "warning" as const;
     case "insufficient_data":
-      return "border-neutral-700 bg-neutral-900 text-neutral-200";
+      return "neutral" as const;
     case "on_track":
     default:
-      return "border-emerald-700 bg-emerald-950/40 text-emerald-200";
+      return "success" as const;
   }
 }
 
@@ -91,14 +101,14 @@ function getRecommendationLabel(type: AdaptiveNutritionReview["recommendation"][
     case "increase_protein":
       return "Alza un po' le proteine";
     case "reduce_rate":
-      return "Riduci il ritmo del cambiamento";
+      return "Rallenta il ritmo";
     case "increase_activity":
-      return "Aumenta leggermente l'attivita";
+      return "Aumenta leggermente il movimento";
     case "hold":
-      return "Mantieni il target";
+      return "Mantieni i target";
     case "none":
     default:
-      return "Nessun aggiustamento";
+      return "Nessuna modifica necessaria";
   }
 }
 
@@ -109,7 +119,7 @@ async function parseApiResponse<T>(response: Response) {
   if (!trimmedBody) {
     return {
       ok: false,
-      message: "Risposta vuota dal server.",
+      message: "Risposta non disponibile.",
     } as T;
   }
 
@@ -167,8 +177,8 @@ export function AdaptiveReviewCard({
       if (!response.ok || !payload.ok) {
         setError(
           !payload.ok
-            ? payload.message ?? "Impossibile applicare l'aggiustamento."
-            : "Impossibile applicare l'aggiustamento."
+            ? payload.message ?? "Impossibile applicare la modifica."
+            : "Impossibile applicare la modifica."
         );
         return;
       }
@@ -178,145 +188,252 @@ export function AdaptiveReviewCard({
         router.refresh();
       });
     } catch {
-      setError("Errore di rete durante l'applicazione dell'aggiustamento.");
+      setError("Errore di rete durante l'applicazione della modifica.");
     } finally {
       setPending(false);
     }
   }
 
   return (
-    <section className="mt-6 rounded-2xl border border-neutral-800 bg-neutral-900 p-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <p className="text-sm uppercase tracking-[0.2em] text-neutral-500">
-            Revisione nutrizionale
-          </p>
-          <h2 className="mt-2 text-2xl font-semibold">Aggiustamento proposto</h2>
-          <p className="mt-3 max-w-2xl text-sm text-neutral-400">
-            L'aggiustamento e orientativo e non sostituisce un professionista.
-          </p>
-        </div>
-
-        <div
-          className={`inline-flex rounded-xl border px-4 py-2 text-sm font-semibold ${getStatusClasses(review.status)}`}
-        >
-          {getStatusLabel(review.status)}
-        </div>
-      </div>
-
+    <div className="space-y-4">
       {message ? (
-        <div className="mt-5 rounded-xl border border-emerald-800 bg-emerald-950/40 px-4 py-3 text-sm text-emerald-200">
-          {message}
-        </div>
+        <AppCard className="rounded-[22px] border-[var(--app-primary-border)] bg-[linear-gradient(135deg,rgba(15,16,18,0.96),rgba(208,216,43,0.08))] p-4 shadow-none">
+          <p className="text-sm text-[var(--app-text)]">{message}</p>
+        </AppCard>
       ) : null}
 
       {error ? (
-        <div className="mt-5 rounded-xl border border-rose-800 bg-rose-950/40 px-4 py-3 text-sm text-rose-200">
-          {error}
-        </div>
+        <AppCard className="border-rose-500/30 bg-[linear-gradient(165deg,rgba(52,18,18,0.92),rgba(24,12,12,0.98))] p-4 shadow-none">
+          <p className="text-sm text-rose-100">{error}</p>
+        </AppCard>
       ) : null}
 
-      <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-2xl border border-neutral-800 bg-neutral-950 p-4">
-          <p className="text-sm text-neutral-500">Giorni registrati</p>
-          <p className="mt-2 text-2xl font-semibold">
-            {review.adherence.trackedDays}/{review.analysisWindowDays}
-          </p>
-          <p className="mt-2 text-sm text-neutral-400">
-            copertura {formatPercent(review.adherence.mealCoverageRatio * 100)}
-          </p>
-        </div>
+      {canApply && review.proposedTargets ? (
+        <AppCard className="rounded-[24px] border-[var(--app-primary-border)] bg-[linear-gradient(145deg,rgba(18,21,22,0.98),rgba(208,216,43,0.08))] p-4 shadow-none">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--app-primary)]">
+                Revisione
+              </p>
+              <h2 className="mt-2 text-[20px] font-semibold tracking-[-0.03em] text-[var(--app-text)]">
+                Aggiustamento consigliato
+              </h2>
+              <p className="mt-2 text-sm leading-6 text-[var(--app-muted)]">
+                {review.recommendation.reason}
+              </p>
+            </div>
+            <AppBadge tone={getStatusTone(review.status)}>
+              {getStatusLabel(review.status)}
+            </AppBadge>
+          </div>
 
-        <div className="rounded-2xl border border-neutral-800 bg-neutral-950 p-4">
-          <p className="text-sm text-neutral-500">Calorie medie</p>
-          <p className="mt-2 text-2xl font-semibold">
-            {formatMetric(review.adherence.averageCalories, "kcal")}
-          </p>
-          <p className="mt-2 text-sm text-neutral-400">
-            attivita media {formatMetric(review.adherence.averageActivityCalories, "kcal")}
-          </p>
-        </div>
+          <div className="mt-4 grid gap-3">
+            <div className="rounded-[20px] border border-[var(--app-primary-border)] bg-[var(--app-primary-soft)] px-4 py-3.5">
+              <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--app-primary)]">
+                Calorie
+              </p>
+              <div className="mt-2 flex items-center gap-3 text-sm font-semibold text-[var(--app-text)]">
+                <span>{formatNumber(currentTargets.calories)} kcal</span>
+                <span className="text-[var(--app-muted)]">→</span>
+                <span>{formatNumber(review.proposedTargets.calories)} kcal</span>
+              </div>
+            </div>
 
-        <div className="rounded-2xl border border-neutral-800 bg-neutral-950 p-4">
-          <p className="text-sm text-neutral-500">Proteine medie</p>
-          <p className="mt-2 text-2xl font-semibold">
-            {formatMetric(review.adherence.averageProtein, "g")}
-          </p>
-          <p className="mt-2 text-sm text-neutral-400">
-            carboidrati {formatMetric(review.adherence.averageCarbs, "g")} · grassi{" "}
-            {formatMetric(review.adherence.averageFat, "g")}
-          </p>
-        </div>
+            <div className="grid grid-cols-3 gap-3">
+              <div className="rounded-[18px] border border-[var(--app-border)] bg-[var(--app-surface-soft)] px-4 py-3">
+                <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--app-muted-2)]">
+                  Proteine
+                </p>
+                <p className="mt-2 text-sm font-semibold text-[var(--app-text)]">
+                  {formatNumber(currentTargets.protein)} → {formatNumber(review.proposedTargets.protein)} g
+                </p>
+              </div>
 
-        <div className="rounded-2xl border border-neutral-800 bg-neutral-950 p-4">
-          <p className="text-sm text-neutral-500">Trend peso</p>
-          <p className="mt-2 text-2xl font-semibold">
-            {formatMetric(review.weightTrend.latestWeightKg, "kg", 1)}
-          </p>
-          <p className="mt-2 text-sm text-neutral-400">
-            7 giorni {formatMetric(review.weightTrend.change7dKg, "kg", 1)} · 14 giorni{" "}
-            {formatMetric(review.weightTrend.change14dKg, "kg", 1)}
-          </p>
-        </div>
-      </div>
+              <div className="rounded-[18px] border border-[var(--app-border)] bg-[var(--app-surface-soft)] px-4 py-3">
+                <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--app-muted-2)]">
+                  Carboidrati
+                </p>
+                <p className="mt-2 text-sm font-semibold text-[var(--app-text)]">
+                  {formatNumber(currentTargets.carbs)} → {formatNumber(review.proposedTargets.carbs)} g
+                </p>
+              </div>
 
-      <div className="mt-6 grid gap-4 lg:grid-cols-2">
-        <div className="rounded-2xl border border-neutral-800 bg-neutral-950 p-5">
-          <p className="text-sm text-neutral-500">Raccomandazione</p>
-          <p className="mt-2 text-xl font-semibold">
-            {getRecommendationLabel(review.recommendation.type)}
-          </p>
-          <p className="mt-3 text-sm text-neutral-300">{review.recommendation.reason}</p>
+              <div className="rounded-[18px] border border-[var(--app-border)] bg-[var(--app-surface-soft)] px-4 py-3">
+                <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--app-muted-2)]">
+                  Grassi
+                </p>
+                <p className="mt-2 text-sm font-semibold text-[var(--app-text)]">
+                  {formatNumber(currentTargets.fat)} → {formatNumber(review.proposedTargets.fat)} g
+                </p>
+              </div>
+            </div>
+          </div>
+
           {review.recommendation.caution ? (
-            <p className="mt-4 rounded-xl border border-amber-800 bg-amber-950/40 px-4 py-3 text-sm text-amber-100">
+            <div className="mt-4 rounded-[18px] border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
               {review.recommendation.caution}
-            </p>
+            </div>
           ) : null}
-          {review.weightTrend.weeklyRatePercent !== null ? (
-            <p className="mt-4 text-sm text-neutral-400">
-              Variazione settimanale stimata: {formatPercent(review.weightTrend.weeklyRatePercent)}
-            </p>
-          ) : null}
-        </div>
-
-        <div className="rounded-2xl border border-neutral-800 bg-neutral-950 p-5">
-          <p className="text-sm text-neutral-500">Target attuale</p>
-          <p className="mt-2 text-sm text-neutral-300">
-            {formatNumber(currentTargets.calories)} kcal · {formatNumber(currentTargets.protein)} g
-            proteine · {formatNumber(currentTargets.carbs)} g carboidrati ·{" "}
-            {formatNumber(currentTargets.fat)} g grassi
-          </p>
-
-          <p className="mt-5 text-sm text-neutral-500">Target proposto</p>
-          <p className="mt-2 text-sm text-neutral-300">
-            {review.proposedTargets
-              ? `${formatNumber(review.proposedTargets.calories)} kcal · ${formatNumber(review.proposedTargets.protein)} g proteine · ${formatNumber(review.proposedTargets.carbs)} g carboidrati · ${formatNumber(review.proposedTargets.fat)} g grassi`
-              : "Nessun nuovo target da applicare ora."}
-          </p>
 
           <button
             type="button"
             onClick={handleApply}
             disabled={!canApply || pending || isRefreshing}
-            className="mt-5 inline-flex rounded-xl bg-white px-4 py-3 text-sm font-semibold text-neutral-950 disabled:cursor-not-allowed disabled:bg-neutral-700 disabled:text-neutral-300"
+            className="app-primary-button mt-5 w-full disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {pending || isRefreshing ? "Applicazione..." : "Applica aggiustamento"}
+            {pending || isRefreshing ? "Applicazione..." : "Applica modifica"}
           </button>
-        </div>
-      </div>
+        </AppCard>
+      ) : (
+        <AppCard className="p-4">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--app-muted-2)]">
+                Revisione
+              </p>
+              <h2 className="mt-2 text-[20px] font-semibold tracking-[-0.03em] text-[var(--app-text)]">
+                Nessuna modifica necessaria
+              </h2>
+              <p className="mt-2 text-sm leading-6 text-[var(--app-muted)]">
+                {review.recommendation.reason}
+              </p>
+              <p className="mt-2 text-sm leading-6 text-[var(--app-muted)]">
+                Continua a registrare pasti e peso per mantenere una revisione affidabile.
+              </p>
+            </div>
+            <AppBadge tone={getStatusTone(review.status)}>
+              {getStatusLabel(review.status)}
+            </AppBadge>
+          </div>
+        </AppCard>
+      )}
 
-      {review.warnings.length > 0 ? (
-        <div className="mt-6 space-y-3">
-          {review.warnings.map((warning) => (
-            <p
-              key={warning}
-              className="rounded-xl border border-neutral-800 bg-neutral-950 px-4 py-3 text-sm text-neutral-300"
-            >
-              {warning}
-            </p>
-          ))}
-        </div>
-      ) : null}
-    </section>
+      <AppCard className="p-4">
+        <details className="group">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold text-[var(--app-text)]">
+            <span>Dettagli revisione</span>
+            <span className="text-[var(--app-primary)] group-open:hidden">Mostra</span>
+            <span className="hidden text-[var(--app-primary)] group-open:inline">
+              Mostra meno
+            </span>
+          </summary>
+
+          <div className="mt-4 space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-[18px] border border-[var(--app-border)] bg-[var(--app-surface-soft)] px-4 py-3">
+                <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--app-muted-2)]">
+                  Periodo
+                </p>
+                <p className="mt-2 text-sm font-semibold text-[var(--app-text)]">
+                  Ultimi {review.analysisWindowDays} giorni
+                </p>
+              </div>
+
+              <div className="rounded-[18px] border border-[var(--app-border)] bg-[var(--app-surface-soft)] px-4 py-3">
+                <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--app-muted-2)]">
+                  Costanza
+                </p>
+                <p className="mt-2 text-sm font-semibold text-[var(--app-text)]">
+                  {formatPercent(review.adherence.mealCoverageRatio * 100)}
+                </p>
+              </div>
+
+              <div className="rounded-[18px] border border-[var(--app-border)] bg-[var(--app-surface-soft)] px-4 py-3">
+                <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--app-muted-2)]">
+                  Media calorie
+                </p>
+                <p className="mt-2 text-sm font-semibold text-[var(--app-text)]">
+                  {formatMetric(review.adherence.averageCalories, "kcal")}
+                </p>
+              </div>
+
+              <div className="rounded-[18px] border border-[var(--app-border)] bg-[var(--app-surface-soft)] px-4 py-3">
+                <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--app-muted-2)]">
+                  Movimento
+                </p>
+                <p className="mt-2 text-sm font-semibold text-[var(--app-text)]">
+                  {formatMetric(review.adherence.averageActivityCalories, "kcal")}
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3">
+              <div className="rounded-[18px] border border-[var(--app-border)] bg-[var(--app-surface-soft)] px-4 py-3">
+                <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--app-muted-2)]">
+                  Proteine
+                </p>
+                <p className="mt-2 text-sm font-semibold text-[var(--app-text)]">
+                  {formatMetric(review.adherence.averageProtein, "g")}
+                </p>
+              </div>
+
+              <div className="rounded-[18px] border border-[var(--app-border)] bg-[var(--app-surface-soft)] px-4 py-3">
+                <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--app-muted-2)]">
+                  Carboidrati
+                </p>
+                <p className="mt-2 text-sm font-semibold text-[var(--app-text)]">
+                  {formatMetric(review.adherence.averageCarbs, "g")}
+                </p>
+              </div>
+
+              <div className="rounded-[18px] border border-[var(--app-border)] bg-[var(--app-surface-soft)] px-4 py-3">
+                <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--app-muted-2)]">
+                  Grassi
+                </p>
+                <p className="mt-2 text-sm font-semibold text-[var(--app-text)]">
+                  {formatMetric(review.adherence.averageFat, "g")}
+                </p>
+              </div>
+            </div>
+
+            <div className="rounded-[18px] border border-[var(--app-border)] bg-[var(--app-surface-soft)] px-4 py-3">
+              <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--app-muted-2)]">
+                Andamento peso
+              </p>
+              <p className="mt-2 text-sm font-semibold text-[var(--app-text)]">
+                {formatMetric(review.weightTrend.latestWeightKg, "kg", 1)}
+              </p>
+              <p className="mt-1 text-sm text-[var(--app-muted)]">
+                7 giorni {formatMetric(review.weightTrend.change7dKg, "kg", 1)} · 14 giorni{" "}
+                {formatMetric(review.weightTrend.change14dKg, "kg", 1)}
+              </p>
+              {review.weightTrend.weeklyRatePercent !== null ? (
+                <p className="mt-2 text-sm text-[var(--app-muted)]">
+                  Ritmo settimanale: {formatPercent(review.weightTrend.weeklyRatePercent)}
+                </p>
+              ) : null}
+            </div>
+
+            <div className="rounded-[18px] border border-[var(--app-border)] bg-[var(--app-surface-soft)] px-4 py-3">
+              <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--app-muted-2)]">
+                Sintesi
+              </p>
+              <p className="mt-2 text-sm font-semibold text-[var(--app-text)]">
+                {getRecommendationLabel(review.recommendation.type)}
+              </p>
+              <p className="mt-1 text-sm text-[var(--app-muted)]">
+                Calorie {formatDelta(review.recommendation.calorieDelta)} · Proteine{" "}
+                {formatDelta(review.recommendation.proteinDelta)} · Carboidrati{" "}
+                {formatDelta(review.recommendation.carbsDelta)} · Grassi{" "}
+                {formatDelta(review.recommendation.fatDelta)}
+              </p>
+            </div>
+
+            {review.warnings.length > 0 ? (
+              <div className="space-y-2">
+                {review.warnings.map((warning) => (
+                  <div
+                    key={warning}
+                    className="rounded-[18px] border border-[var(--app-border)] bg-[var(--app-surface-soft)] px-4 py-3 text-sm text-[var(--app-text)]"
+                  >
+                    {warning}
+                  </div>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        </details>
+      </AppCard>
+    </div>
   );
 }
