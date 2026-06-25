@@ -1,8 +1,6 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AppBottomNav } from "@/components/app-bottom-nav";
 import { AdaptiveReviewCard } from "@/components/nutrition/adaptive-review-card";
-import { AppBadge } from "@/components/ui/app-badge";
 import { AppCard } from "@/components/ui/app-card";
 import { AppPage } from "@/components/ui/app-page";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -13,10 +11,7 @@ import {
   getBodyWeightTrendLabel,
 } from "@/lib/body-weight";
 import { buildAdaptiveNutritionReview } from "@/lib/nutrition/adaptive-engine";
-import {
-  getNutritionWeeklyReviewForUser,
-  type NutritionWeeklyReviewStatus,
-} from "@/lib/nutrition/weekly-review";
+import { getNutritionWeeklyReviewForUser } from "@/lib/nutrition/weekly-review";
 import { getOrCreateNutritionProfile } from "@/lib/nutrition/profile";
 import { getCurrentUser } from "@/lib/session";
 
@@ -58,21 +53,6 @@ function formatCompactWeightDelta(value: number | null) {
   }
 
   return formatBodyWeightDelta(value);
-}
-
-function getStatusTone(status: NutritionWeeklyReviewStatus) {
-  switch (status) {
-    case "Settimana coerente":
-    case "Buona continuita":
-      return "accent" as const;
-    case "Proteine da migliorare":
-      return "warning" as const;
-    case "Calorie poco controllate":
-    case "Target da osservare":
-    case "Dati insufficienti":
-    default:
-      return "neutral" as const;
-  }
 }
 
 function getGeneralStateMessage(input: {
@@ -120,6 +100,10 @@ export default async function NutritionWeeklyReviewPage() {
     recommendation: review.recommendation,
     cautionMessage: review.cautionMessage,
   });
+  const generalStateNote =
+    review.cautionMessage && review.cautionMessage !== review.recommendation
+      ? review.recommendation
+      : null;
   const periodLabel = `Ultimi ${adaptiveReview.analysisWindowDays} giorni`;
 
   return (
@@ -129,16 +113,34 @@ export default async function NutritionWeeklyReviewPage() {
           eyebrow="Nutrizione"
           title="Revisione nutrizionale"
           description="Controlla andamento, aderenza e possibili aggiustamenti."
-          action={
-            <Link
-              href="/nutrition"
-              className="inline-flex min-h-10 items-center rounded-full border border-[var(--app-border)] bg-white/[0.03] px-4 text-sm font-semibold text-[var(--app-text)]"
-            >
-              Nutrizione
-            </Link>
-          }
-          meta={<AppBadge tone={getStatusTone(review.status)}>{review.status}</AppBadge>}
         />
+
+        <AppCard className="overflow-hidden border-[var(--app-primary-border)] bg-[linear-gradient(145deg,rgba(18,21,22,0.98),rgba(208,216,43,0.06))] p-0 shadow-none">
+          <div className="flex items-start gap-4 px-4 py-4">
+            <div
+              className={[
+                "flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border text-lg font-semibold",
+                isInsufficientData
+                  ? "border-white/10 bg-white/[0.06] text-[var(--app-text)]"
+                  : "border-[var(--app-primary-border)] bg-[var(--app-primary-soft)] text-[var(--app-primary)]",
+              ].join(" ")}
+              aria-hidden="true"
+            >
+              {isInsufficientData ? "!" : "✓"}
+            </div>
+
+            <div className="min-w-0">
+              <p className="text-[18px] font-semibold tracking-[-0.03em] text-[var(--app-text)]">
+                {isInsufficientData ? "Dati insufficienti" : "Dati sufficienti"}
+              </p>
+              <p className="mt-1 text-sm leading-6 text-[var(--app-muted)]">
+                {isInsufficientData
+                  ? "Registra più giorni prima di valutare modifiche affidabili"
+                  : "Revisione pronta per valutare eventuali aggiustamenti"}
+              </p>
+            </div>
+          </div>
+        </AppCard>
 
         <AppCard className="overflow-hidden p-0">
           <div className="bg-[linear-gradient(165deg,var(--app-surface-2)_0%,#101314_58%,#0f1213_100%)] px-[18px] py-5">
@@ -206,24 +208,18 @@ export default async function NutritionWeeklyReviewPage() {
         </AppCard>
 
         <AppCard className="p-4">
-          <div className="flex items-start justify-between gap-4">
-            <div className="min-w-0">
-              <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--app-muted-2)]">
-                Stato generale
-              </p>
-              <h2 className="mt-2 text-[20px] font-semibold tracking-[-0.03em] text-[var(--app-text)]">
-                {generalStateMessage}
-              </h2>
-              <p className="mt-2 text-sm leading-6 text-[var(--app-muted)]">
-                {review.recommendation}
-              </p>
-            </div>
-            <AppBadge tone={getStatusTone(review.status)}>{review.status}</AppBadge>
+          <div className="min-w-0">
+            <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--app-muted-2)]">
+              Stato generale
+            </p>
+            <h2 className="mt-2 max-w-none text-[20px] font-semibold leading-tight tracking-[-0.03em] text-[var(--app-text)]">
+              {generalStateMessage}
+            </h2>
           </div>
 
-          {review.cautionMessage ? (
-            <div className="mt-4 rounded-[18px] border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
-              {review.cautionMessage}
+          {generalStateNote ? (
+            <div className="mt-4 rounded-[18px] border border-amber-400/20 bg-amber-500/[0.08] px-4 py-3 text-sm leading-6 text-amber-50">
+              {generalStateNote}
             </div>
           ) : null}
         </AppCard>
@@ -286,8 +282,8 @@ export default async function NutritionWeeklyReviewPage() {
         {isInsufficientData ? (
           <AppCard className="p-4">
             <EmptyState
-              title="Dati ancora insufficienti"
-              description="Registra pasti e peso per qualche giorno in piu prima della prossima revisione."
+              title="Continua a registrare"
+              description="Aggiungi pasti e peso per qualche giorno in più così la prossima revisione sarà più affidabile."
               action={
                 <div className="grid gap-3 sm:grid-cols-2">
                   <SecondaryButton href="/nutrition">Vai alla nutrizione</SecondaryButton>

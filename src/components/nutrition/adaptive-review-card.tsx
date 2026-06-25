@@ -112,6 +112,20 @@ function getRecommendationLabel(type: AdaptiveNutritionReview["recommendation"][
   }
 }
 
+function getComparisonLabel(status: AdaptiveNutritionReview["status"]) {
+  switch (status) {
+    case "adjustment_recommended":
+      return "Modifica consigliata";
+    case "caution":
+      return "Da osservare";
+    case "insufficient_data":
+      return "Servono più dati";
+    case "on_track":
+    default:
+      return "Target stabile";
+  }
+}
+
 async function parseApiResponse<T>(response: Response) {
   const rawBody = await response.text();
   const trimmedBody = rawBody.trim();
@@ -227,50 +241,55 @@ export function AdaptiveReviewCard({
             </AppBadge>
           </div>
 
-          <div className="mt-4 grid gap-3">
-            <div className="rounded-[20px] border border-[var(--app-primary-border)] bg-[var(--app-primary-soft)] px-4 py-3.5">
-              <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--app-primary)]">
-                Calorie
-              </p>
-              <div className="mt-2 flex items-center gap-3 text-sm font-semibold text-[var(--app-text)]">
-                <span>{formatNumber(currentTargets.calories)} kcal</span>
-                <span className="text-[var(--app-muted)]">→</span>
-                <span>{formatNumber(review.proposedTargets.calories)} kcal</span>
+          <div className="mt-4 rounded-[22px] border border-white/10 bg-[linear-gradient(180deg,rgba(14,17,18,0.98),rgba(18,21,22,0.98))] px-4 py-4">
+            <div className="flex items-center justify-between gap-4">
+              <div className="min-w-0">
+                <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--app-muted-2)]">
+                  Target attuale
+                </p>
+                <p className="mt-2 font-metrics text-[30px] font-semibold leading-none tracking-[-0.04em] text-white">
+                  {formatNumber(currentTargets.calories)}
+                </p>
+                <p className="mt-1 text-sm text-[var(--app-muted)]">kcal</p>
+              </div>
+
+              <div className="shrink-0 text-[24px] font-semibold text-[var(--app-primary)]">→</div>
+
+              <div className="min-w-0 text-right">
+                <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--app-muted-2)]">
+                  Proposto
+                </p>
+                <p className="mt-2 font-metrics text-[30px] font-semibold leading-none tracking-[-0.04em] text-[var(--app-primary)]">
+                  {formatNumber(review.proposedTargets.calories)}
+                </p>
+                <p className="mt-1 text-sm text-[var(--app-primary)]">kcal</p>
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-3">
-              <div className="rounded-[18px] border border-[var(--app-border)] bg-[var(--app-surface-soft)] px-4 py-3">
-                <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--app-muted-2)]">
-                  Proteine
-                </p>
-                <p className="mt-2 text-sm font-semibold text-[var(--app-text)]">
-                  {formatNumber(currentTargets.protein)} → {formatNumber(review.proposedTargets.protein)} g
-                </p>
-              </div>
-
-              <div className="rounded-[18px] border border-[var(--app-border)] bg-[var(--app-surface-soft)] px-4 py-3">
-                <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--app-muted-2)]">
-                  Carboidrati
-                </p>
-                <p className="mt-2 text-sm font-semibold text-[var(--app-text)]">
-                  {formatNumber(currentTargets.carbs)} → {formatNumber(review.proposedTargets.carbs)} g
-                </p>
-              </div>
-
-              <div className="rounded-[18px] border border-[var(--app-border)] bg-[var(--app-surface-soft)] px-4 py-3">
-                <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--app-muted-2)]">
-                  Grassi
-                </p>
-                <p className="mt-2 text-sm font-semibold text-[var(--app-text)]">
-                  {formatNumber(currentTargets.fat)} → {formatNumber(review.proposedTargets.fat)} g
-                </p>
-              </div>
+            <div className="mt-4 flex flex-wrap items-center gap-2 text-sm">
+              <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[var(--app-text)]">
+                Proteine {formatNumber(currentTargets.protein)} →{" "}
+                <span className="text-[var(--app-primary)]">
+                  {formatNumber(review.proposedTargets.protein)} g
+                </span>
+              </span>
+              <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[var(--app-text)]">
+                Carboidrati {formatNumber(currentTargets.carbs)} →{" "}
+                <span className="text-[var(--app-primary)]">
+                  {formatNumber(review.proposedTargets.carbs)} g
+                </span>
+              </span>
+              <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[var(--app-text)]">
+                Grassi {formatNumber(currentTargets.fat)} →{" "}
+                <span className="text-[var(--app-primary)]">
+                  {formatNumber(review.proposedTargets.fat)} g
+                </span>
+              </span>
             </div>
           </div>
 
           {review.recommendation.caution ? (
-            <div className="mt-4 rounded-[18px] border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+            <div className="mt-4 rounded-[18px] border border-amber-400/20 bg-amber-500/[0.08] px-4 py-3 text-sm leading-6 text-amber-50">
               {review.recommendation.caution}
             </div>
           ) : null}
@@ -292,7 +311,7 @@ export function AdaptiveReviewCard({
                 Revisione
               </p>
               <h2 className="mt-2 text-[20px] font-semibold tracking-[-0.03em] text-[var(--app-text)]">
-                Nessuna modifica necessaria
+                {getComparisonLabel(review.status)}
               </h2>
               <p className="mt-2 text-sm leading-6 text-[var(--app-muted)]">
                 {review.recommendation.reason}
