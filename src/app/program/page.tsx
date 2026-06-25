@@ -359,11 +359,11 @@ function SummaryMetric({
   value: string;
 }) {
   return (
-    <div className="space-y-1.5 rounded-[18px] border border-white/7 bg-white/[0.025] px-3.5 py-3">
-      <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--app-muted-2)]">
+    <div className="min-w-0 space-y-1">
+      <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--app-muted-2)]">
         {label}
       </p>
-      <p className="text-[15px] font-semibold leading-5 tracking-[-0.02em] text-[var(--app-text)]">
+      <p className="min-w-0 text-[15px] font-semibold leading-5 tracking-[-0.02em] text-[var(--app-text)] [overflow-wrap:anywhere]">
         {value}
       </p>
     </div>
@@ -604,9 +604,9 @@ export default async function ProgramPage(props: ProgramPageProps) {
           <>
             <AppCard
               soft
-              className="rounded-[24px] border-white/8 bg-[var(--app-surface)] px-4 py-4 shadow-none"
+              className="rounded-[24px] border-white/8 bg-[linear-gradient(165deg,rgba(22,25,27,0.96)_0%,rgba(16,19,20,0.98)_100%)] px-4 py-4 shadow-none"
             >
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-x-4 gap-y-4">
                 <SummaryMetric
                   label="Obiettivo"
                   value={getProgramObjective(activeProgram)}
@@ -624,23 +624,23 @@ export default async function ProgramPage(props: ProgramPageProps) {
                   }
                 />
                 <SummaryMetric
-                  label="Distribuzione"
+                  label="Split"
                   value={getDistributionLabel(sanitizedProgramNotes, activeWorkouts)}
                 />
               </div>
 
-              <div className="mt-4 border-t border-white/8 pt-4">
+              <div className="mt-4 border-t border-white/8 pt-3.5">
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-[13px] font-medium text-[var(--app-muted)]">
                     Avanzamento
                   </p>
-                  <p className="text-[13px] font-semibold text-[var(--app-text)]">
+                  <p className="text-right text-[13px] font-semibold text-[var(--app-primary)]">
                     {programDurationWeeks && currentProgramWeek
                       ? `Settimana ${currentProgramWeek} / ${programDurationWeeks}`
                       : `${completedSessions} / ${weeklySessions} sedute`}
                   </p>
                 </div>
-                <ProgressBar value={stripProgressValue} className="mt-3 h-[4px]" />
+                <ProgressBar value={stripProgressValue} className="mt-3 h-[5px]" />
               </div>
             </AppCard>
 
