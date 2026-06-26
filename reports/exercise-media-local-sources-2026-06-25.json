@@ -1,0 +1,1632 @@
+{
+  "generatedAt": "2026-06-26T16:03:38.981Z",
+  "reportDate": "2026-06-25",
+  "mode": "apply",
+  "summary": {
+    "analyzed": 94,
+    "high": 12,
+    "medium": 47,
+    "low": 3,
+    "none": 32,
+    "appliedHigh": 12,
+    "appliedMedium": 12,
+    "appliedTotal": 24,
+    "groupA": 0,
+    "groupB": 12,
+    "groupC": 50,
+    "groupD": 32,
+    "sourceTypes": {
+      "internal_db": 0,
+      "local_asset": 0,
+      "imported_dataset": 12,
+      "manual_review": 50,
+      "none": 32
+    }
+  },
+  "localSourceInventory": {
+    "scannedRoots": [
+      "public"
+    ],
+    "localAssetCandidates": 0
+  },
+  "rows": [
+    {
+      "missingExerciseId": 4,
+      "missingExerciseName": "Affondi statici",
+      "sourceType": "manual_review",
+      "candidateExerciseId": 255,
+      "candidateExerciseName": "Bodyweight Squat",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Bodyweight_Squat/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Bodyweight_Squat/1.jpg"
+      ],
+      "confidence": "medium",
+      "reason": "muscolo principale compatibile; attrezzatura compatibile; categoria compatibile; 2 immagini disponibili",
+      "matchedBy": "fuzzy",
+      "wouldApply": false,
+      "applied": false,
+      "notes": "primary ok; equipment ok; category ok; movement no; score=0.44"
+    },
+    {
+      "missingExerciseId": 5,
+      "missingExerciseName": "Step-up",
+      "sourceType": "manual_review",
+      "candidateExerciseId": 928,
+      "candidateExerciseName": "Step Mill",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Step_Mill/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Step_Mill/1.jpg"
+      ],
+      "confidence": "low",
+      "reason": "muscolo principale compatibile; 2 immagini disponibili",
+      "matchedBy": "fuzzy",
+      "wouldApply": false,
+      "applied": false,
+      "notes": "primary ok; equipment no; category no; movement no; score=0.2533"
+    },
+    {
+      "missingExerciseId": 7,
+      "missingExerciseName": "Glute bridge",
+      "sourceType": "manual_review",
+      "candidateExerciseId": 104,
+      "candidateExerciseName": "Single leg glute bridge",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Single_Leg_Glute_Bridge/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Single_Leg_Glute_Bridge/1.jpg"
+      ],
+      "confidence": "medium",
+      "reason": "alternativa interna collegata; muscolo principale compatibile; attrezzatura compatibile; categoria compatibile; movimento compatibile; 2 immagini disponibili",
+      "matchedBy": "alias",
+      "wouldApply": false,
+      "applied": false,
+      "notes": "primary ok; equipment ok; category ok; movement ok; score=0.8"
+    },
+    {
+      "missingExerciseId": 8,
+      "missingExerciseName": "Romanian deadlift manubri",
+      "sourceType": "manual_review",
+      "candidateExerciseId": 930,
+      "candidateExerciseName": "Stiff-Legged Dumbbell Deadlift",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Stiff-Legged_Dumbbell_Deadlift/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Stiff-Legged_Dumbbell_Deadlift/1.jpg"
+      ],
+      "confidence": "medium",
+      "reason": "muscolo principale compatibile; attrezzatura compatibile; categoria compatibile; 2 immagini disponibili",
+      "matchedBy": "fuzzy",
+      "wouldApply": false,
+      "applied": false,
+      "notes": "primary ok; equipment ok; category ok; movement no; score=0.4467"
+    },
+    {
+      "missingExerciseId": 9,
+      "missingExerciseName": "Leg curl macchina",
+      "sourceType": "manual_review",
+      "candidateExerciseId": 93,
+      "candidateExerciseName": "Leg curl seduto",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Seated_Leg_Curl/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Seated_Leg_Curl/1.jpg"
+      ],
+      "confidence": "medium",
+      "reason": "alternativa interna collegata; muscolo principale compatibile; attrezzatura compatibile; categoria compatibile; movimento compatibile; 2 immagini disponibili",
+      "matchedBy": "alias",
+      "wouldApply": false,
+      "applied": false,
+      "notes": "primary ok; equipment ok; category ok; movement ok; score=0.8"
+    },
+    {
+      "missingExerciseId": 17,
+      "missingExerciseName": "Lat machine avanti",
+      "sourceType": "manual_review",
+      "candidateExerciseId": 61,
+      "candidateExerciseName": "Lat pulldown unilaterale",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/One_Arm_Lat_Pulldown/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/One_Arm_Lat_Pulldown/1.jpg"
+      ],
+      "confidence": "medium",
+      "reason": "alternativa interna collegata; muscolo principale compatibile; categoria compatibile; movimento compatibile; 2 immagini disponibili",
+      "matchedBy": "alias",
+      "wouldApply": false,
+      "applied": false,
+      "notes": "primary ok; equipment no; category ok; movement ok; score=0.5622"
+    },
+    {
+      "missingExerciseId": 22,
+      "missingExerciseName": "Curl manubri",
+      "sourceType": "manual_review",
+      "candidateExerciseId": 112,
+      "candidateExerciseName": "Hammer curl",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Hammer_Curls/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Hammer_Curls/1.jpg"
+      ],
+      "confidence": "medium",
+      "reason": "alternativa interna collegata; muscolo principale compatibile; attrezzatura compatibile; categoria compatibile; movimento compatibile; 2 immagini disponibili",
+      "matchedBy": "alias",
+      "wouldApply": false,
+      "applied": false,
+      "notes": "primary ok; equipment ok; category ok; movement ok; score=0.7533"
+    },
+    {
+      "missingExerciseId": 25,
+      "missingExerciseName": "Side plank",
+      "sourceType": "none",
+      "candidateExerciseId": 24,
+      "candidateExerciseName": "Plank",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Plank/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Plank/1.jpg"
+      ],
+      "confidence": "none",
+      "reason": "nessuna fonte interna o locale affidabile trovata",
+      "matchedBy": "none",
+      "wouldApply": false,
+      "applied": false,
+      "notes": "nessun candidato con compatibilita sufficiente"
+    },
+    {
+      "missingExerciseId": 27,
+      "missingExerciseName": "Crunch controllato",
+      "sourceType": "manual_review",
+      "candidateExerciseId": 130,
+      "candidateExerciseName": "Reverse crunch",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Reverse_Crunch/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Reverse_Crunch/1.jpg"
+      ],
+      "confidence": "medium",
+      "reason": "muscolo principale compatibile; attrezzatura compatibile; categoria compatibile; movimento compatibile; 2 immagini disponibili",
+      "matchedBy": "metadata",
+      "wouldApply": false,
+      "applied": false,
+      "notes": "primary ok; equipment ok; category ok; movement ok; score=0.6333"
+    },
+    {
+      "missingExerciseId": 30,
+      "missingExerciseName": "Camminata inclinata",
+      "sourceType": "none",
+      "candidateExerciseId": 499,
+      "candidateExerciseName": "Incline Push-Up Depth Jump",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Incline_Push-Up_Depth_Jump/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Incline_Push-Up_Depth_Jump/1.jpg"
+      ],
+      "confidence": "none",
+      "reason": "nessuna fonte interna o locale affidabile trovata",
+      "matchedBy": "none",
+      "wouldApply": false,
+      "applied": false,
+      "notes": "nessun candidato con compatibilita sufficiente"
+    },
+    {
+      "missingExerciseId": 31,
+      "missingExerciseName": "Bike cyclette",
+      "sourceType": "manual_review",
+      "candidateExerciseId": 724,
+      "candidateExerciseName": "Recumbent Bike",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Recumbent_Bike/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Recumbent_Bike/1.jpg"
+      ],
+      "confidence": "medium",
+      "reason": "muscolo principale compatibile; categoria compatibile; movimento compatibile; 2 immagini disponibili",
+      "matchedBy": "fuzzy",
+      "wouldApply": false,
+      "applied": false,
+      "notes": "primary ok; equipment no; category ok; movement ok; score=0.52"
+    },
+    {
+      "missingExerciseId": 32,
+      "missingExerciseName": "Ellittica",
+      "sourceType": "imported_dataset",
+      "candidateExerciseId": 416,
+      "candidateExerciseName": "Elliptical Trainer",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Elliptical_Trainer/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Elliptical_Trainer/1.jpg"
+      ],
+      "confidence": "high",
+      "reason": "alias esplicito; categoria compatibile; movimento compatibile; 2 immagini disponibili",
+      "matchedBy": "alias",
+      "wouldApply": true,
+      "applied": true,
+      "notes": "primary no; equipment no; category ok; movement ok; score=0.86"
+    },
+    {
+      "missingExerciseId": 33,
+      "missingExerciseName": "Jumping jack",
+      "sourceType": "none",
+      "candidateExerciseId": 232,
+      "candidateExerciseName": "Bench Jump",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Bench_Jump/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Bench_Jump/1.jpg"
+      ],
+      "confidence": "none",
+      "reason": "nessuna fonte interna o locale affidabile trovata",
+      "matchedBy": "none",
+      "wouldApply": false,
+      "applied": false,
+      "notes": "nessun candidato con compatibilita sufficiente"
+    },
+    {
+      "missingExerciseId": 34,
+      "missingExerciseName": "Mobilità anche",
+      "sourceType": "none",
+      "candidateExerciseId": 158,
+      "candidateExerciseName": "World's greatest stretch",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Worlds_Greatest_Stretch/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Worlds_Greatest_Stretch/1.jpg"
+      ],
+      "confidence": "none",
+      "reason": "nessuna fonte interna o locale affidabile trovata",
+      "matchedBy": "none",
+      "wouldApply": false,
+      "applied": false,
+      "notes": "nessun candidato con compatibilita sufficiente"
+    },
+    {
+      "missingExerciseId": 35,
+      "missingExerciseName": "Mobilità spalle",
+      "sourceType": "manual_review",
+      "candidateExerciseId": 799,
+      "candidateExerciseName": "Shoulder Circles",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Shoulder_Circles/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Shoulder_Circles/1.jpg"
+      ],
+      "confidence": "medium",
+      "reason": "muscolo principale compatibile; categoria compatibile; movimento compatibile; 2 immagini disponibili",
+      "matchedBy": "fuzzy",
+      "wouldApply": true,
+      "applied": true,
+      "notes": "primary ok; equipment no; category ok; movement ok; score=0.4733; allowlist approvata"
+    },
+    {
+      "missingExerciseId": 36,
+      "missingExerciseName": "Bird dog",
+      "sourceType": "none",
+      "candidateExerciseId": 26,
+      "candidateExerciseName": "Dead bug",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Dead_Bug/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Dead_Bug/1.jpg"
+      ],
+      "confidence": "none",
+      "reason": "nessuna fonte interna o locale affidabile trovata",
+      "matchedBy": "none",
+      "wouldApply": false,
+      "applied": false,
+      "notes": "nessun candidato con compatibilita sufficiente"
+    },
+    {
+      "missingExerciseId": 37,
+      "missingExerciseName": "Wall sit",
+      "sourceType": "manual_review",
+      "candidateExerciseId": 829,
+      "candidateExerciseName": "Sit Squats",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Sit_Squats/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Sit_Squats/1.jpg"
+      ],
+      "confidence": "low",
+      "reason": "muscolo principale compatibile; 2 immagini disponibili",
+      "matchedBy": "fuzzy",
+      "wouldApply": false,
+      "applied": false,
+      "notes": "primary ok; equipment no; category no; movement no; score=0.2533"
+    },
+    {
+      "missingExerciseId": 39,
+      "missingExerciseName": "Split squat",
+      "sourceType": "manual_review",
+      "candidateExerciseId": 255,
+      "candidateExerciseName": "Bodyweight Squat",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Bodyweight_Squat/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Bodyweight_Squat/1.jpg"
+      ],
+      "confidence": "medium",
+      "reason": "muscolo principale compatibile; attrezzatura compatibile; categoria compatibile; 2 immagini disponibili",
+      "matchedBy": "fuzzy",
+      "wouldApply": false,
+      "applied": false,
+      "notes": "primary ok; equipment ok; category ok; movement no; score=0.47"
+    },
+    {
+      "missingExerciseId": 40,
+      "missingExerciseName": "Mountain climber lento",
+      "sourceType": "none",
+      "candidateExerciseId": 616,
+      "candidateExerciseName": "Mountain Climbers",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Mountain_Climbers/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Mountain_Climbers/1.jpg"
+      ],
+      "confidence": "none",
+      "reason": "nessuna fonte interna o locale affidabile trovata",
+      "matchedBy": "none",
+      "wouldApply": false,
+      "applied": false,
+      "notes": "nessun candidato con compatibilita sufficiente"
+    },
+    {
+      "missingExerciseId": 45,
+      "missingExerciseName": "Croci ai cavi",
+      "sourceType": "manual_review",
+      "candidateExerciseId": 277,
+      "candidateExerciseName": "Cable Iron Cross",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Cable_Iron_Cross/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Cable_Iron_Cross/1.jpg"
+      ],
+      "confidence": "medium",
+      "reason": "muscolo principale compatibile; attrezzatura compatibile; categoria compatibile; movimento compatibile; 2 immagini disponibili",
+      "matchedBy": "metadata",
+      "wouldApply": true,
+      "applied": true,
+      "notes": "primary ok; equipment ok; category ok; movement ok; score=0.6333; allowlist approvata"
+    },
+    {
+      "missingExerciseId": 46,
+      "missingExerciseName": "Pec deck",
+      "sourceType": "manual_review",
+      "candidateExerciseId": 253,
+      "candidateExerciseName": "Bodyweight Flyes",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Bodyweight_Flyes/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Bodyweight_Flyes/1.jpg"
+      ],
+      "confidence": "medium",
+      "reason": "muscolo principale compatibile; categoria compatibile; movimento compatibile; 2 immagini disponibili",
+      "matchedBy": "fuzzy",
+      "wouldApply": false,
+      "applied": false,
+      "notes": "primary ok; equipment no; category ok; movement ok; score=0.45"
+    },
+    {
+      "missingExerciseId": 47,
+      "missingExerciseName": "Push-up inclinati",
+      "sourceType": "manual_review",
+      "candidateExerciseId": 327,
+      "candidateExerciseName": "Clock Push-Up",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Clock_Push-Up/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Clock_Push-Up/1.jpg"
+      ],
+      "confidence": "medium",
+      "reason": "muscolo principale compatibile; attrezzatura compatibile; categoria compatibile; movimento compatibile; 2 immagini disponibili",
+      "matchedBy": "metadata",
+      "wouldApply": false,
+      "applied": false,
+      "notes": "primary ok; equipment ok; category ok; movement ok; score=0.68"
+    },
+    {
+      "missingExerciseId": 48,
+      "missingExerciseName": "Dip alle parallele",
+      "sourceType": "manual_review",
+      "candidateExerciseId": 365,
+      "candidateExerciseName": "Dips - Chest Version",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Dips_-_Chest_Version/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Dips_-_Chest_Version/1.jpg"
+      ],
+      "confidence": "medium",
+      "reason": "muscolo principale compatibile; categoria compatibile; movimento compatibile; 2 immagini disponibili",
+      "matchedBy": "fuzzy",
+      "wouldApply": true,
+      "applied": true,
+      "notes": "primary ok; equipment no; category ok; movement ok; score=0.45; allowlist approvata"
+    },
+    {
+      "missingExerciseId": 49,
+      "missingExerciseName": "Pullover manubrio",
+      "sourceType": "manual_review",
+      "candidateExerciseId": 238,
+      "candidateExerciseName": "Bent-Arm Dumbbell Pullover",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Bent-Arm_Dumbbell_Pullover/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Bent-Arm_Dumbbell_Pullover/1.jpg"
+      ],
+      "confidence": "medium",
+      "reason": "muscolo principale compatibile; attrezzatura compatibile; categoria compatibile; movimento compatibile; 2 immagini disponibili",
+      "matchedBy": "metadata",
+      "wouldApply": true,
+      "applied": true,
+      "notes": "primary ok; equipment ok; category ok; movement ok; score=0.68; allowlist approvata"
+    },
+    {
+      "missingExerciseId": 50,
+      "missingExerciseName": "Pullover macchina",
+      "sourceType": "manual_review",
+      "candidateExerciseId": 13,
+      "candidateExerciseName": "Chest press macchina",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Machine_Bench_Press/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Machine_Bench_Press/1.jpg"
+      ],
+      "confidence": "medium",
+      "reason": "alternativa interna collegata; muscolo principale compatibile; attrezzatura compatibile; categoria compatibile; movimento compatibile; 2 immagini disponibili",
+      "matchedBy": "alias",
+      "wouldApply": false,
+      "applied": false,
+      "notes": "primary ok; equipment ok; category ok; movement ok; score=0.716"
+    },
+    {
+      "missingExerciseId": 55,
+      "missingExerciseName": "Rematore macchina",
+      "sourceType": "manual_review",
+      "candidateExerciseId": 567,
+      "candidateExerciseName": "Leverage Iso Row",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Leverage_Iso_Row/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Leverage_Iso_Row/1.jpg"
+      ],
+      "confidence": "medium",
+      "reason": "muscolo principale compatibile; attrezzatura compatibile; categoria compatibile; movimento compatibile; 2 immagini disponibili",
+      "matchedBy": "metadata",
+      "wouldApply": true,
+      "applied": true,
+      "notes": "primary ok; equipment ok; category ok; movement ok; score=0.61; allowlist approvata"
+    },
+    {
+      "missingExerciseId": 57,
+      "missingExerciseName": "Chest supported row",
+      "sourceType": "manual_review",
+      "candidateExerciseId": 567,
+      "candidateExerciseName": "Leverage Iso Row",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Leverage_Iso_Row/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Leverage_Iso_Row/1.jpg"
+      ],
+      "confidence": "medium",
+      "reason": "muscolo principale compatibile; attrezzatura compatibile; categoria compatibile; movimento compatibile; 2 immagini disponibili",
+      "matchedBy": "metadata",
+      "wouldApply": true,
+      "applied": true,
+      "notes": "primary ok; equipment ok; category ok; movement ok; score=0.596; allowlist approvata"
+    },
+    {
+      "missingExerciseId": 58,
+      "missingExerciseName": "Reverse fly machine",
+      "sourceType": "none",
+      "candidateExerciseId": 739,
+      "candidateExerciseName": "Reverse Machine Flyes",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Reverse_Machine_Flyes/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Reverse_Machine_Flyes/1.jpg"
+      ],
+      "confidence": "none",
+      "reason": "nessuna fonte interna o locale affidabile trovata",
+      "matchedBy": "none",
+      "wouldApply": false,
+      "applied": false,
+      "notes": "nessun candidato con compatibilita sufficiente"
+    },
+    {
+      "missingExerciseId": 59,
+      "missingExerciseName": "Hyperextension",
+      "sourceType": "none",
+      "candidateExerciseId": 482,
+      "candidateExerciseName": "Hyperextensions (Back Extensions)",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Hyperextensions_Back_Extensions/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Hyperextensions_Back_Extensions/1.jpg"
+      ],
+      "confidence": "none",
+      "reason": "nessuna fonte interna o locale affidabile trovata",
+      "matchedBy": "none",
+      "wouldApply": false,
+      "applied": false,
+      "notes": "nessun candidato con compatibilita sufficiente"
+    },
+    {
+      "missingExerciseId": 60,
+      "missingExerciseName": "Lat pulldown presa neutra",
+      "sourceType": "imported_dataset",
+      "candidateExerciseId": 333,
+      "candidateExerciseName": "Close-Grip Front Lat Pulldown",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Close-Grip_Front_Lat_Pulldown/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Close-Grip_Front_Lat_Pulldown/1.jpg"
+      ],
+      "confidence": "high",
+      "reason": "alias esplicito; muscolo principale compatibile; categoria compatibile; movimento compatibile; 2 immagini disponibili",
+      "matchedBy": "alias",
+      "wouldApply": true,
+      "applied": true,
+      "notes": "primary ok; equipment no; category ok; movement ok; score=0.915"
+    },
+    {
+      "missingExerciseId": 62,
+      "missingExerciseName": "T-bar row supportato",
+      "sourceType": "manual_review",
+      "candidateExerciseId": 567,
+      "candidateExerciseName": "Leverage Iso Row",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Leverage_Iso_Row/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Leverage_Iso_Row/1.jpg"
+      ],
+      "confidence": "medium",
+      "reason": "muscolo principale compatibile; attrezzatura compatibile; categoria compatibile; movimento compatibile; 2 immagini disponibili",
+      "matchedBy": "metadata",
+      "wouldApply": false,
+      "applied": false,
+      "notes": "primary ok; equipment ok; category ok; movement ok; score=0.596"
+    },
+    {
+      "missingExerciseId": 64,
+      "missingExerciseName": "Pullover macchina dorsali",
+      "sourceType": "none",
+      "candidateExerciseId": 567,
+      "candidateExerciseName": "Leverage Iso Row",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Leverage_Iso_Row/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Leverage_Iso_Row/1.jpg"
+      ],
+      "confidence": "none",
+      "reason": "nessuna fonte interna o locale affidabile trovata",
+      "matchedBy": "none",
+      "wouldApply": false,
+      "applied": false,
+      "notes": "nessun candidato con compatibilita sufficiente"
+    },
+    {
+      "missingExerciseId": 65,
+      "missingExerciseName": "Dead hang",
+      "sourceType": "none",
+      "candidateExerciseId": 78,
+      "candidateExerciseName": "Scapular pull-up",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Scapular_Pull-Up/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Scapular_Pull-Up/1.jpg"
+      ],
+      "confidence": "none",
+      "reason": "nessuna fonte interna o locale affidabile trovata",
+      "matchedBy": "none",
+      "wouldApply": false,
+      "applied": false,
+      "notes": "nessun candidato con compatibilita sufficiente"
+    },
+    {
+      "missingExerciseId": 68,
+      "missingExerciseName": "Alzate laterali ai cavi",
+      "sourceType": "manual_review",
+      "candidateExerciseId": 288,
+      "candidateExerciseName": "Cable Seated Lateral Raise",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Cable_Seated_Lateral_Raise/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Cable_Seated_Lateral_Raise/1.jpg"
+      ],
+      "confidence": "medium",
+      "reason": "muscolo principale compatibile; attrezzatura compatibile; categoria compatibile; movimento compatibile; 2 immagini disponibili",
+      "matchedBy": "metadata",
+      "wouldApply": true,
+      "applied": true,
+      "notes": "primary ok; equipment ok; category ok; movement ok; score=0.5867; allowlist approvata"
+    },
+    {
+      "missingExerciseId": 69,
+      "missingExerciseName": "Alzate laterali macchina",
+      "sourceType": "manual_review",
+      "candidateExerciseId": 739,
+      "candidateExerciseName": "Reverse Machine Flyes",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Reverse_Machine_Flyes/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Reverse_Machine_Flyes/1.jpg"
+      ],
+      "confidence": "medium",
+      "reason": "muscolo principale compatibile; attrezzatura compatibile; categoria compatibile; movimento compatibile; 2 immagini disponibili",
+      "matchedBy": "metadata",
+      "wouldApply": false,
+      "applied": false,
+      "notes": "primary ok; equipment ok; category ok; movement ok; score=0.596"
+    },
+    {
+      "missingExerciseId": 70,
+      "missingExerciseName": "Alzate frontali",
+      "sourceType": "manual_review",
+      "candidateExerciseId": 16,
+      "candidateExerciseName": "Alzate laterali manubri",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Side_Lateral_Raise/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Side_Lateral_Raise/1.jpg"
+      ],
+      "confidence": "medium",
+      "reason": "muscolo principale compatibile; attrezzatura compatibile; categoria compatibile; movimento compatibile; 2 immagini disponibili",
+      "matchedBy": "metadata",
+      "wouldApply": false,
+      "applied": false,
+      "notes": "primary ok; equipment ok; category ok; movement ok; score=0.596"
+    },
+    {
+      "missingExerciseId": 71,
+      "missingExerciseName": "Reverse fly manubri",
+      "sourceType": "none",
+      "candidateExerciseId": 734,
+      "candidateExerciseName": "Reverse Flyes",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Reverse_Flyes/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Reverse_Flyes/1.jpg"
+      ],
+      "confidence": "none",
+      "reason": "nessuna fonte interna o locale affidabile trovata",
+      "matchedBy": "none",
+      "wouldApply": false,
+      "applied": false,
+      "notes": "nessun candidato con compatibilita sufficiente"
+    },
+    {
+      "missingExerciseId": 72,
+      "missingExerciseName": "Rear delt fly ai cavi",
+      "sourceType": "none",
+      "candidateExerciseId": 21,
+      "candidateExerciseName": "Face pull",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Face_Pull/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Face_Pull/1.jpg"
+      ],
+      "confidence": "none",
+      "reason": "nessuna fonte interna o locale affidabile trovata",
+      "matchedBy": "none",
+      "wouldApply": false,
+      "applied": false,
+      "notes": "nessun candidato con compatibilita sufficiente"
+    },
+    {
+      "missingExerciseId": 74,
+      "missingExerciseName": "Tirate al mento",
+      "sourceType": "imported_dataset",
+      "candidateExerciseId": 976,
+      "candidateExerciseName": "Upright Barbell Row",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Upright_Barbell_Row/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Upright_Barbell_Row/1.jpg"
+      ],
+      "confidence": "high",
+      "reason": "alias esplicito; muscolo principale compatibile; attrezzatura compatibile; categoria compatibile; movimento compatibile; 2 immagini disponibili",
+      "matchedBy": "alias",
+      "wouldApply": true,
+      "applied": true,
+      "notes": "primary ok; equipment ok; category ok; movement ok; score=1"
+    },
+    {
+      "missingExerciseId": 75,
+      "missingExerciseName": "Extrarotazioni al cavo",
+      "sourceType": "none",
+      "candidateExerciseId": 21,
+      "candidateExerciseName": "Face pull",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Face_Pull/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Face_Pull/1.jpg"
+      ],
+      "confidence": "none",
+      "reason": "nessuna fonte interna o locale affidabile trovata",
+      "matchedBy": "none",
+      "wouldApply": false,
+      "applied": false,
+      "notes": "nessun candidato con compatibilita sufficiente"
+    },
+    {
+      "missingExerciseId": 76,
+      "missingExerciseName": "Extrarotazioni con elastico",
+      "sourceType": "none",
+      "candidateExerciseId": 149,
+      "candidateExerciseName": "Band pull-apart",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Band_Pull_Apart/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Band_Pull_Apart/1.jpg"
+      ],
+      "confidence": "none",
+      "reason": "nessuna fonte interna o locale affidabile trovata",
+      "matchedBy": "none",
+      "wouldApply": false,
+      "applied": false,
+      "notes": "nessun candidato con compatibilita sufficiente"
+    },
+    {
+      "missingExerciseId": 77,
+      "missingExerciseName": "Landmine press",
+      "sourceType": "manual_review",
+      "candidateExerciseId": 67,
+      "candidateExerciseName": "Military press",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Standing_Military_Press/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Standing_Military_Press/1.jpg"
+      ],
+      "confidence": "medium",
+      "reason": "alternativa interna collegata; muscolo principale compatibile; attrezzatura compatibile; categoria compatibile; movimento compatibile; 2 immagini disponibili",
+      "matchedBy": "alias",
+      "wouldApply": false,
+      "applied": false,
+      "notes": "primary ok; equipment ok; category ok; movement ok; score=0.7533"
+    },
+    {
+      "missingExerciseId": 83,
+      "missingExerciseName": "Affondi camminati",
+      "sourceType": "none",
+      "candidateExerciseId": 255,
+      "candidateExerciseName": "Bodyweight Squat",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Bodyweight_Squat/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Bodyweight_Squat/1.jpg"
+      ],
+      "confidence": "none",
+      "reason": "nessuna fonte interna o locale affidabile trovata",
+      "matchedBy": "none",
+      "wouldApply": false,
+      "applied": false,
+      "notes": "nessun candidato con compatibilita sufficiente"
+    },
+    {
+      "missingExerciseId": 84,
+      "missingExerciseName": "Bulgarian split squat",
+      "sourceType": "manual_review",
+      "candidateExerciseId": 255,
+      "candidateExerciseName": "Bodyweight Squat",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Bodyweight_Squat/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Bodyweight_Squat/1.jpg"
+      ],
+      "confidence": "medium",
+      "reason": "muscolo principale compatibile; attrezzatura compatibile; categoria compatibile; 2 immagini disponibili",
+      "matchedBy": "fuzzy",
+      "wouldApply": false,
+      "applied": false,
+      "notes": "primary ok; equipment ok; category ok; movement no; score=0.47"
+    },
+    {
+      "missingExerciseId": 86,
+      "missingExerciseName": "Goblet squat talloni rialzati",
+      "sourceType": "manual_review",
+      "candidateExerciseId": 2,
+      "candidateExerciseName": "Goblet squat",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Goblet_Squat/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Goblet_Squat/1.jpg"
+      ],
+      "confidence": "medium",
+      "reason": "alternativa interna collegata; muscolo principale compatibile; attrezzatura compatibile; categoria compatibile; movimento compatibile; 2 immagini disponibili",
+      "matchedBy": "alias",
+      "wouldApply": true,
+      "applied": true,
+      "notes": "primary ok; equipment ok; category ok; movement ok; score=0.7533; allowlist approvata"
+    },
+    {
+      "missingExerciseId": 88,
+      "missingExerciseName": "Spanish squat",
+      "sourceType": "manual_review",
+      "candidateExerciseId": 1,
+      "candidateExerciseName": "Squat corpo libero",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Bodyweight_Squat/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Bodyweight_Squat/1.jpg"
+      ],
+      "confidence": "medium",
+      "reason": "alternativa interna collegata; muscolo principale compatibile; categoria compatibile; movimento compatibile; 2 immagini disponibili",
+      "matchedBy": "alias",
+      "wouldApply": false,
+      "applied": false,
+      "notes": "primary ok; equipment no; category ok; movement ok; score=0.57"
+    },
+    {
+      "missingExerciseId": 89,
+      "missingExerciseName": "Reverse lunge",
+      "sourceType": "none",
+      "candidateExerciseId": 255,
+      "candidateExerciseName": "Bodyweight Squat",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Bodyweight_Squat/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Bodyweight_Squat/1.jpg"
+      ],
+      "confidence": "none",
+      "reason": "nessuna fonte interna o locale affidabile trovata",
+      "matchedBy": "none",
+      "wouldApply": false,
+      "applied": false,
+      "notes": "nessun candidato con compatibilita sufficiente"
+    },
+    {
+      "missingExerciseId": 90,
+      "missingExerciseName": "Sissy squat assistito",
+      "sourceType": "manual_review",
+      "candidateExerciseId": 255,
+      "candidateExerciseName": "Bodyweight Squat",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Bodyweight_Squat/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Bodyweight_Squat/1.jpg"
+      ],
+      "confidence": "medium",
+      "reason": "muscolo principale compatibile; attrezzatura compatibile; categoria compatibile; movimento compatibile; 2 immagini disponibili",
+      "matchedBy": "metadata",
+      "wouldApply": false,
+      "applied": false,
+      "notes": "primary ok; equipment ok; category ok; movement ok; score=0.61"
+    },
+    {
+      "missingExerciseId": 94,
+      "missingExerciseName": "Leg curl fitball",
+      "sourceType": "manual_review",
+      "candidateExerciseId": 196,
+      "candidateExerciseName": "Ball Leg Curl",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Ball_Leg_Curl/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Ball_Leg_Curl/1.jpg"
+      ],
+      "confidence": "medium",
+      "reason": "muscolo principale compatibile; attrezzatura compatibile; categoria compatibile; movimento compatibile; 2 immagini disponibili",
+      "matchedBy": "metadata",
+      "wouldApply": true,
+      "applied": true,
+      "notes": "primary ok; equipment ok; category ok; movement ok; score=0.68; allowlist approvata"
+    },
+    {
+      "missingExerciseId": 97,
+      "missingExerciseName": "Back extension glute focus",
+      "sourceType": "manual_review",
+      "candidateExerciseId": 456,
+      "candidateExerciseName": "Glute Kickback",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Glute_Kickback/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Glute_Kickback/1.jpg"
+      ],
+      "confidence": "medium",
+      "reason": "muscolo principale compatibile; categoria compatibile; movimento compatibile; 2 immagini disponibili",
+      "matchedBy": "fuzzy",
+      "wouldApply": false,
+      "applied": false,
+      "notes": "primary ok; equipment no; category ok; movement ok; score=0.436"
+    },
+    {
+      "missingExerciseId": 98,
+      "missingExerciseName": "Abductor machine",
+      "sourceType": "none",
+      "candidateExerciseId": 364,
+      "candidateExerciseName": "Dip Machine",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Dip_Machine/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Dip_Machine/1.jpg"
+      ],
+      "confidence": "none",
+      "reason": "nessuna fonte interna o locale affidabile trovata",
+      "matchedBy": "none",
+      "wouldApply": false,
+      "applied": false,
+      "notes": "nessun candidato con compatibilita sufficiente"
+    },
+    {
+      "missingExerciseId": 99,
+      "missingExerciseName": "Cable kickback",
+      "sourceType": "manual_review",
+      "candidateExerciseId": 653,
+      "candidateExerciseName": "One-Legged Cable Kickback",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/One-Legged_Cable_Kickback/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/One-Legged_Cable_Kickback/1.jpg"
+      ],
+      "confidence": "medium",
+      "reason": "muscolo principale compatibile; attrezzatura compatibile; categoria compatibile; movimento compatibile; 2 immagini disponibili",
+      "matchedBy": "metadata",
+      "wouldApply": true,
+      "applied": true,
+      "notes": "primary ok; equipment ok; category ok; movement ok; score=0.68; allowlist approvata"
+    },
+    {
+      "missingExerciseId": 100,
+      "missingExerciseName": "Single leg Romanian deadlift",
+      "sourceType": "manual_review",
+      "candidateExerciseId": 930,
+      "candidateExerciseName": "Stiff-Legged Dumbbell Deadlift",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Stiff-Legged_Dumbbell_Deadlift/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Stiff-Legged_Dumbbell_Deadlift/1.jpg"
+      ],
+      "confidence": "medium",
+      "reason": "muscolo principale compatibile; attrezzatura compatibile; categoria compatibile; 2 immagini disponibili",
+      "matchedBy": "fuzzy",
+      "wouldApply": false,
+      "applied": false,
+      "notes": "primary ok; equipment ok; category ok; movement no; score=0.44"
+    },
+    {
+      "missingExerciseId": 101,
+      "missingExerciseName": "Hip thrust macchina",
+      "sourceType": "manual_review",
+      "candidateExerciseId": 683,
+      "candidateExerciseName": "Physioball Hip Bridge",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Physioball_Hip_Bridge/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Physioball_Hip_Bridge/1.jpg"
+      ],
+      "confidence": "medium",
+      "reason": "muscolo principale compatibile; categoria compatibile; movimento compatibile; 2 immagini disponibili",
+      "matchedBy": "fuzzy",
+      "wouldApply": false,
+      "applied": false,
+      "notes": "primary ok; equipment no; category ok; movement ok; score=0.436"
+    },
+    {
+      "missingExerciseId": 102,
+      "missingExerciseName": "Frog pump",
+      "sourceType": "none",
+      "candidateExerciseId": 267,
+      "candidateExerciseName": "Butt Lift (Bridge)",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Butt_Lift_Bridge/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Butt_Lift_Bridge/1.jpg"
+      ],
+      "confidence": "none",
+      "reason": "nessuna fonte interna o locale affidabile trovata",
+      "matchedBy": "none",
+      "wouldApply": false,
+      "applied": false,
+      "notes": "nessun candidato con compatibilita sufficiente"
+    },
+    {
+      "missingExerciseId": 103,
+      "missingExerciseName": "Nordic curl assistito",
+      "sourceType": "manual_review",
+      "candidateExerciseId": 196,
+      "candidateExerciseName": "Ball Leg Curl",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Ball_Leg_Curl/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Ball_Leg_Curl/1.jpg"
+      ],
+      "confidence": "medium",
+      "reason": "muscolo principale compatibile; categoria compatibile; movimento compatibile; 2 immagini disponibili",
+      "matchedBy": "fuzzy",
+      "wouldApply": false,
+      "applied": false,
+      "notes": "primary ok; equipment no; category ok; movement ok; score=0.436"
+    },
+    {
+      "missingExerciseId": 105,
+      "missingExerciseName": "Adductor machine",
+      "sourceType": "imported_dataset",
+      "candidateExerciseId": 955,
+      "candidateExerciseName": "Thigh Adductor",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Thigh_Adductor/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Thigh_Adductor/1.jpg"
+      ],
+      "confidence": "high",
+      "reason": "alias esplicito; muscolo principale compatibile; attrezzatura compatibile; categoria compatibile; movimento compatibile; 2 immagini disponibili",
+      "matchedBy": "alias",
+      "wouldApply": true,
+      "applied": true,
+      "notes": "primary ok; equipment ok; category ok; movement ok; score=1"
+    },
+    {
+      "missingExerciseId": 106,
+      "missingExerciseName": "Standing calf raise macchina",
+      "sourceType": "manual_review",
+      "candidateExerciseId": 107,
+      "candidateExerciseName": "Seated calf raise",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Seated_Calf_Raise/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Seated_Calf_Raise/1.jpg"
+      ],
+      "confidence": "medium",
+      "reason": "alternativa interna collegata; muscolo principale compatibile; attrezzatura compatibile; categoria compatibile; movimento compatibile; 2 immagini disponibili",
+      "matchedBy": "alias",
+      "wouldApply": false,
+      "applied": false,
+      "notes": "primary ok; equipment ok; category ok; movement ok; score=0.772"
+    },
+    {
+      "missingExerciseId": 110,
+      "missingExerciseName": "Single leg calf raise",
+      "sourceType": "manual_review",
+      "candidateExerciseId": 10,
+      "candidateExerciseName": "Standing calf raise",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Standing_Calf_Raises/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Standing_Calf_Raises/1.jpg"
+      ],
+      "confidence": "medium",
+      "reason": "alternativa interna collegata; muscolo principale compatibile; attrezzatura compatibile; categoria compatibile; movimento compatibile; 2 immagini disponibili",
+      "matchedBy": "alias",
+      "wouldApply": true,
+      "applied": true,
+      "notes": "primary ok; equipment ok; category ok; movement ok; score=0.7533; allowlist approvata"
+    },
+    {
+      "missingExerciseId": 113,
+      "missingExerciseName": "Curl cavo",
+      "sourceType": "manual_review",
+      "candidateExerciseId": 474,
+      "candidateExerciseName": "High Cable Curls",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/High_Cable_Curls/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/High_Cable_Curls/1.jpg"
+      ],
+      "confidence": "medium",
+      "reason": "muscolo principale compatibile; attrezzatura compatibile; categoria compatibile; movimento compatibile; 2 immagini disponibili",
+      "matchedBy": "metadata",
+      "wouldApply": false,
+      "applied": false,
+      "notes": "primary ok; equipment ok; category ok; movement ok; score=0.7267"
+    },
+    {
+      "missingExerciseId": 114,
+      "missingExerciseName": "Curl panca Scott",
+      "sourceType": "imported_dataset",
+      "candidateExerciseId": 700,
+      "candidateExerciseName": "Preacher Curl",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Preacher_Curl/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Preacher_Curl/1.jpg"
+      ],
+      "confidence": "high",
+      "reason": "alias esplicito; muscolo principale compatibile; attrezzatura compatibile; categoria compatibile; movimento compatibile; 2 immagini disponibili",
+      "matchedBy": "alias",
+      "wouldApply": true,
+      "applied": true,
+      "notes": "primary ok; equipment ok; category ok; movement ok; score=1"
+    },
+    {
+      "missingExerciseId": 117,
+      "missingExerciseName": "Reverse curl",
+      "sourceType": "manual_review",
+      "candidateExerciseId": 792,
+      "candidateExerciseName": "Seated Palm-Up Barbell Wrist Curl",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Seated_Palm-Up_Barbell_Wrist_Curl/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Seated_Palm-Up_Barbell_Wrist_Curl/1.jpg"
+      ],
+      "confidence": "medium",
+      "reason": "muscolo principale compatibile; attrezzatura compatibile; categoria compatibile; movimento compatibile; 2 immagini disponibili",
+      "matchedBy": "metadata",
+      "wouldApply": false,
+      "applied": false,
+      "notes": "primary ok; equipment ok; category ok; movement ok; score=0.62"
+    },
+    {
+      "missingExerciseId": 119,
+      "missingExerciseName": "French press",
+      "sourceType": "imported_dataset",
+      "candidateExerciseId": 587,
+      "candidateExerciseName": "Lying Close-Grip Barbell Triceps Extension Behind The Head",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Lying_Close-Grip_Barbell_Triceps_Extension_Behind_The_Head/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Lying_Close-Grip_Barbell_Triceps_Extension_Behind_The_Head/1.jpg"
+      ],
+      "confidence": "high",
+      "reason": "alias esplicito; muscolo principale compatibile; attrezzatura compatibile; categoria compatibile; movimento compatibile; 2 immagini disponibili",
+      "matchedBy": "alias",
+      "wouldApply": true,
+      "applied": true,
+      "notes": "primary ok; equipment ok; category ok; movement ok; score=1"
+    },
+    {
+      "missingExerciseId": 120,
+      "missingExerciseName": "Skull crusher",
+      "sourceType": "imported_dataset",
+      "candidateExerciseId": 587,
+      "candidateExerciseName": "Lying Close-Grip Barbell Triceps Extension Behind The Head",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Lying_Close-Grip_Barbell_Triceps_Extension_Behind_The_Head/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Lying_Close-Grip_Barbell_Triceps_Extension_Behind_The_Head/1.jpg"
+      ],
+      "confidence": "high",
+      "reason": "alias esplicito; muscolo principale compatibile; attrezzatura compatibile; categoria compatibile; movimento compatibile; 2 immagini disponibili",
+      "matchedBy": "alias",
+      "wouldApply": true,
+      "applied": true,
+      "notes": "primary ok; equipment ok; category ok; movement ok; score=1"
+    },
+    {
+      "missingExerciseId": 124,
+      "missingExerciseName": "Triceps machine",
+      "sourceType": "imported_dataset",
+      "candidateExerciseId": 608,
+      "candidateExerciseName": "Machine Triceps Extension",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Machine_Triceps_Extension/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Machine_Triceps_Extension/1.jpg"
+      ],
+      "confidence": "high",
+      "reason": "alias esplicito; muscolo principale compatibile; attrezzatura compatibile; categoria compatibile; movimento compatibile; 2 immagini disponibili",
+      "matchedBy": "alias",
+      "wouldApply": true,
+      "applied": true,
+      "notes": "primary ok; equipment ok; category ok; movement ok; score=1"
+    },
+    {
+      "missingExerciseId": 125,
+      "missingExerciseName": "Pushdown unilaterale al cavo",
+      "sourceType": "manual_review",
+      "candidateExerciseId": 23,
+      "candidateExerciseName": "Pushdown corda",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Triceps_Pushdown/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Triceps_Pushdown/1.jpg"
+      ],
+      "confidence": "medium",
+      "reason": "alternativa interna collegata; muscolo principale compatibile; attrezzatura compatibile; categoria compatibile; movimento compatibile; 2 immagini disponibili",
+      "matchedBy": "alias",
+      "wouldApply": false,
+      "applied": false,
+      "notes": "primary ok; equipment ok; category ok; movement ok; score=0.7"
+    },
+    {
+      "missingExerciseId": 126,
+      "missingExerciseName": "Crunch",
+      "sourceType": "manual_review",
+      "candidateExerciseId": 130,
+      "candidateExerciseName": "Reverse crunch",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Reverse_Crunch/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Reverse_Crunch/1.jpg"
+      ],
+      "confidence": "medium",
+      "reason": "alternativa interna collegata; muscolo principale compatibile; attrezzatura compatibile; categoria compatibile; movimento compatibile; 2 immagini disponibili",
+      "matchedBy": "alias",
+      "wouldApply": false,
+      "applied": false,
+      "notes": "primary ok; equipment ok; category ok; movement ok; score=0.8"
+    },
+    {
+      "missingExerciseId": 129,
+      "missingExerciseName": "Hanging knee raise",
+      "sourceType": "manual_review",
+      "candidateExerciseId": 470,
+      "candidateExerciseName": "Hanging Leg Raise",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Hanging_Leg_Raise/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Hanging_Leg_Raise/1.jpg"
+      ],
+      "confidence": "medium",
+      "reason": "muscolo principale compatibile; attrezzatura compatibile; movimento compatibile; 2 immagini disponibili",
+      "matchedBy": "metadata",
+      "wouldApply": false,
+      "applied": false,
+      "notes": "primary ok; equipment ok; category no; movement ok; score=0.6"
+    },
+    {
+      "missingExerciseId": 132,
+      "missingExerciseName": "Ab wheel",
+      "sourceType": "manual_review",
+      "candidateExerciseId": 165,
+      "candidateExerciseName": "Ab Roller",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Ab_Roller/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Ab_Roller/1.jpg"
+      ],
+      "confidence": "medium",
+      "reason": "muscolo principale compatibile; movimento compatibile; 2 immagini disponibili",
+      "matchedBy": "fuzzy",
+      "wouldApply": true,
+      "applied": true,
+      "notes": "primary ok; equipment no; category no; movement ok; score=0.3933; allowlist approvata"
+    },
+    {
+      "missingExerciseId": 133,
+      "missingExerciseName": "Hollow hold",
+      "sourceType": "none",
+      "candidateExerciseId": 26,
+      "candidateExerciseName": "Dead bug",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Dead_Bug/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Dead_Bug/1.jpg"
+      ],
+      "confidence": "none",
+      "reason": "nessuna fonte interna o locale affidabile trovata",
+      "matchedBy": "none",
+      "wouldApply": false,
+      "applied": false,
+      "notes": "nessun candidato con compatibilita sufficiente"
+    },
+    {
+      "missingExerciseId": 134,
+      "missingExerciseName": "Suitcase carry",
+      "sourceType": "none",
+      "candidateExerciseId": 29,
+      "candidateExerciseName": "Farmer carry",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Farmers_Walk/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Farmers_Walk/1.jpg"
+      ],
+      "confidence": "none",
+      "reason": "nessuna fonte interna o locale affidabile trovata",
+      "matchedBy": "none",
+      "wouldApply": false,
+      "applied": false,
+      "notes": "nessun candidato con compatibilita sufficiente"
+    },
+    {
+      "missingExerciseId": 135,
+      "missingExerciseName": "Plank con shoulder tap",
+      "sourceType": "manual_review",
+      "candidateExerciseId": 24,
+      "candidateExerciseName": "Plank",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Plank/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Plank/1.jpg"
+      ],
+      "confidence": "medium",
+      "reason": "alternativa interna collegata; muscolo principale compatibile; attrezzatura compatibile; categoria compatibile; movimento compatibile; 2 immagini disponibili",
+      "matchedBy": "alias",
+      "wouldApply": false,
+      "applied": false,
+      "notes": "primary ok; equipment ok; category ok; movement ok; score=0.7533"
+    },
+    {
+      "missingExerciseId": 136,
+      "missingExerciseName": "Bear crawl",
+      "sourceType": "manual_review",
+      "candidateExerciseId": 865,
+      "candidateExerciseName": "Spider Crawl",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Spider_Crawl/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Spider_Crawl/1.jpg"
+      ],
+      "confidence": "medium",
+      "reason": "muscolo principale compatibile; attrezzatura compatibile; 2 immagini disponibili",
+      "matchedBy": "fuzzy",
+      "wouldApply": false,
+      "applied": false,
+      "notes": "primary ok; equipment ok; category no; movement no; score=0.46"
+    },
+    {
+      "missingExerciseId": 137,
+      "missingExerciseName": "Camminata treadmill",
+      "sourceType": "imported_dataset",
+      "candidateExerciseId": 983,
+      "candidateExerciseName": "Walking, Treadmill",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Walking_Treadmill/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Walking_Treadmill/1.jpg"
+      ],
+      "confidence": "high",
+      "reason": "alias esplicito; muscolo principale compatibile; categoria compatibile; movimento compatibile; 2 immagini disponibili",
+      "matchedBy": "alias",
+      "wouldApply": true,
+      "applied": true,
+      "notes": "primary ok; equipment no; category ok; movement ok; score=0.9267"
+    },
+    {
+      "missingExerciseId": 138,
+      "missingExerciseName": "Vogatore",
+      "sourceType": "imported_dataset",
+      "candidateExerciseId": 756,
+      "candidateExerciseName": "Rowing, Stationary",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Rowing_Stationary/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Rowing_Stationary/1.jpg"
+      ],
+      "confidence": "high",
+      "reason": "alias esplicito; categoria compatibile; movimento compatibile; 2 immagini disponibili",
+      "matchedBy": "alias",
+      "wouldApply": true,
+      "applied": true,
+      "notes": "primary no; equipment no; category ok; movement ok; score=0.86"
+    },
+    {
+      "missingExerciseId": 139,
+      "missingExerciseName": "Stair climber",
+      "sourceType": "imported_dataset",
+      "candidateExerciseId": 879,
+      "candidateExerciseName": "Stairmaster",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Stairmaster/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Stairmaster/1.jpg"
+      ],
+      "confidence": "high",
+      "reason": "alias esplicito; attrezzatura compatibile; categoria compatibile; movimento compatibile; 2 immagini disponibili",
+      "matchedBy": "alias",
+      "wouldApply": true,
+      "applied": true,
+      "notes": "primary no; equipment ok; category ok; movement ok; score=0.8333"
+    },
+    {
+      "missingExerciseId": 140,
+      "missingExerciseName": "Salto corda",
+      "sourceType": "imported_dataset",
+      "candidateExerciseId": 753,
+      "candidateExerciseName": "Rope Jumping",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Rope_Jumping/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Rope_Jumping/1.jpg"
+      ],
+      "confidence": "high",
+      "reason": "alias esplicito; categoria compatibile; movimento compatibile; 2 immagini disponibili",
+      "matchedBy": "alias",
+      "wouldApply": true,
+      "applied": true,
+      "notes": "primary no; equipment no; category ok; movement ok; score=0.72"
+    },
+    {
+      "missingExerciseId": 142,
+      "missingExerciseName": "Battle rope",
+      "sourceType": "manual_review",
+      "candidateExerciseId": 228,
+      "candidateExerciseName": "Battling Ropes",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Battling_Ropes/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Battling_Ropes/1.jpg"
+      ],
+      "confidence": "low",
+      "reason": "muscolo principale compatibile; 2 immagini disponibili",
+      "matchedBy": "fuzzy",
+      "wouldApply": false,
+      "applied": false,
+      "notes": "primary ok; equipment no; category no; movement no; score=0.16"
+    },
+    {
+      "missingExerciseId": 143,
+      "missingExerciseName": "Assault bike",
+      "sourceType": "manual_review",
+      "candidateExerciseId": 724,
+      "candidateExerciseName": "Recumbent Bike",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Recumbent_Bike/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Recumbent_Bike/1.jpg"
+      ],
+      "confidence": "medium",
+      "reason": "muscolo principale compatibile; categoria compatibile; movimento compatibile; 2 immagini disponibili",
+      "matchedBy": "fuzzy",
+      "wouldApply": false,
+      "applied": false,
+      "notes": "primary ok; equipment no; category ok; movement ok; score=0.52"
+    },
+    {
+      "missingExerciseId": 144,
+      "missingExerciseName": "Marching jack",
+      "sourceType": "none",
+      "candidateExerciseId": 232,
+      "candidateExerciseName": "Bench Jump",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Bench_Jump/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Bench_Jump/1.jpg"
+      ],
+      "confidence": "none",
+      "reason": "nessuna fonte interna o locale affidabile trovata",
+      "matchedBy": "none",
+      "wouldApply": false,
+      "applied": false,
+      "notes": "nessun candidato con compatibilita sufficiente"
+    },
+    {
+      "missingExerciseId": 145,
+      "missingExerciseName": "Camminata veloce outdoor",
+      "sourceType": "none",
+      "candidateExerciseId": 232,
+      "candidateExerciseName": "Bench Jump",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Bench_Jump/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Bench_Jump/1.jpg"
+      ],
+      "confidence": "none",
+      "reason": "nessuna fonte interna o locale affidabile trovata",
+      "matchedBy": "none",
+      "wouldApply": false,
+      "applied": false,
+      "notes": "nessun candidato con compatibilita sufficiente"
+    },
+    {
+      "missingExerciseId": 146,
+      "missingExerciseName": "Mobilità caviglie",
+      "sourceType": "none",
+      "candidateExerciseId": 163,
+      "candidateExerciseName": "90/90 Hamstring",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/90_90_Hamstring/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/90_90_Hamstring/1.jpg"
+      ],
+      "confidence": "none",
+      "reason": "nessuna fonte interna o locale affidabile trovata",
+      "matchedBy": "none",
+      "wouldApply": false,
+      "applied": false,
+      "notes": "nessun candidato con compatibilita sufficiente"
+    },
+    {
+      "missingExerciseId": 147,
+      "missingExerciseName": "Cat cow",
+      "sourceType": "none",
+      "candidateExerciseId": 163,
+      "candidateExerciseName": "90/90 Hamstring",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/90_90_Hamstring/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/90_90_Hamstring/1.jpg"
+      ],
+      "confidence": "none",
+      "reason": "nessuna fonte interna o locale affidabile trovata",
+      "matchedBy": "none",
+      "wouldApply": false,
+      "applied": false,
+      "notes": "nessun candidato con compatibilita sufficiente"
+    },
+    {
+      "missingExerciseId": 148,
+      "missingExerciseName": "Thoracic rotation",
+      "sourceType": "none",
+      "candidateExerciseId": 158,
+      "candidateExerciseName": "World's greatest stretch",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Worlds_Greatest_Stretch/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Worlds_Greatest_Stretch/1.jpg"
+      ],
+      "confidence": "none",
+      "reason": "nessuna fonte interna o locale affidabile trovata",
+      "matchedBy": "none",
+      "wouldApply": false,
+      "applied": false,
+      "notes": "nessun candidato con compatibilita sufficiente"
+    },
+    {
+      "missingExerciseId": 150,
+      "missingExerciseName": "Scapular push-up",
+      "sourceType": "manual_review",
+      "candidateExerciseId": 78,
+      "candidateExerciseName": "Scapular pull-up",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Scapular_Pull-Up/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Scapular_Pull-Up/1.jpg"
+      ],
+      "confidence": "medium",
+      "reason": "muscolo principale compatibile; attrezzatura compatibile; categoria compatibile; nome simile; slug simile; 2 immagini disponibili",
+      "matchedBy": "fuzzy",
+      "wouldApply": false,
+      "applied": false,
+      "notes": "primary ok; equipment ok; category ok; movement no; score=0.74"
+    },
+    {
+      "missingExerciseId": 151,
+      "missingExerciseName": "Wall slides",
+      "sourceType": "none",
+      "candidateExerciseId": 186,
+      "candidateExerciseName": "Arm Circles",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Arm_Circles/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Arm_Circles/1.jpg"
+      ],
+      "confidence": "none",
+      "reason": "nessuna fonte interna o locale affidabile trovata",
+      "matchedBy": "none",
+      "wouldApply": false,
+      "applied": false,
+      "notes": "nessun candidato con compatibilita sufficiente"
+    },
+    {
+      "missingExerciseId": 152,
+      "missingExerciseName": "Hip flexor stretch",
+      "sourceType": "none",
+      "candidateExerciseId": 158,
+      "candidateExerciseName": "World's greatest stretch",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Worlds_Greatest_Stretch/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Worlds_Greatest_Stretch/1.jpg"
+      ],
+      "confidence": "none",
+      "reason": "nessuna fonte interna o locale affidabile trovata",
+      "matchedBy": "none",
+      "wouldApply": false,
+      "applied": false,
+      "notes": "nessun candidato con compatibilita sufficiente"
+    },
+    {
+      "missingExerciseId": 154,
+      "missingExerciseName": "Couch stretch",
+      "sourceType": "manual_review",
+      "candidateExerciseId": 717,
+      "candidateExerciseName": "Quad Stretch",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Quad_Stretch/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Quad_Stretch/1.jpg"
+      ],
+      "confidence": "medium",
+      "reason": "muscolo principale compatibile; categoria compatibile; movimento compatibile; 2 immagini disponibili",
+      "matchedBy": "fuzzy",
+      "wouldApply": false,
+      "applied": false,
+      "notes": "primary ok; equipment no; category ok; movement ok; score=0.4733"
+    },
+    {
+      "missingExerciseId": 155,
+      "missingExerciseName": "Squat hold mobility",
+      "sourceType": "none",
+      "candidateExerciseId": 158,
+      "candidateExerciseName": "World's greatest stretch",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Worlds_Greatest_Stretch/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Worlds_Greatest_Stretch/1.jpg"
+      ],
+      "confidence": "none",
+      "reason": "nessuna fonte interna o locale affidabile trovata",
+      "matchedBy": "none",
+      "wouldApply": false,
+      "applied": false,
+      "notes": "nessun candidato con compatibilita sufficiente"
+    },
+    {
+      "missingExerciseId": 156,
+      "missingExerciseName": "90/90 hip switch",
+      "sourceType": "none",
+      "candidateExerciseId": 158,
+      "candidateExerciseName": "World's greatest stretch",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Worlds_Greatest_Stretch/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Worlds_Greatest_Stretch/1.jpg"
+      ],
+      "confidence": "none",
+      "reason": "nessuna fonte interna o locale affidabile trovata",
+      "matchedBy": "none",
+      "wouldApply": false,
+      "applied": false,
+      "notes": "nessun candidato con compatibilita sufficiente"
+    },
+    {
+      "missingExerciseId": 157,
+      "missingExerciseName": "Ankle rocker",
+      "sourceType": "none",
+      "candidateExerciseId": 163,
+      "candidateExerciseName": "90/90 Hamstring",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/90_90_Hamstring/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/90_90_Hamstring/1.jpg"
+      ],
+      "confidence": "none",
+      "reason": "nessuna fonte interna o locale affidabile trovata",
+      "matchedBy": "none",
+      "wouldApply": false,
+      "applied": false,
+      "notes": "nessun candidato con compatibilita sufficiente"
+    },
+    {
+      "missingExerciseId": 159,
+      "missingExerciseName": "Clamshell",
+      "sourceType": "none",
+      "candidateExerciseId": 476,
+      "candidateExerciseName": "Hip Extension with Bands",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Hip_Extension_with_Bands/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Hip_Extension_with_Bands/1.jpg"
+      ],
+      "confidence": "none",
+      "reason": "nessuna fonte interna o locale affidabile trovata",
+      "matchedBy": "none",
+      "wouldApply": false,
+      "applied": false,
+      "notes": "nessun candidato con compatibilita sufficiente"
+    },
+    {
+      "missingExerciseId": 160,
+      "missingExerciseName": "Quad stretch in piedi",
+      "sourceType": "manual_review",
+      "candidateExerciseId": 170,
+      "candidateExerciseName": "All Fours Quad Stretch",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/All_Fours_Quad_Stretch/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/All_Fours_Quad_Stretch/1.jpg"
+      ],
+      "confidence": "medium",
+      "reason": "muscolo principale compatibile; attrezzatura compatibile; categoria compatibile; movimento compatibile; 2 immagini disponibili",
+      "matchedBy": "metadata",
+      "wouldApply": false,
+      "applied": false,
+      "notes": "primary ok; equipment ok; category ok; movement ok; score=0.6333"
+    },
+    {
+      "missingExerciseId": 161,
+      "missingExerciseName": "Cossack squat bodyweight",
+      "sourceType": "none",
+      "candidateExerciseId": 460,
+      "candidateExerciseName": "Groiners",
+      "sourceImageUrls": [
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Groiners/0.jpg",
+        "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Groiners/1.jpg"
+      ],
+      "confidence": "none",
+      "reason": "nessuna fonte interna o locale affidabile trovata",
+      "matchedBy": "none",
+      "wouldApply": false,
+      "applied": false,
+      "notes": "nessun candidato con compatibilita sufficiente"
+    }
+  ]
+}
