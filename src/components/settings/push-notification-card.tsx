@@ -37,6 +37,7 @@ type DeviceState = {
   deviceSubscribed: boolean;
   currentEndpoint: string | null;
   activeSubscriptions: number;
+  statusError: string | null;
 };
 
 const initialDeviceState: DeviceState = {
@@ -52,6 +53,7 @@ const initialDeviceState: DeviceState = {
   deviceSubscribed: false,
   currentEndpoint: null,
   activeSubscriptions: 0,
+  statusError: null,
 };
 
 function isIosDevice(userAgent: string) {
@@ -76,19 +78,31 @@ function isStandaloneDisplayMode() {
   return standaloneNavigator || window.matchMedia("(display-mode: standalone)").matches;
 }
 
-function urlBase64ToUint8Array(base64String: string) {
+function urlBase64ToArrayBuffer(base64String: string) {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
   const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
   const raw = window.atob(base64);
-  const bytes = Uint8Array.from(raw, (char) => char.charCodeAt(0));
+  const buffer = new ArrayBuffer(raw.length);
+  const bytes = new Uint8Array(buffer);
 
-  return bytes.buffer;
+  for (let index = 0; index < raw.length; index += 1) {
+    bytes[index] = raw.charCodeAt(index);
+  }
+
+  return buffer;
 }
 
 async function ensureServiceWorkerRegistration() {
-  const existingRegistration = await navigator.serviceWorker.getRegistration("/");
+  const existingRegistration = await navigator.serviceWorker.getRegistration();
+  const expectedScriptUrl = new URL("/sw.js", window.location.origin).href;
 
-  if (existingRegistration) {
+  const existingScriptUrl =
+    existingRegistration?.active?.scriptURL ??
+    existingRegistration?.waiting?.scriptURL ??
+    existingRegistration?.installing?.scriptURL ??
+    null;
+
+  if (existingRegistration && existingScriptUrl === expectedScriptUrl) {
     await navigator.serviceWorker.ready;
     return existingRegistration;
   }
@@ -154,6 +168,30 @@ async function readResponseMessage(response: Response) {
   }
 }
 
+async function getPushStatus() {
+  const response = await fetch("/api/push/status", { cache: "no-store" });
+  const data = (await response.json()) as PushStatusResponse;
+
+  if (!response.ok || !data.ok) {
+    throw new Error(data.ok ? "PUSH_STATUS_HTTP_ERROR" : data.message ?? "PUSH_STATUS_ERROR");
+  }
+
+  return {
+    configured: data.configured,
+    publicKey: getPreferredPublicKey(data.publicKey),
+    activeSubscriptions: data.activeSubscriptions,
+  };
+}
+
+function getErrorMessage(error: unknown) {
+  if (!(error instanceof Error)) {
+    return null;
+  }
+
+  const parts = [error.name, error.message].filter((part) => part.trim().length > 0);
+  return parts.length > 0 ? parts.join(": ") : "Unknown error";
+}
+
 async function getDeviceState(): Promise<DeviceState> {
   if (typeof window === "undefined") {
     return { ...initialDeviceState };
@@ -184,33 +222,16 @@ async function getDeviceState(): Promise<DeviceState> {
   let configured = false;
   let publicKey: string | null = null;
   let activeSubscriptions = 0;
+  let statusError: string | null = null;
 
   try {
-    const response = await fetch("/api/push/status", { cache: "no-store" });
-    const data = (await response.json()) as PushStatusResponse;
-
-    if (response.ok && data.ok) {
-      configured = data.configured;
-      publicKey = getPreferredPublicKey(data.publicKey);
-      activeSubscriptions = data.activeSubscriptions;
-    } else {
-      publicKey = getPreferredPublicKey(null);
-    }
-  } catch {
-    return {
-      supported,
-      notificationSupported,
-      serviceWorkerSupported,
-      pushManagerSupported,
-      permission: Notification.permission,
-      isIos,
-      isStandalone,
-      configured: false,
-      publicKey: getPreferredPublicKey(null),
-      deviceSubscribed: false,
-      currentEndpoint: null,
-      activeSubscriptions: 0,
-    };
+    const status = await getPushStatus();
+    configured = status.configured;
+    publicKey = status.publicKey;
+    activeSubscriptions = status.activeSubscriptions;
+  } catch (error) {
+    publicKey = getPreferredPublicKey(null);
+    statusError = getErrorMessage(error);
   }
 
   try {
@@ -230,6 +251,7 @@ async function getDeviceState(): Promise<DeviceState> {
       deviceSubscribed: Boolean(subscription),
       currentEndpoint: subscription?.endpoint ?? null,
       activeSubscriptions,
+      statusError,
     };
   } catch {
     return {
@@ -245,6 +267,7 @@ async function getDeviceState(): Promise<DeviceState> {
       deviceSubscribed: false,
       currentEndpoint: null,
       activeSubscriptions,
+      statusError,
     };
   }
 }
@@ -344,7 +367,7 @@ export function PushNotificationCard({
       }
 
       if (!nextState.serviceWorkerSupported) {
-        setError("Il dispositivo non riesce a preparare le notifiche. Ricarica la pagina e riprova.");
+        setError("Questo dispositivo non supporta le notifiche push.");
         setTechnicalDetail(formatTechnicalDetail("service-worker-support"));
         return;
       }
@@ -357,7 +380,7 @@ export function PushNotificationCard({
 
       if (nextState.isIos && !nextState.isStandalone) {
         setError(
-          "Su iPhone aggiungi l'app alla schermata Home, poi riaprila da li per attivare le notifiche.",
+          "Su iPhone aggiungi l’app alla schermata Home, poi riaprila da lì per attivare le notifiche.",
         );
         setTechnicalDetail(formatTechnicalDetail("ios-home-screen"));
         return;
@@ -365,11 +388,17 @@ export function PushNotificationCard({
 
       if (!nextState.configured) {
         setError("Le notifiche non sono ancora configurate sul server.");
-        setTechnicalDetail(formatTechnicalDetail("status-configured"));
+        setTechnicalDetail(
+          nextState.statusError
+            ? process.env.NODE_ENV === "production"
+              ? null
+              : `Fase: push-status (${nextState.statusError})`
+            : formatTechnicalDetail("status-configured"),
+        );
         return;
       }
 
-      const publicKey = getPreferredPublicKey(nextState.publicKey);
+      const publicKey = nextState.publicKey;
 
       if (!publicKey) {
         setError("Manca la chiave pubblica per attivare le notifiche.");
@@ -380,7 +409,7 @@ export function PushNotificationCard({
       let applicationServerKey: ArrayBuffer;
 
       try {
-        applicationServerKey = urlBase64ToUint8Array(publicKey);
+        applicationServerKey = urlBase64ToArrayBuffer(publicKey);
       } catch (conversionError) {
         setError("La chiave pubblica delle notifiche non e valida.");
         setTechnicalDetail(formatTechnicalDetail("public-key-conversion", conversionError));
@@ -438,7 +467,7 @@ export function PushNotificationCard({
         }
 
         if (permission !== "granted") {
-          setError("Il permesso notifiche non e stato concesso.");
+          setError("Le notifiche sono bloccate nel browser. Riattivale dalle impostazioni del sito.");
           setTechnicalDetail(formatTechnicalDetail("permission-default"));
           await refreshState();
           return;
@@ -648,13 +677,15 @@ export function PushNotificationCard({
 
   if (loading) {
     statusText = "Verifica disponibilita notifiche...";
-  } else if (!deviceState.notificationSupported || !deviceState.pushManagerSupported) {
+  } else if (
+    !deviceState.notificationSupported ||
+    !deviceState.pushManagerSupported ||
+    !deviceState.serviceWorkerSupported
+  ) {
     statusText = "Questo dispositivo non supporta le notifiche push.";
-  } else if (!deviceState.serviceWorkerSupported) {
-    statusText = "Il dispositivo non riesce a preparare le notifiche. Ricarica la pagina e riprova.";
   } else if (iosNeedsHomeScreen) {
     statusText =
-      "Su iPhone aggiungi l'app alla schermata Home, poi riaprila da li per attivare le notifiche.";
+      "Su iPhone aggiungi l’app alla schermata Home, poi riaprila da lì per attivare le notifiche.";
   } else if (!serverConfigured) {
     statusText = "Le notifiche non sono ancora configurate sul server.";
   } else if (deviceState.permission === "denied") {
