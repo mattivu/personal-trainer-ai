@@ -146,11 +146,11 @@ function formatTechnicalDetail(phase: string, error?: unknown) {
   }
 
   if (!(error instanceof Error)) {
-    return `Fase: ${phase}`;
+    return `fase: ${phase}`;
   }
 
   const detail = [error.name, error.message].filter((part) => part.trim().length > 0).join(": ");
-  return detail.length > 0 ? `Fase: ${phase} (${detail})` : `Fase: ${phase}`;
+  return detail.length > 0 ? `fase: ${phase} (${detail})` : `fase: ${phase}`;
 }
 
 async function readResponseMessage(response: Response) {
@@ -275,24 +275,25 @@ async function getDeviceState(): Promise<DeviceState> {
 function ToggleControl({
   checked,
   disabled,
-  onChange,
+  onClick,
 }: {
   checked: boolean;
   disabled: boolean;
-  onChange: (value: boolean) => void;
+  onClick: () => void;
 }) {
   return (
-    <span className="relative inline-flex h-7 w-12 shrink-0 items-center">
-      <input
-        type="checkbox"
-        checked={checked}
-        disabled={disabled}
-        onChange={(event) => onChange(event.currentTarget.checked)}
-        className="peer sr-only"
-      />
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label="Notifiche push"
+      disabled={disabled}
+      onClick={onClick}
+      className="peer relative inline-flex h-7 w-12 shrink-0 items-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--app-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-transparent disabled:cursor-not-allowed"
+    >
       <span className="absolute inset-0 rounded-full border border-white/10 bg-white/8 transition peer-checked:border-[var(--app-primary-border)] peer-checked:bg-[rgba(208,216,43,0.22)] peer-disabled:opacity-50" />
       <span className="absolute left-1 h-5 w-5 rounded-full bg-white shadow-[0_4px_12px_rgba(0,0,0,0.3)] transition peer-checked:translate-x-5 peer-checked:bg-[var(--app-primary)]" />
-    </span>
+    </button>
   );
 }
 
@@ -346,9 +347,9 @@ export function PushNotificationCard({
     }
 
     setBusyAction("enable");
-    setMessage(null);
+    setMessage("Verifico questo dispositivo...");
     setError(null);
-    setTechnicalDetail(null);
+    setTechnicalDetail(formatTechnicalDetail("click ricevuto"));
 
     try {
       if (typeof window === "undefined") {
@@ -357,6 +358,7 @@ export function PushNotificationCard({
         return;
       }
 
+      setTechnicalDetail(formatTechnicalDetail("controllo supporto"));
       const nextState = await getDeviceState();
       setDeviceState(nextState);
 
@@ -392,7 +394,7 @@ export function PushNotificationCard({
           nextState.statusError
             ? process.env.NODE_ENV === "production"
               ? null
-              : `Fase: push-status (${nextState.statusError})`
+              : `fase: push-status (${nextState.statusError})`
             : formatTechnicalDetail("status-configured"),
         );
         return;
@@ -406,6 +408,7 @@ export function PushNotificationCard({
         return;
       }
 
+      setMessage("Attivazione in corso...");
       let applicationServerKey: ArrayBuffer;
 
       try {
@@ -449,6 +452,7 @@ export function PushNotificationCard({
       let subscription = await pushManager.getSubscription();
 
       if (!subscription) {
+        setTechnicalDetail(formatTechnicalDetail("richiesta permesso"));
         const permission = await Notification.requestPermission();
 
         setDeviceState((current) => ({
@@ -474,6 +478,7 @@ export function PushNotificationCard({
         }
 
         try {
+          setTechnicalDetail(formatTechnicalDetail("iscrizione dispositivo"));
           subscription = await pushManager.subscribe({
             userVisibleOnly: true,
             applicationServerKey,
@@ -486,6 +491,7 @@ export function PushNotificationCard({
         }
       }
 
+      setTechnicalDetail(formatTechnicalDetail("salvataggio server"));
       const subscribeResponse = await fetch("/api/push/subscribe", {
         method: "POST",
         headers: {
@@ -502,7 +508,7 @@ export function PushNotificationCard({
         setTechnicalDetail(
           process.env.NODE_ENV === "production"
             ? null
-            : `Fase: subscribe-post (status ${subscribeResponse.status}${responseMessage ? `: ${responseMessage}` : ""})`,
+            : `fase: subscribe-post (status ${subscribeResponse.status}${responseMessage ? `: ${responseMessage}` : ""})`,
         );
         await refreshState();
         return;
@@ -520,7 +526,7 @@ export function PushNotificationCard({
         setTechnicalDetail(
           process.env.NODE_ENV === "production"
             ? null
-            : `Fase: subscribe-post-body${subscribeData.message ? ` (${subscribeData.message})` : ""}`,
+            : `fase: subscribe-post-body${subscribeData.message ? ` (${subscribeData.message})` : ""}`,
         );
         await refreshState();
         return;
@@ -563,9 +569,9 @@ export function PushNotificationCard({
     }
 
     setBusyAction("disable");
-    setMessage(null);
+    setMessage("Verifico questo dispositivo...");
     setError(null);
-    setTechnicalDetail(null);
+    setTechnicalDetail(formatTechnicalDetail("click ricevuto"));
 
     try {
       let endpoint = deviceState.currentEndpoint;
@@ -603,6 +609,8 @@ export function PushNotificationCard({
       }
 
       try {
+        setMessage("Disattivazione in corso...");
+        setTechnicalDetail(formatTechnicalDetail("salvataggio server"));
         await syncPreference(false);
       } catch (syncError) {
         await refreshState();
@@ -673,6 +681,14 @@ export function PushNotificationCard({
     void handleDisable();
   }
 
+  function handlePushToggleClick() {
+    if (busyAction || disabled || loading) {
+      return;
+    }
+
+    handleToggleChange(!activeOnDevice);
+  }
+
   let statusText = "Non attive su questo dispositivo";
 
   if (loading) {
@@ -701,15 +717,7 @@ export function PushNotificationCard({
     serverConfigured &&
     deviceState.permission === "granted" &&
     deviceState.deviceSubscribed;
-  const toggleDisabled =
-    disabled ||
-    busyAction !== null ||
-    loading ||
-    (!activeOnDevice &&
-      (!deviceState.supported ||
-        iosNeedsHomeScreen ||
-        !serverConfigured ||
-        deviceState.permission === "denied"));
+  const toggleDisabled = disabled || busyAction !== null || loading;
 
   return (
     <div className="rounded-[20px] border border-white/10 bg-white/[0.03] px-4 py-4 transition hover:border-white/14 hover:bg-white/[0.045]">
@@ -725,7 +733,7 @@ export function PushNotificationCard({
         <ToggleControl
           checked={activeOnDevice}
           disabled={toggleDisabled}
-          onChange={handleToggleChange}
+          onClick={handlePushToggleClick}
         />
       </div>
 
