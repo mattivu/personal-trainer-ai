@@ -26,6 +26,9 @@ type PushStatusResponse =
 
 type DeviceState = {
   supported: boolean;
+  notificationSupported: boolean;
+  serviceWorkerSupported: boolean;
+  pushManagerSupported: boolean;
   permission: NotificationPermission | "unsupported";
   isIos: boolean;
   isStandalone: boolean;
@@ -38,6 +41,9 @@ type DeviceState = {
 
 const initialDeviceState: DeviceState = {
   supported: false,
+  notificationSupported: false,
+  serviceWorkerSupported: false,
+  pushManagerSupported: false,
   permission: "unsupported",
   isIos: false,
   isStandalone: false,
@@ -49,7 +55,12 @@ const initialDeviceState: DeviceState = {
 };
 
 function isIosDevice(userAgent: string) {
-  return /iPad|iPhone|iPod/.test(userAgent);
+  return (
+    /iPad|iPhone|iPod/.test(userAgent) ||
+    (/Macintosh/.test(userAgent) &&
+      typeof navigator !== "undefined" &&
+      navigator.maxTouchPoints > 1)
+  );
 }
 
 function isStandaloneDisplayMode() {
@@ -69,30 +80,101 @@ function urlBase64ToUint8Array(base64String: string) {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
   const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
   const raw = window.atob(base64);
+  const bytes = Uint8Array.from(raw, (char) => char.charCodeAt(0));
 
-  return Uint8Array.from(raw, (char) => char.charCodeAt(0));
+  return bytes.buffer;
 }
 
 async function ensureServiceWorkerRegistration() {
-  const registration = await navigator.serviceWorker.register("/sw.js");
+  const existingRegistration = await navigator.serviceWorker.getRegistration("/");
+
+  if (existingRegistration) {
+    await navigator.serviceWorker.ready;
+    return existingRegistration;
+  }
+
+  const registration = await navigator.serviceWorker.register("/sw.js", {
+    scope: "/",
+    updateViaCache: "none",
+  });
   await navigator.serviceWorker.ready;
+
   return registration;
 }
 
+function getEnvPublicKey() {
+  const envPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+  return typeof envPublicKey === "string" && envPublicKey.trim().length > 0
+    ? envPublicKey.trim()
+    : null;
+}
+
+function getPreferredPublicKey(serverPublicKey: string | null) {
+  if (typeof serverPublicKey === "string" && serverPublicKey.trim().length > 0) {
+    return serverPublicKey.trim();
+  }
+
+  return getEnvPublicKey();
+}
+
+function sanitizeErrorMessage(value: unknown) {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+function formatTechnicalDetail(phase: string, error?: unknown) {
+  if (process.env.NODE_ENV === "production") {
+    return null;
+  }
+
+  if (!(error instanceof Error)) {
+    return `Fase: ${phase}`;
+  }
+
+  const detail = [error.name, error.message].filter((part) => part.trim().length > 0).join(": ");
+  return detail.length > 0 ? `Fase: ${phase} (${detail})` : `Fase: ${phase}`;
+}
+
+async function readResponseMessage(response: Response) {
+  const text = (await response.text()).trim();
+
+  if (!text) {
+    return null;
+  }
+
+  try {
+    const data = JSON.parse(text) as { message?: string };
+    return sanitizeErrorMessage(data.message) ?? text;
+  } catch {
+    return text;
+  }
+}
+
 async function getDeviceState(): Promise<DeviceState> {
+  if (typeof window === "undefined") {
+    return { ...initialDeviceState };
+  }
+
   const isIos =
     typeof navigator !== "undefined" ? isIosDevice(navigator.userAgent) : false;
   const isStandalone = isStandaloneDisplayMode();
+  const notificationSupported = "Notification" in window;
+  const serviceWorkerSupported = "serviceWorker" in navigator;
+  const pushManagerSupported = "PushManager" in window;
+  const supported =
+    notificationSupported && serviceWorkerSupported && pushManagerSupported;
 
-  if (
-    typeof window === "undefined" ||
-    !("serviceWorker" in navigator) ||
-    !("PushManager" in window) ||
-    !("Notification" in window)
-  ) {
+  if (!supported) {
     return {
       ...initialDeviceState,
-      supported: false,
+      supported,
+      notificationSupported,
+      serviceWorkerSupported,
+      pushManagerSupported,
       permission: "unsupported",
       isIos,
       isStandalone,
@@ -109,37 +191,62 @@ async function getDeviceState(): Promise<DeviceState> {
 
     if (response.ok && data.ok) {
       configured = data.configured;
-      publicKey = data.publicKey;
+      publicKey = getPreferredPublicKey(data.publicKey);
       activeSubscriptions = data.activeSubscriptions;
+    } else {
+      publicKey = getPreferredPublicKey(null);
     }
   } catch {
     return {
-      supported: true,
+      supported,
+      notificationSupported,
+      serviceWorkerSupported,
+      pushManagerSupported,
       permission: Notification.permission,
       isIos,
       isStandalone,
       configured: false,
-      publicKey: null,
+      publicKey: getPreferredPublicKey(null),
       deviceSubscribed: false,
       currentEndpoint: null,
       activeSubscriptions: 0,
     };
   }
 
-  const registration = await ensureServiceWorkerRegistration();
-  const subscription = await registration.pushManager.getSubscription();
+  try {
+    const registration = await ensureServiceWorkerRegistration();
+    const subscription = await registration.pushManager.getSubscription();
 
-  return {
-    supported: true,
-    permission: Notification.permission,
-    isIos,
-    isStandalone,
-    configured,
-    publicKey,
-    deviceSubscribed: Boolean(subscription),
-    currentEndpoint: subscription?.endpoint ?? null,
-    activeSubscriptions,
-  };
+    return {
+      supported,
+      notificationSupported,
+      serviceWorkerSupported,
+      pushManagerSupported,
+      permission: Notification.permission,
+      isIos,
+      isStandalone,
+      configured,
+      publicKey,
+      deviceSubscribed: Boolean(subscription),
+      currentEndpoint: subscription?.endpoint ?? null,
+      activeSubscriptions,
+    };
+  } catch {
+    return {
+      supported,
+      notificationSupported,
+      serviceWorkerSupported,
+      pushManagerSupported,
+      permission: Notification.permission,
+      isIos,
+      isStandalone,
+      configured,
+      publicKey,
+      deviceSubscribed: false,
+      currentEndpoint: null,
+      activeSubscriptions,
+    };
+  }
 }
 
 function ToggleControl({
@@ -176,6 +283,7 @@ export function PushNotificationCard({
   const [busyAction, setBusyAction] = useState<"enable" | "disable" | "test" | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [technicalDetail, setTechnicalDetail] = useState<string | null>(null);
 
   async function refreshState() {
     setLoading(true);
@@ -217,68 +325,137 @@ export function PushNotificationCard({
     setBusyAction("enable");
     setMessage(null);
     setError(null);
+    setTechnicalDetail(null);
 
     try {
+      if (typeof window === "undefined") {
+        setError("Questo dispositivo non supporta le notifiche push.");
+        setTechnicalDetail(formatTechnicalDetail("window-check"));
+        return;
+      }
+
       const nextState = await getDeviceState();
       setDeviceState(nextState);
 
-      if (!nextState.supported) {
+      if (!nextState.notificationSupported) {
         setError("Questo dispositivo non supporta le notifiche push.");
+        setTechnicalDetail(formatTechnicalDetail("notification-support"));
+        return;
+      }
+
+      if (!nextState.serviceWorkerSupported) {
+        setError("Il dispositivo non riesce a preparare le notifiche. Ricarica la pagina e riprova.");
+        setTechnicalDetail(formatTechnicalDetail("service-worker-support"));
+        return;
+      }
+
+      if (!nextState.pushManagerSupported) {
+        setError("Questo dispositivo non supporta le notifiche push.");
+        setTechnicalDetail(formatTechnicalDetail("push-manager-support"));
         return;
       }
 
       if (nextState.isIos && !nextState.isStandalone) {
+        setError(
+          "Su iPhone aggiungi l'app alla schermata Home, poi riaprila da li per attivare le notifiche.",
+        );
+        setTechnicalDetail(formatTechnicalDetail("ios-home-screen"));
         return;
       }
 
-      if (!nextState.configured || !nextState.publicKey) {
+      if (!nextState.configured) {
         setError("Le notifiche non sono ancora configurate sul server.");
+        setTechnicalDetail(formatTechnicalDetail("status-configured"));
         return;
       }
 
-      const registration = await ensureServiceWorkerRegistration();
-      const permission = await Notification.requestPermission();
+      const publicKey = getPreferredPublicKey(nextState.publicKey);
 
-      if (permission !== "granted") {
+      if (!publicKey) {
+        setError("Manca la chiave pubblica per attivare le notifiche.");
+        setTechnicalDetail(formatTechnicalDetail("public-key-missing"));
+        return;
+      }
+
+      let applicationServerKey: ArrayBuffer;
+
+      try {
+        applicationServerKey = urlBase64ToUint8Array(publicKey);
+      } catch (conversionError) {
+        setError("La chiave pubblica delle notifiche non e valida.");
+        setTechnicalDetail(formatTechnicalDetail("public-key-conversion", conversionError));
+        return;
+      }
+
+      let registration: ServiceWorkerRegistration;
+
+      try {
+        registration = await ensureServiceWorkerRegistration();
+      } catch (registrationError) {
+        setError("Il dispositivo non riesce a preparare le notifiche. Ricarica la pagina e riprova.");
+        setTechnicalDetail(
+          formatTechnicalDetail("service-worker-registration", registrationError),
+        );
+        return;
+      }
+
+      let readyRegistration: ServiceWorkerRegistration;
+
+      try {
+        readyRegistration = await navigator.serviceWorker.ready;
+      } catch (readyError) {
+        setError("Il dispositivo non riesce a preparare le notifiche. Ricarica la pagina e riprova.");
+        setTechnicalDetail(formatTechnicalDetail("service-worker-ready", readyError));
+        return;
+      }
+
+      const pushManager = readyRegistration.pushManager ?? registration.pushManager;
+
+      if (!pushManager) {
+        setError("Il dispositivo non riesce a preparare le notifiche. Ricarica la pagina e riprova.");
+        setTechnicalDetail(formatTechnicalDetail("push-manager-registration"));
+        return;
+      }
+
+      let subscription = await pushManager.getSubscription();
+
+      if (!subscription) {
+        const permission = await Notification.requestPermission();
+
         setDeviceState((current) => ({
           ...current,
           permission,
-          deviceSubscribed: permission === "denied" ? false : current.deviceSubscribed,
+          deviceSubscribed: permission === "granted" ? current.deviceSubscribed : false,
         }));
 
         if (permission === "denied") {
-          if (pushPreferenceEnabled) {
-            try {
-              await syncPreference(false);
-            } catch (syncError) {
-              setError(
-                syncError instanceof Error
-                  ? syncError.message
-                  : "Impossibile aggiornare la preferenza push.",
-              );
-              return;
-            }
-          }
-
           setError(
             "Le notifiche sono bloccate nel browser. Riattivale dalle impostazioni del sito.",
           );
+          setTechnicalDetail(formatTechnicalDetail("permission-denied"));
           await refreshState();
           return;
         }
 
-        setError("Concedi il permesso notifiche per attivarle su questo dispositivo.");
-        await refreshState();
-        return;
-      }
+        if (permission !== "granted") {
+          setError("Il permesso notifiche non e stato concesso.");
+          setTechnicalDetail(formatTechnicalDetail("permission-default"));
+          await refreshState();
+          return;
+        }
 
-      const existingSubscription = await registration.pushManager.getSubscription();
-      const subscription =
-        existingSubscription ??
-        (await registration.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(nextState.publicKey),
-        }));
+        try {
+          subscription = await pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey,
+          });
+        } catch (subscribeError) {
+          setError("Non sono riuscito ad attivare le notifiche su questo dispositivo.");
+          setTechnicalDetail(formatTechnicalDetail("push-subscribe", subscribeError));
+          await refreshState();
+          return;
+        }
+      }
 
       const subscribeResponse = await fetch("/api/push/subscribe", {
         method: "POST",
@@ -287,13 +464,35 @@ export function PushNotificationCard({
         },
         body: JSON.stringify(subscription.toJSON()),
       });
+
+      if (!subscribeResponse.ok) {
+        const responseMessage = await readResponseMessage(subscribeResponse);
+        setError(
+          "Il dispositivo ha dato il permesso, ma il server non ha salvato l'attivazione.",
+        );
+        setTechnicalDetail(
+          process.env.NODE_ENV === "production"
+            ? null
+            : `Fase: subscribe-post (status ${subscribeResponse.status}${responseMessage ? `: ${responseMessage}` : ""})`,
+        );
+        await refreshState();
+        return;
+      }
+
       const subscribeData = (await subscribeResponse.json()) as {
         ok: boolean;
         message?: string;
       };
 
-      if (!subscribeResponse.ok || !subscribeData.ok) {
-        setError(subscribeData.message ?? "Impossibile attivare le notifiche push.");
+      if (!subscribeData.ok) {
+        setError(
+          "Il dispositivo ha dato il permesso, ma il server non ha salvato l'attivazione.",
+        );
+        setTechnicalDetail(
+          process.env.NODE_ENV === "production"
+            ? null
+            : `Fase: subscribe-post-body${subscribeData.message ? ` (${subscribeData.message})` : ""}`,
+        );
         await refreshState();
         return;
       }
@@ -315,13 +514,15 @@ export function PushNotificationCard({
             ? syncError.message
             : "Impossibile aggiornare la preferenza push.",
         );
+        setTechnicalDetail(formatTechnicalDetail("settings-sync", syncError));
         return;
       }
 
       await refreshState();
       setMessage("Notifiche attive su questo dispositivo.");
-    } catch {
-      setError("Impossibile attivare le notifiche push su questo dispositivo.");
+    } catch (error) {
+      setError("Non sono riuscito ad attivare le notifiche su questo dispositivo.");
+      setTechnicalDetail(formatTechnicalDetail("enable-unknown", error));
     } finally {
       setBusyAction(null);
     }
@@ -335,6 +536,7 @@ export function PushNotificationCard({
     setBusyAction("disable");
     setMessage(null);
     setError(null);
+    setTechnicalDetail(null);
 
     try {
       let endpoint = deviceState.currentEndpoint;
@@ -380,13 +582,15 @@ export function PushNotificationCard({
             ? syncError.message
             : "Impossibile aggiornare la preferenza push.",
         );
+        setTechnicalDetail(formatTechnicalDetail("settings-sync-disable", syncError));
         return;
       }
 
       await refreshState();
       setMessage("Notifiche disattivate su questo dispositivo.");
-    } catch {
+    } catch (error) {
       setError("Impossibile disattivare le notifiche push su questo dispositivo.");
+      setTechnicalDetail(formatTechnicalDetail("disable-unknown", error));
     } finally {
       setBusyAction(null);
     }
@@ -400,6 +604,7 @@ export function PushNotificationCard({
     setBusyAction("test");
     setMessage(null);
     setError(null);
+    setTechnicalDetail(null);
 
     try {
       const response = await fetch("/api/push/test", {
@@ -422,8 +627,9 @@ export function PushNotificationCard({
           : "Notifica di prova inviata.",
       );
       await refreshState();
-    } catch {
+    } catch (error) {
       setError("Impossibile inviare la notifica di prova.");
+      setTechnicalDetail(formatTechnicalDetail("test-unknown", error));
     } finally {
       setBusyAction(null);
     }
@@ -442,8 +648,10 @@ export function PushNotificationCard({
 
   if (loading) {
     statusText = "Verifica disponibilita notifiche...";
-  } else if (!deviceState.supported) {
+  } else if (!deviceState.notificationSupported || !deviceState.pushManagerSupported) {
     statusText = "Questo dispositivo non supporta le notifiche push.";
+  } else if (!deviceState.serviceWorkerSupported) {
+    statusText = "Il dispositivo non riesce a preparare le notifiche. Ricarica la pagina e riprova.";
   } else if (iosNeedsHomeScreen) {
     statusText =
       "Su iPhone aggiungi l'app alla schermata Home, poi riaprila da li per attivare le notifiche.";
@@ -503,6 +711,9 @@ export function PushNotificationCard({
 
         {error ? <p className="text-xs text-[#ff8c8c]">{error}</p> : null}
         {message ? <p className="text-xs text-[var(--app-primary)]">{message}</p> : null}
+        {technicalDetail ? (
+          <p className="text-xs text-[var(--app-muted)]">{technicalDetail}</p>
+        ) : null}
 
         {canSendTest ? (
           <SecondaryButton disabled={busyAction !== null} onClick={handleTest}>
