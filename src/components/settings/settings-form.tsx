@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { PrimaryButton } from "@/components/ui/buttons";
 import { SecondaryButton } from "@/components/ui/buttons";
 import { ProfileCard } from "@/components/settings/profile-card";
+import { PushNotificationCard } from "@/components/settings/push-notification-card";
 import {
   USER_SETTINGS_AVATAR_ACCEPTED_TYPES,
   USER_SETTINGS_AVATAR_MAX_DATA_URL_LENGTH,
@@ -36,6 +37,11 @@ type SettingsApiResponse =
       ok: false;
       message?: string;
     };
+
+type SaveSettingsResult = {
+  ok: boolean;
+  message?: string;
+};
 
 type ToggleFieldName =
   | "workoutRemindersEnabled"
@@ -288,6 +294,51 @@ export function SettingsForm({ initialSettings, user }: SettingsFormProps) {
     }));
   }
 
+  async function saveSettingsPatch(
+    partial: Partial<UserSettingsDto>,
+  ): Promise<SaveSettingsResult> {
+    try {
+      const response = await fetch("/api/settings", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(partial),
+      });
+
+      const data = (await response.json()) as SettingsApiResponse;
+
+      if (!response.ok || !data.ok) {
+        return {
+          ok: false,
+          message: data.ok
+            ? "Impossibile salvare le impostazioni."
+            : data.message ?? "Impossibile salvare le impostazioni.",
+        };
+      }
+
+      const sanitizedSettings = sanitizeUserSettingsDto(data.settings);
+
+      setForm((current) => ({
+        ...current,
+        ...partial,
+        pushNotificationsEnabled: sanitizedSettings.pushNotificationsEnabled,
+      }));
+      setSavedForm((current) => ({
+        ...current,
+        ...partial,
+        pushNotificationsEnabled: sanitizedSettings.pushNotificationsEnabled,
+      }));
+
+      return { ok: true };
+    } catch {
+      return {
+        ok: false,
+        message: "Impossibile salvare le impostazioni. Riprova.",
+      };
+    }
+  }
+
   async function handleAvatarChange(
     event: React.ChangeEvent<HTMLInputElement>,
   ) {
@@ -421,55 +472,60 @@ export function SettingsForm({ initialSettings, user }: SettingsFormProps) {
           <p className="mt-1 text-sm text-[var(--app-muted)]">
             Scegli quali promemoria vuoi ricevere e quando.
           </p>
-          <p className="mt-2 text-sm text-[var(--app-muted)]">
-            Queste preferenze preparano i promemoria. L&apos;invio delle notifiche
-            sara attivato piu avanti.
-          </p>
         </div>
 
         <div className="space-y-3">
-        <ToggleField
-          label="Promemoria allenamenti"
-          description="Ti ricordano le sedute previste nel momento giusto."
-          checked={form.workoutRemindersEnabled}
-          disabled={loading}
-          onChange={(value) => updateBooleanField("workoutRemindersEnabled", value)}
-        />
-        <ToggleField
-          label="Promemoria nutrizione"
-          description="Tieni il ritmo con i check-in dei pasti e della giornata."
-          checked={form.nutritionRemindersEnabled}
-          disabled={loading}
-          onChange={(value) => updateBooleanField("nutritionRemindersEnabled", value)}
-        />
-        <ToggleField
-          label="Riepilogo settimanale"
-          description="Ricevi un riepilogo rapido dei progressi della settimana."
-          checked={form.weeklyReviewEnabled}
-          disabled={loading}
-          onChange={(value) => updateBooleanField("weeklyReviewEnabled", value)}
-        />
-        <ToggleField
-          label="Suggerimenti del coach"
-          description="Mostra consigli contestuali dentro l'app."
-          checked={form.coachSuggestionsEnabled}
-          disabled={loading}
-          onChange={(value) => updateBooleanField("coachSuggestionsEnabled", value)}
-        />
-        <ToggleField
-          label="Notifiche email"
-          description="Usate solo quando abilitate per gli avvisi principali."
-          checked={form.emailNotificationsEnabled}
-          disabled={loading}
-          onChange={(value) => updateBooleanField("emailNotificationsEnabled", value)}
-        />
-        <ToggleField
-          label="Notifiche push"
-          description="Pronte per quando l'app avra notifiche native attive."
-          checked={form.pushNotificationsEnabled}
-          disabled={loading}
-          onChange={(value) => updateBooleanField("pushNotificationsEnabled", value)}
-        />
+          <ToggleField
+            label="Promemoria allenamenti"
+            description="Ti ricordano le sedute previste nel momento giusto."
+            checked={form.workoutRemindersEnabled}
+            disabled={loading}
+            onChange={(value) => updateBooleanField("workoutRemindersEnabled", value)}
+          />
+          <ToggleField
+            label="Promemoria nutrizione"
+            description="Tieni il ritmo con i check-in dei pasti e della giornata."
+            checked={form.nutritionRemindersEnabled}
+            disabled={loading}
+            onChange={(value) => updateBooleanField("nutritionRemindersEnabled", value)}
+          />
+          <ToggleField
+            label="Riepilogo settimanale"
+            description="Ricevi un riepilogo rapido dei progressi della settimana."
+            checked={form.weeklyReviewEnabled}
+            disabled={loading}
+            onChange={(value) => updateBooleanField("weeklyReviewEnabled", value)}
+          />
+          <ToggleField
+            label="Suggerimenti del coach"
+            description="Mostra consigli contestuali dentro l'app."
+            checked={form.coachSuggestionsEnabled}
+            disabled={loading}
+            onChange={(value) => updateBooleanField("coachSuggestionsEnabled", value)}
+          />
+          <ToggleField
+            label="Notifiche email"
+            description="Usate solo quando abilitate per gli avvisi principali."
+            checked={form.emailNotificationsEnabled}
+            disabled={loading}
+            onChange={(value) => updateBooleanField("emailNotificationsEnabled", value)}
+          />
+          <PushNotificationCard
+            pushPreferenceEnabled={form.pushNotificationsEnabled}
+            disabled={loading}
+            onPushPreferenceSync={async (enabled) => {
+              const result = await saveSettingsPatch({
+                pushNotificationsEnabled: enabled,
+              });
+
+              if (result.ok) {
+                setMessage(null);
+                setError(null);
+              }
+
+              return result;
+            }}
+          />
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">

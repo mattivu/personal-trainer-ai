@@ -41,8 +41,29 @@ model User {
   nutritionProfile  NutritionProfile?
   mealEntries       MealEntry[]
   bodyWeightEntries BodyWeightEntry[]
+  pushSubscriptions UserPushSubscription[]
 
   @@map("users")
+}
+
+model UserPushSubscription {
+  id           Int      @id @default(autoincrement())
+  userId       Int
+  endpoint     String   @db.LongText
+  endpointHash String   @unique @db.VarChar(64)
+  p256dh       String   @db.Text
+  auth         String   @db.Text
+  userAgent    String?  @db.Text
+  platform     String?  @db.VarChar(120)
+  revokedAt    DateTime?
+  lastSeenAt   DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, revokedAt])
+  @@map("user_push_subscriptions")
 }
 
 model UserSettings {
