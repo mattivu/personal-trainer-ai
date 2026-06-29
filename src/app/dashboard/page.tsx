@@ -2,6 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import { AppBottomNav } from "@/components/app-bottom-nav";
+import { ProfileLink } from "@/components/ui/profile-link";
+import { getUserDisplayLabel } from "@/components/ui/user-avatar";
 import { ChangeGoalCard } from "@/components/change-goal-card";
 import { AppCard } from "@/components/ui/app-card";
 import { AppPage } from "@/components/ui/app-page";
@@ -20,7 +22,6 @@ import {
   getWeekStart,
   getWorkoutScheduleForProgram,
 } from "@/lib/workout-schedule";
-import { LogoutButton } from "./logout-button";
 
 export const dynamic = "force-dynamic";
 
@@ -90,16 +91,6 @@ function getGreeting(name: string | null) {
 
   const firstName = name.trim().split(/\s+/)[0];
   return `Ciao, ${firstName}`;
-}
-
-function getInitial(name: string | null) {
-  const fallback = "U";
-
-  if (!name) {
-    return fallback;
-  }
-
-  return name.trim().charAt(0).toUpperCase() || fallback;
 }
 
 function getProgramWindow(program: {
@@ -461,7 +452,7 @@ export default async function DashboardPage() {
   const weekEnd = getWeekEnd(now);
 
   try {
-    const [activeProgram, nutritionProfile, dailyNutritionData, bodyWeightOverview] =
+    const [activeProgram, nutritionProfile, dailyNutritionData, bodyWeightOverview, userSettings] =
       await Promise.all([
         prisma.trainingProgram.findFirst({
           where: {
@@ -514,6 +505,15 @@ export default async function DashboardPage() {
         }),
         getDailyNutritionData(user.id),
         getBodyWeightOverviewForUser(user.id),
+        prisma.userSettings.findUnique({
+          where: {
+            userId: user.id,
+          },
+          select: {
+            displayName: true,
+            avatarDataUrl: true,
+          },
+        }),
       ]);
 
     const activeWorkouts =
@@ -575,6 +575,11 @@ export default async function DashboardPage() {
       { href: "/nutrition", label: "Nutrizione", icon: NutritionIcon },
       { href: "/body-weight", label: "Peso", icon: WeightIcon },
     ];
+    const userDisplayLabel = getUserDisplayLabel({
+      displayName: userSettings?.displayName ?? null,
+      name: user.name,
+      email: user.email,
+    });
 
     return (
       <AppPage contentClassName="pb-4">
@@ -585,10 +590,15 @@ export default async function DashboardPage() {
                 {formatDashboardDate(now)}
               </p>
               <h1 className="mt-1 text-[30px] font-bold leading-[1.02] tracking-[-0.03em] text-[var(--app-text)]">
-                {getGreeting(user.name)}
+                {getGreeting(userDisplayLabel)}
               </h1>
             </div>
-            <LogoutButton initial={getInitial(user.name)} />
+            <ProfileLink
+              email={user.email}
+              name={user.name}
+              displayName={userSettings?.displayName ?? null}
+              avatarDataUrl={userSettings?.avatarDataUrl ?? null}
+            />
           </header>
 
           <section className="space-y-2.5">
@@ -863,7 +873,7 @@ export default async function DashboardPage() {
                 {getGreeting(user.name)}
               </h1>
             </div>
-            <LogoutButton initial={getInitial(user.name)} />
+            <ProfileLink email={user.email} name={user.name} />
           </header>
 
           <AppCard className="rounded-[24px] px-5 py-5">

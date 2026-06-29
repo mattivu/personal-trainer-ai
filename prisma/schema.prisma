@@ -33,6 +33,7 @@ model User {
   updatedAt         DateTime          @updatedAt
 
   profile           UserProfile?
+  settings          UserSettings?
   sessions          UserSession[]
   onboardingAnswers OnboardingAnswer[]
   trainingPrograms  TrainingProgram[]
@@ -42,6 +43,27 @@ model User {
   bodyWeightEntries BodyWeightEntry[]
 
   @@map("users")
+}
+
+model UserSettings {
+  id                         Int      @id @default(autoincrement())
+  userId                     Int      @unique
+  displayName                String?
+  avatarDataUrl              String?  @db.LongText
+  workoutRemindersEnabled    Boolean  @default(false)
+  nutritionRemindersEnabled  Boolean  @default(false)
+  weeklyReviewEnabled        Boolean  @default(true)
+  coachSuggestionsEnabled    Boolean  @default(true)
+  emailNotificationsEnabled  Boolean  @default(false)
+  pushNotificationsEnabled   Boolean  @default(false)
+  preferredReminderTime      String?
+  timezone                   String?
+  createdAt                  DateTime @default(now())
+  updatedAt                  DateTime @updatedAt
+
+  user                       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_settings")
 }
 
 model NutritionProfile {
