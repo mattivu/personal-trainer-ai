@@ -4,9 +4,13 @@ import { prisma } from "@/lib/prisma";
 import {
   defaultUserSettings,
   isRecord,
+  normalizePreferredReminderTime,
+  normalizeTimezone,
+  sanitizeUserSettingsDto,
   USER_SETTINGS_AVATAR_ACCEPTED_TYPES,
   USER_SETTINGS_AVATAR_MAX_DATA_URL_LENGTH,
   USER_SETTINGS_DISPLAY_NAME_MAX_LENGTH,
+  USER_SETTINGS_TIMEZONE_FALLBACK,
   type UserSettingsDto,
   type UserSettingsUpdateInput,
 } from "./user-settings-shared";
@@ -31,40 +35,6 @@ const allowedFields = [
 type ValidationResult =
   | { ok: true; value: UserSettingsUpdateInput }
   | { ok: false; message: string };
-
-function normalizeReminderTime(value: string) {
-  const trimmed = value.trim();
-
-  if (trimmed.length === 0) {
-    return null;
-  }
-
-  if (!/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(trimmed)) {
-    return "__invalid__";
-  }
-
-  return trimmed;
-}
-
-function normalizeTimezone(value: string) {
-  const trimmed = value.trim();
-
-  if (trimmed.length === 0) {
-    return null;
-  }
-
-  if (trimmed.length > 100) {
-    return "__invalid__";
-  }
-
-  try {
-    return new Intl.DateTimeFormat("en-US", {
-      timeZone: trimmed,
-    }).resolvedOptions().timeZone;
-  } catch {
-    return "__invalid__";
-  }
-}
 
 function normalizeDisplayName(value: string) {
   const trimmed = value.trim();
@@ -106,7 +76,7 @@ function normalizeAvatarDataUrl(value: string) {
 }
 
 function toUserSettingsDto(settings: UserSettings): UserSettingsDto {
-  return {
+  return sanitizeUserSettingsDto({
     displayName: settings.displayName,
     avatarDataUrl: settings.avatarDataUrl,
     workoutRemindersEnabled: settings.workoutRemindersEnabled,
@@ -117,7 +87,7 @@ function toUserSettingsDto(settings: UserSettings): UserSettingsDto {
     pushNotificationsEnabled: settings.pushNotificationsEnabled,
     preferredReminderTime: settings.preferredReminderTime,
     timezone: settings.timezone,
-  };
+  });
 }
 
 export function validateUserSettingsInput(input: unknown): ValidationResult {
@@ -210,12 +180,12 @@ export function validateUserSettingsInput(input: unknown): ValidationResult {
     const normalizedTime =
       input.preferredReminderTime === null
         ? null
-        : normalizeReminderTime(input.preferredReminderTime);
+        : normalizePreferredReminderTime(input.preferredReminderTime);
 
     if (normalizedTime === "__invalid__") {
       return {
         ok: false,
-        message: "Inserisci un orario nel formato HH:MM.",
+        message: "Inserisci un orario nel formato HH:mm.",
       };
     }
 
@@ -240,7 +210,10 @@ export function validateUserSettingsInput(input: unknown): ValidationResult {
       };
     }
 
-    updates.timezone = normalizedTimezone;
+    updates.timezone =
+      normalizedTimezone === null
+        ? USER_SETTINGS_TIMEZONE_FALLBACK
+        : normalizedTimezone;
   }
 
   return {

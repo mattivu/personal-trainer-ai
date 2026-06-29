@@ -11,6 +11,10 @@ import {
   USER_SETTINGS_AVATAR_MAX_DIMENSION,
   USER_SETTINGS_AVATAR_MAX_FILE_SIZE_BYTES,
   USER_SETTINGS_DISPLAY_NAME_MAX_LENGTH,
+  USER_SETTINGS_TIMEZONE_FALLBACK,
+  normalizePreferredReminderTime,
+  normalizeTimezone,
+  sanitizeUserSettingsDto,
   type UserSettingsDto,
 } from "@/lib/settings/user-settings-shared";
 import { getUserDisplayLabel } from "@/components/ui/user-avatar";
@@ -40,6 +44,11 @@ type ToggleFieldName =
   | "coachSuggestionsEnabled"
   | "emailNotificationsEnabled"
   | "pushNotificationsEnabled";
+
+type FieldErrors = {
+  preferredReminderTime: string | null;
+  timezone: string | null;
+};
 
 function ToggleField({
   checked,
@@ -197,13 +206,80 @@ function areSettingsEqual(left: UserSettingsDto, right: UserSettingsDto) {
 
 export function SettingsForm({ initialSettings, user }: SettingsFormProps) {
   const router = useRouter();
-  const [form, setForm] = useState<UserSettingsDto>(initialSettings);
-  const [savedForm, setSavedForm] = useState<UserSettingsDto>(initialSettings);
+  const sanitizedInitialSettings = sanitizeUserSettingsDto(initialSettings);
+  const [form, setForm] = useState<UserSettingsDto>(sanitizedInitialSettings);
+  const [savedForm, setSavedForm] = useState<UserSettingsDto>(sanitizedInitialSettings);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({
+    preferredReminderTime: null,
+    timezone: null,
+  });
   const fileInputResetKeyRef = useRef(0);
   const isDirty = !areSettingsEqual(form, savedForm);
+
+  function getClientTimezone() {
+    if (typeof Intl === "undefined" || typeof Intl.DateTimeFormat !== "function") {
+      return USER_SETTINGS_TIMEZONE_FALLBACK;
+    }
+
+    const detectedTimezone = normalizeTimezone(
+      Intl.DateTimeFormat().resolvedOptions().timeZone,
+    );
+
+    if (detectedTimezone === "__invalid__" || detectedTimezone === null) {
+      return USER_SETTINGS_TIMEZONE_FALLBACK;
+    }
+
+    return detectedTimezone;
+  }
+
+  function validateForm(nextForm: UserSettingsDto) {
+    const nextFieldErrors: FieldErrors = {
+      preferredReminderTime: null,
+      timezone: null,
+    };
+
+    const normalizedReminderTime = normalizePreferredReminderTime(
+      nextForm.preferredReminderTime,
+    );
+
+    if (normalizedReminderTime === "__invalid__") {
+      nextFieldErrors.preferredReminderTime =
+        "Inserisci un orario valido nel formato HH:mm.";
+    }
+
+    const normalizedTimezone = normalizeTimezone(nextForm.timezone);
+
+    if (normalizedTimezone === "__invalid__") {
+      nextFieldErrors.timezone = "Inserisci un fuso orario valido, ad esempio Europe/Rome.";
+    }
+
+    return nextFieldErrors;
+  }
+
+  function buildPayload(currentForm: UserSettingsDto) {
+    const normalizedReminderTime = normalizePreferredReminderTime(
+      currentForm.preferredReminderTime,
+    );
+    const normalizedTimezone = normalizeTimezone(currentForm.timezone);
+    const timezone =
+      normalizedTimezone === null ? getClientTimezone() : normalizedTimezone;
+
+    const payload: UserSettingsDto = {
+      ...currentForm,
+      preferredReminderTime:
+        normalizedReminderTime === "__invalid__" ? currentForm.preferredReminderTime : normalizedReminderTime,
+      timezone:
+        normalizedTimezone === "__invalid__" ? currentForm.timezone : timezone,
+    };
+
+    return {
+      payload,
+      fieldErrors: validateForm(payload),
+    };
+  }
 
   function updateBooleanField(name: ToggleFieldName, value: boolean) {
     setForm((current) => ({
@@ -258,6 +334,14 @@ export function SettingsForm({ initialSettings, user }: SettingsFormProps) {
     setLoading(true);
     setMessage(null);
     setError(null);
+    const { payload, fieldErrors: nextFieldErrors } = buildPayload(form);
+    setFieldErrors(nextFieldErrors);
+
+    if (nextFieldErrors.preferredReminderTime || nextFieldErrors.timezone) {
+      setLoading(false);
+      setError("Controlla i campi evidenziati e riprova.");
+      return;
+    }
 
     try {
       const response = await fetch("/api/settings", {
@@ -265,7 +349,7 @@ export function SettingsForm({ initialSettings, user }: SettingsFormProps) {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       });
 
       const data = (await response.json()) as SettingsApiResponse;
@@ -275,10 +359,11 @@ export function SettingsForm({ initialSettings, user }: SettingsFormProps) {
         return;
       }
 
-      setForm(data.settings);
-      setSavedForm(data.settings);
+      const sanitizedSettings = sanitizeUserSettingsDto(data.settings);
+
+      setForm(sanitizedSettings);
+      setSavedForm(sanitizedSettings);
       setMessage("Impostazioni salvate.");
-      router.refresh();
     } catch {
       setError("Impossibile salvare le impostazioni. Riprova.");
     } finally {
@@ -336,6 +421,10 @@ export function SettingsForm({ initialSettings, user }: SettingsFormProps) {
           <p className="mt-1 text-sm text-[var(--app-muted)]">
             Scegli quali promemoria vuoi ricevere e quando.
           </p>
+          <p className="mt-2 text-sm text-[var(--app-muted)]">
+            Queste preferenze preparano i promemoria. L&apos;invio delle notifiche
+            sara attivato piu avanti.
+          </p>
         </div>
 
         <div className="space-y-3">
@@ -392,14 +481,28 @@ export function SettingsForm({ initialSettings, user }: SettingsFormProps) {
               type="time"
               value={form.preferredReminderTime ?? ""}
               disabled={loading}
-              onChange={(event) =>
+              onChange={(event) => {
+                const preferredReminderTime = event.currentTarget.value || null;
                 setForm((current) => ({
                   ...current,
-                  preferredReminderTime: event.currentTarget.value || null,
-                }))
-              }
+                  preferredReminderTime,
+                }));
+                setFieldErrors((current) => ({
+                  ...current,
+                  preferredReminderTime:
+                    normalizePreferredReminderTime(preferredReminderTime) === "__invalid__"
+                      ? "Inserisci un orario valido nel formato HH:mm."
+                      : null,
+                }));
+                setError(null);
+              }}
               className="w-full rounded-[18px] border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-[var(--app-text)] outline-none transition focus:border-white/18 focus:bg-white/[0.045]"
             />
+            {fieldErrors.preferredReminderTime ? (
+              <span className="block text-sm text-[#ff8c8c]">
+                {fieldErrors.preferredReminderTime}
+              </span>
+            ) : null}
           </label>
 
           <label className="block space-y-2">
@@ -410,15 +513,38 @@ export function SettingsForm({ initialSettings, user }: SettingsFormProps) {
               type="text"
               value={form.timezone ?? ""}
               disabled={loading}
-              onChange={(event) =>
+              onChange={(event) => {
+                const timezone = event.currentTarget.value;
                 setForm((current) => ({
                   ...current,
-                  timezone: event.currentTarget.value || null,
+                  timezone,
+                }));
+                setFieldErrors((current) => ({
+                  ...current,
+                  timezone:
+                    normalizeTimezone(timezone) === "__invalid__"
+                      ? "Inserisci un fuso orario valido, ad esempio Europe/Rome."
+                      : null,
+                }));
+                setError(null);
+              }}
+              onBlur={() =>
+                setForm((current) => ({
+                  ...current,
+                  timezone:
+                    normalizeTimezone(current.timezone) === null
+                      ? getClientTimezone()
+                      : current.timezone,
                 }))
               }
               placeholder="Europe/Rome"
               className="w-full rounded-[18px] border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-[var(--app-text)] outline-none transition focus:border-white/18 focus:bg-white/[0.045]"
             />
+            {fieldErrors.timezone ? (
+              <span className="block text-sm text-[#ff8c8c]">
+                {fieldErrors.timezone}
+              </span>
+            ) : null}
           </label>
         </div>
       </section>
