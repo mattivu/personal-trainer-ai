@@ -529,7 +529,7 @@ export function SettingsForm({ initialSettings, user }: SettingsFormProps) {
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <label className="block space-y-2">
+          <label className="block min-w-0 space-y-2">
             <span className="text-sm font-medium text-[var(--app-text)]">
               Orario preferito
             </span>
@@ -552,7 +552,7 @@ export function SettingsForm({ initialSettings, user }: SettingsFormProps) {
                 }));
                 setError(null);
               }}
-              className="w-full rounded-[18px] border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-[var(--app-text)] outline-none transition focus:border-white/18 focus:bg-white/[0.045]"
+              className="box-border w-full min-w-0 max-w-full appearance-none rounded-[18px] border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-[var(--app-text)] outline-none transition focus:border-white/18 focus:bg-white/[0.045]"
             />
             {fieldErrors.preferredReminderTime ? (
               <span className="block text-sm text-[#ff8c8c]">
@@ -561,7 +561,7 @@ export function SettingsForm({ initialSettings, user }: SettingsFormProps) {
             ) : null}
           </label>
 
-          <label className="block space-y-2">
+          <label className="block min-w-0 space-y-2">
             <span className="text-sm font-medium text-[var(--app-text)]">
               Fuso orario
             </span>
@@ -594,7 +594,7 @@ export function SettingsForm({ initialSettings, user }: SettingsFormProps) {
                 }))
               }
               placeholder="Europe/Rome"
-              className="w-full rounded-[18px] border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-[var(--app-text)] outline-none transition focus:border-white/18 focus:bg-white/[0.045]"
+              className="box-border w-full min-w-0 max-w-full rounded-[18px] border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-[var(--app-text)] outline-none transition focus:border-white/18 focus:bg-white/[0.045]"
             />
             {fieldErrors.timezone ? (
               <span className="block text-sm text-[#ff8c8c]">

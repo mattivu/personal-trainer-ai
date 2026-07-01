@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { SecondaryButton } from "@/components/ui/buttons";
 
 type PushNotificationCardProps = {
   pushPreferenceEnabled: boolean;
@@ -291,8 +290,18 @@ function ToggleControl({
       onClick={onClick}
       className="peer relative inline-flex h-7 w-12 shrink-0 items-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--app-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-transparent disabled:cursor-not-allowed"
     >
-      <span className="absolute inset-0 rounded-full border border-white/10 bg-white/8 transition peer-checked:border-[var(--app-primary-border)] peer-checked:bg-[rgba(208,216,43,0.22)] peer-disabled:opacity-50" />
-      <span className="absolute left-1 h-5 w-5 rounded-full bg-white shadow-[0_4px_12px_rgba(0,0,0,0.3)] transition peer-checked:translate-x-5 peer-checked:bg-[var(--app-primary)]" />
+      <span
+        className={`absolute inset-0 rounded-full border transition ${
+          checked
+            ? "border-[var(--app-primary-border)] bg-[rgba(208,216,43,0.22)]"
+            : "border-white/10 bg-white/8"
+        } ${disabled ? "opacity-50" : ""}`}
+      />
+      <span
+        className={`absolute left-1 h-5 w-5 rounded-full bg-white shadow-[0_4px_12px_rgba(0,0,0,0.3)] transition ${
+          checked ? "translate-x-5 bg-[var(--app-primary)]" : ""
+        }`}
+      />
     </button>
   );
 }
@@ -304,7 +313,7 @@ export function PushNotificationCard({
 }: PushNotificationCardProps) {
   const [deviceState, setDeviceState] = useState<DeviceState>(initialDeviceState);
   const [loading, setLoading] = useState(true);
-  const [busyAction, setBusyAction] = useState<"enable" | "disable" | "test" | null>(null);
+  const [busyAction, setBusyAction] = useState<"enable" | "disable" | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [technicalDetail, setTechnicalDetail] = useState<string | null>(null);
@@ -554,7 +563,7 @@ export function PushNotificationCard({
       }
 
       await refreshState();
-      setMessage("Notifiche attive su questo dispositivo.");
+      setMessage(null);
     } catch (error) {
       setError("Non sono riuscito ad attivare le notifiche su questo dispositivo.");
       setTechnicalDetail(formatTechnicalDetail("enable-unknown", error));
@@ -624,49 +633,10 @@ export function PushNotificationCard({
       }
 
       await refreshState();
-      setMessage("Notifiche disattivate su questo dispositivo.");
+      setMessage(null);
     } catch (error) {
       setError("Impossibile disattivare le notifiche push su questo dispositivo.");
       setTechnicalDetail(formatTechnicalDetail("disable-unknown", error));
-    } finally {
-      setBusyAction(null);
-    }
-  }
-
-  async function handleTest() {
-    if (busyAction || disabled) {
-      return;
-    }
-
-    setBusyAction("test");
-    setMessage(null);
-    setError(null);
-    setTechnicalDetail(null);
-
-    try {
-      const response = await fetch("/api/push/test", {
-        method: "POST",
-      });
-      const data = (await response.json()) as {
-        ok: boolean;
-        message?: string;
-        deliveredCount?: number;
-      };
-
-      if (!response.ok || !data.ok) {
-        setError(data.message ?? "Impossibile inviare la notifica di prova.");
-        return;
-      }
-
-      setMessage(
-        data.deliveredCount && data.deliveredCount > 1
-          ? `Notifica di prova inviata a ${data.deliveredCount} dispositivi attivi.`
-          : "Notifica di prova inviata.",
-      );
-      await refreshState();
-    } catch (error) {
-      setError("Impossibile inviare la notifica di prova.");
-      setTechnicalDetail(formatTechnicalDetail("test-unknown", error));
     } finally {
       setBusyAction(null);
     }
@@ -689,7 +659,7 @@ export function PushNotificationCard({
     handleToggleChange(!activeOnDevice);
   }
 
-  let statusText = "Non attive su questo dispositivo";
+  let statusText: string | null = null;
 
   if (loading) {
     statusText = "Verifica disponibilita notifiche...";
@@ -707,16 +677,8 @@ export function PushNotificationCard({
   } else if (deviceState.permission === "denied") {
     statusText =
       "Le notifiche sono bloccate nel browser. Riattivale dalle impostazioni del sito.";
-  } else if (activeOnDevice) {
-    statusText = "Attive su questo dispositivo";
   }
 
-  const canSendTest =
-    !disabled &&
-    !loading &&
-    serverConfigured &&
-    deviceState.permission === "granted" &&
-    deviceState.deviceSubscribed;
   const toggleDisabled = disabled || busyAction !== null || loading;
 
   return (
@@ -738,26 +700,14 @@ export function PushNotificationCard({
       </div>
 
       <div className="mt-3 space-y-2">
-        <p className="flex items-center gap-2 text-xs text-[var(--app-muted)]">
-          {activeOnDevice ? (
-            <span
-              aria-hidden="true"
-              className="h-2 w-2 rounded-full bg-[var(--app-primary)] shadow-[0_0_0_4px_rgba(208,216,43,0.12)]"
-            />
-          ) : null}
-          <span>{statusText}</span>
-        </p>
+        {statusText ? (
+          <p className="text-xs text-[var(--app-muted)]">{statusText}</p>
+        ) : null}
 
         {error ? <p className="text-xs text-[#ff8c8c]">{error}</p> : null}
         {message ? <p className="text-xs text-[var(--app-primary)]">{message}</p> : null}
         {technicalDetail ? (
           <p className="text-xs text-[var(--app-muted)]">{technicalDetail}</p>
-        ) : null}
-
-        {canSendTest ? (
-          <SecondaryButton disabled={busyAction !== null} onClick={handleTest}>
-            {busyAction === "test" ? "Invio..." : "Invia notifica di prova"}
-          </SecondaryButton>
         ) : null}
       </div>
     </div>
