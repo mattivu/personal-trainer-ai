@@ -1,8 +1,9 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { AuthField, AuthInput, AuthShell } from "@/components/auth/auth-shell";
+import { PasswordInput } from "@/components/auth/password-input";
 
 type LoginResponse = {
   ok: boolean;
@@ -20,12 +21,12 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<LoginResponse | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setLoading(true);
-    setResult(null);
+    setError(null);
 
     try {
       const response = await fetch("/api/auth/login", {
@@ -40,7 +41,6 @@ export default function LoginPage() {
       });
 
       const data = (await response.json()) as LoginResponse;
-      setResult(data);
 
       if (data.ok && data.user) {
         router.push(
@@ -49,80 +49,57 @@ export default function LoginPage() {
             : "/onboarding"
         );
         router.refresh();
+        return;
       }
+
+      setError(data.message);
     } catch {
-      setResult({
-        ok: false,
-        message: "Errore di connessione. Riprova.",
-      });
+      setError("Errore di connessione. Riprova.");
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <main className="min-h-screen bg-neutral-950 text-white flex items-center justify-center px-6 py-12">
-      <section className="w-full max-w-md">
-        <p className="text-sm uppercase tracking-[0.3em] text-neutral-500 mb-4">
-          Personal Trainer AI
-        </p>
+    <AuthShell
+      title="Accedi"
+      subtitle="Riprendi il tuo percorso di allenamento."
+      footerPrompt="Non hai un account?"
+      footerHref="/register"
+      footerLabel="Registrati"
+      error={error}
+    >
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <AuthField label="Email">
+          <AuthInput
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            placeholder="nome@email.it"
+            type="email"
+            autoComplete="email"
+            inputMode="email"
+            required
+          />
+        </AuthField>
 
-        <h1 className="text-3xl font-bold mb-3">Accedi</h1>
+        <AuthField label="Password">
+          <PasswordInput
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            placeholder="La tua password"
+            autoComplete="current-password"
+            required
+          />
+        </AuthField>
 
-        <p className="text-neutral-400 mb-8">
-          Entra nel tuo account per continuare il percorso di allenamento.
-        </p>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm text-neutral-300 mb-2">
-              Email
-            </label>
-            <input
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              className="w-full rounded-xl border border-neutral-800 bg-neutral-900 px-4 py-3 text-white outline-none focus:border-white"
-              placeholder="nome@email.it"
-              type="email"
-              autoComplete="email"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm text-neutral-300 mb-2">
-              Password
-            </label>
-            <input
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              className="w-full rounded-xl border border-neutral-800 bg-neutral-900 px-4 py-3 text-white outline-none focus:border-white"
-              placeholder="La tua password"
-              type="password"
-              autoComplete="current-password"
-            />
-          </div>
-
-          <button
-            disabled={loading}
-            className="w-full rounded-xl bg-white text-neutral-950 font-semibold px-4 py-3 disabled:opacity-50"
-          >
-            {loading ? "Accesso in corso..." : "Accedi"}
-          </button>
-        </form>
-
-        <p className="mt-6 text-center text-sm text-neutral-400">
-          Non hai ancora un account?{" "}
-          <Link href="/register" className="font-medium text-white hover:underline">
-            Registrati
-          </Link>
-        </p>
-
-        {result && !result.ok && (
-          <div className="mt-6 rounded-xl border border-red-800 bg-red-950 px-4 py-3 text-sm text-red-200">
-            <p>{result.message}</p>
-          </div>
-        )}
-      </section>
-    </main>
+        <button
+          type="submit"
+          disabled={loading}
+          className="app-primary-button w-full disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {loading ? "Accesso in corso..." : "Accedi"}
+        </button>
+      </form>
+    </AuthShell>
   );
 }

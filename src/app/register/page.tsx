@@ -1,8 +1,9 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { AuthField, AuthInput, AuthShell } from "@/components/auth/auth-shell";
+import { PasswordInput } from "@/components/auth/password-input";
 
 type RegisterResponse = {
   ok: boolean;
@@ -20,14 +21,21 @@ export default function RegisterPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<RegisterResponse | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setError(null);
+
+    if (password !== confirmPassword) {
+      setError("Le password non coincidono.");
+      return;
+    }
+
     setLoading(true);
-    setResult(null);
 
     try {
       const response = await fetch("/api/auth/register", {
@@ -43,103 +51,84 @@ export default function RegisterPage() {
       });
 
       const data = (await response.json()) as RegisterResponse;
-      setResult(data);
 
       if (data.ok) {
         router.push("/onboarding");
         router.refresh();
+        return;
       }
+
+      setError(data.message);
     } catch {
-      setResult({
-        ok: false,
-        message: "Errore di connessione. Riprova.",
-      });
+      setError("Errore di connessione. Riprova.");
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <main className="min-h-screen bg-neutral-950 text-white flex items-center justify-center px-6 py-12">
-      <section className="w-full max-w-md">
-        <p className="text-sm uppercase tracking-[0.3em] text-neutral-500 mb-4">
-          Personal Trainer AI
-        </p>
+    <AuthShell
+      title="Crea il tuo account"
+      subtitle="Inizia a costruire il tuo programma personalizzato."
+      footerPrompt="Hai gia un account?"
+      footerHref="/login"
+      footerLabel="Accedi"
+      error={error}
+    >
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <AuthField label="Nome">
+          <AuthInput
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            placeholder="Mario Rossi"
+            autoComplete="name"
+            required
+            minLength={2}
+          />
+        </AuthField>
 
-        <h1 className="text-3xl font-bold mb-3">
-          Crea il tuo account
-        </h1>
+        <AuthField label="Email">
+          <AuthInput
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            placeholder="nome@email.it"
+            type="email"
+            autoComplete="email"
+            inputMode="email"
+            required
+          />
+        </AuthField>
 
-        <p className="text-neutral-400 mb-8">
-          Crea l'account e completa subito il questionario obbligatorio per
-          preparare il tuo programma.
-        </p>
+        <AuthField label="Password">
+          <PasswordInput
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            placeholder="Minimo 8 caratteri"
+            autoComplete="new-password"
+            required
+            minLength={8}
+          />
+        </AuthField>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm text-neutral-300 mb-2">
-              Nome
-            </label>
-            <input
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              className="w-full rounded-xl border border-neutral-800 bg-neutral-900 px-4 py-3 text-white outline-none focus:border-white"
-              placeholder="Mario Rossi"
-              autoComplete="name"
-            />
-          </div>
+        <AuthField label="Conferma password">
+          <PasswordInput
+            value={confirmPassword}
+            onChange={(event) => setConfirmPassword(event.target.value)}
+            placeholder="Ripeti la password"
+            autoComplete="new-password"
+            required
+            minLength={8}
+          />
+        </AuthField>
 
-          <div>
-            <label className="block text-sm text-neutral-300 mb-2">
-              Email
-            </label>
-            <input
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              className="w-full rounded-xl border border-neutral-800 bg-neutral-900 px-4 py-3 text-white outline-none focus:border-white"
-              placeholder="nome@email.it"
-              type="email"
-              autoComplete="email"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm text-neutral-300 mb-2">
-              Password
-            </label>
-            <input
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              className="w-full rounded-xl border border-neutral-800 bg-neutral-900 px-4 py-3 text-white outline-none focus:border-white"
-              placeholder="Minimo 8 caratteri"
-              type="password"
-              autoComplete="new-password"
-            />
-          </div>
-
-          <button
-            disabled={loading}
-            className="w-full rounded-xl bg-white text-neutral-950 font-semibold px-4 py-3 disabled:opacity-50"
-          >
-            {loading ? "Creazione account..." : "Crea account"}
-          </button>
-        </form>
-
-        <p className="mt-6 text-center text-sm text-neutral-400">
-          Hai già un account?{" "}
-          <Link href="/login" className="font-medium text-white hover:underline">
-            Accedi
-          </Link>
-        </p>
-
-        {result && !result.ok && (
-          <div
-            className="mt-6 rounded-xl border border-red-800 bg-red-950 px-4 py-3 text-sm text-red-200"
-          >
-            <p>{result.message}</p>
-          </div>
-        )}
-      </section>
-    </main>
+        <button
+          type="submit"
+          disabled={loading}
+          className="app-primary-button w-full disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {loading ? "Creazione account..." : "Crea account"}
+        </button>
+      </form>
+    </AuthShell>
   );
 }
